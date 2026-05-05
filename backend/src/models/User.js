@@ -72,7 +72,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // Indexes for fast lookup
-userSchema.index({ email: 1 });
 userSchema.index({ deviceFingerprint: 1 });
 
 // Never return sensitive fields in JSON
