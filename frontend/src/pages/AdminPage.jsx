@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
@@ -11,7 +12,9 @@ import {
 
 const AdminPage = () => {
   const { request } = useApi();
-  const [tab, setTab] = useState('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'dashboard';
+  
   const [dashboard, setDashboard] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [users, setUsers] = useState([]);
@@ -175,31 +178,6 @@ const AdminPage = () => {
 
   return (
     <div className="admin-layout fade-in">
-      {/* Admin Sidebar Navigation */}
-      <aside className="admin-nav">
-        <div className="admin-nav-header">
-          <ShieldCheck size={24} color="var(--blue-light)" />
-          <h3>Admin Control</h3>
-        </div>
-        <div className="admin-nav-links">
-          <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>
-            <BarChart3 size={18} /> Overview
-          </button>
-          <button className={tab === 'submissions' ? 'active' : ''} onClick={() => setTab('submissions')}>
-            <Clock size={18} /> User Submissions
-          </button>
-          <button className={tab === 'tasks' ? 'active' : ''} onClick={() => setTab('tasks')}>
-            <ListTodo size={18} /> Task Management
-          </button>
-          <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>
-            <Users size={18} /> User Directory
-          </button>
-          <button className={tab === 'announcements' ? 'active' : ''} onClick={() => setTab('announcements')}>
-            <Bell size={18} /> Announcements
-          </button>
-        </div>
-      </aside>
-
       {/* Main Admin Content */}
       <div className="admin-main">
         <header className="admin-header">

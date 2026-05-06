@@ -12,7 +12,11 @@ const Sidebar = () => {
 
   if (isAdmin) {
     navItems = [
-      { to: '/admin', label: 'Admin Panel', icon: Shield },
+      { to: '/admin?tab=dashboard', label: 'Overview', icon: Shield },
+      { to: '/admin?tab=submissions', label: 'Submissions', icon: Clock },
+      { to: '/admin?tab=tasks', label: 'Tasks Mgmt', icon: ListTodo },
+      { to: '/admin?tab=users', label: 'User Directory', icon: Users },
+      { to: '/admin?tab=announcements', label: 'Announcements', icon: Bell },
     ];
   } else {
     navItems = [
@@ -23,7 +27,10 @@ const Sidebar = () => {
     ];
   }
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    const [pathname, search] = path.split('?');
+    return location.pathname === pathname && (!search || location.search.includes(search));
+  };
 
   return (
     <>
