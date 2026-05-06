@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users } from 'lucide-react';
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);

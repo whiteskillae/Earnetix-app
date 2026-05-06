@@ -3,7 +3,7 @@ import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Zap, Upload, Image, FileText, Search } from 'lucide-react';
+import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock } from 'lucide-react';
 
 const TasksPage = () => {
   const { request } = useApi();
