@@ -5,9 +5,33 @@ import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 import { 
-  Users, ListTodo, Clock, CheckCircle, XCircle, Eye, Plus, Zap, 
-  Bell, Trash2, ShieldAlert, ShieldCheck, Search, Filter,
-  Settings, History, BarChart3, Edit, MoreVertical
+  Users, 
+  CheckCircle, 
+  Clock, 
+  Trash2, 
+  Plus, 
+  ExternalLink, 
+  Check, 
+  X, 
+  AlertCircle,
+  Eye,
+  Megaphone,
+  BarChart3,
+  ListTodo,
+  FileText,
+  Upload,
+  Zap,
+  Edit,
+  Search,
+  Filter,
+  MoreVertical,
+  XCircle,
+  ArrowRight,
+  ShieldCheck,
+  ShieldAlert,
+  History,
+  Settings,
+  Bell
 } from 'lucide-react';
 
 const AdminPage = () => {
@@ -120,12 +144,24 @@ const AdminPage = () => {
 
   const handleCreateOrUpdateTask = async (e) => {
     e.preventDefault();
+    
+    // Sanitize payload: ensure numbers and remove empty strings for optional fields
+    const payload = {
+      ...taskForm,
+      rewardPoints: Number(taskForm.rewardPoints),
+    };
+    
+    // Only send if positive number
+    if (isNaN(payload.rewardPoints)) {
+      return toast.error('Reward points must be a number');
+    }
+
     try {
       if (editingTask) {
-        await request('put', `/tasks/${editingTask._id}`, { ...taskForm, rewardPoints: Number(taskForm.rewardPoints) });
+        await request('put', `/tasks/${editingTask._id}`, payload);
         toast.success('Task updated');
       } else {
-        await request('post', '/tasks', { ...taskForm, rewardPoints: Number(taskForm.rewardPoints) });
+        await request('post', '/tasks', payload);
         toast.success('Task created');
       }
       setShowTaskModal(false);
