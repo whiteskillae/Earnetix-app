@@ -147,14 +147,19 @@ const AdminPage = () => {
     
     // Sanitize payload: ensure numbers and remove empty strings for optional fields
     const payload = {
-      ...taskForm,
-      rewardPoints: Number(taskForm.rewardPoints),
+      title: taskForm.title.trim(),
+      description: taskForm.description.trim(),
+      rewardPoints: Math.floor(Number(taskForm.rewardPoints)),
+      inputType: taskForm.inputType
     };
     
     // Only send if positive number
-    if (isNaN(payload.rewardPoints)) {
-      return toast.error('Reward points must be a number');
+    if (isNaN(payload.rewardPoints) || payload.rewardPoints < 1) {
+      return toast.error('Reward points must be at least 1');
     }
+
+    if (payload.title.length < 3) return toast.error('Title too short');
+    if (payload.description.length < 10) return toast.error('Description too short');
 
     try {
       if (editingTask) {

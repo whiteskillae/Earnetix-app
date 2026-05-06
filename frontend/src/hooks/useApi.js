@@ -11,7 +11,15 @@ export const useApi = () => {
       const response = await api({ method, url, data, ...config });
       return response.data;
     } catch (error) {
-      const message = error.response?.data?.message || 'Something went wrong';
+      let message = error.response?.data?.message || 'Something went wrong';
+      const errors = error.response?.data?.errors;
+      
+      if (errors && Array.isArray(errors)) {
+        message = errors.map(e => e.message || e).join('; ');
+      } else if (error.response?.data?.error) {
+        message = error.response.data.error;
+      }
+      
       toast.error(message);
       throw error;
     } finally {
