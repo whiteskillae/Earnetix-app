@@ -99,8 +99,19 @@ const TasksPage = () => {
   return (
     <div className="fade-in">
       <div className="page-header">
-        <h1>Available Tasks</h1>
-        <p>Complete tasks and earn points</p>
+        <div>
+          <h1>Available Tasks</h1>
+          <p>Complete tasks and earn points</p>
+        </div>
+        <div className="daily-progress-card">
+          <div className="progress-info">
+            <span>Daily Progress</span>
+            <span>{mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/8</span>
+          </div>
+          <div className="progress-bar-bg">
+            <div className="progress-bar-fill" style={{ width: `${(mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length / 8) * 100}%` }}></div>
+          </div>
+        </div>
       </div>
 
       <div style={{ marginBottom: 24, position: 'relative', maxWidth: 400 }}>
@@ -121,7 +132,12 @@ const TasksPage = () => {
             <div key={task._id} className="card" style={{ display: 'flex', flexDirection: 'column', border: isApproved ? '1px solid var(--green)' : '1px solid var(--dark-600)' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <h4 style={{ color: 'var(--white)' }}>{task.title}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h4 style={{ color: 'var(--white)' }}>{task.title}</h4>
+                    {new Date(task.createdAt) > new Date(Date.now() - 24 * 60 * 60 * 1000) && (
+                      <span className="new-badge">NEW</span>
+                    )}
+                  </div>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green)', fontWeight: 700, fontSize: '0.9rem' }}>
                     <Zap size={16} /> {task.rewardPoints}
                   </span>
@@ -242,5 +258,58 @@ const TasksPage = () => {
 };
 
 const ListTodoIcon = () => <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>;
+
+const styles = `
+  .daily-progress-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 200px;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--gray-400);
+  }
+  .progress-bar-bg {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--green));
+    transition: width 0.3s ease;
+  }
+  .new-badge {
+    background: var(--blue);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleEl = document.createElement('style');
+  styleEl.innerHTML = styles;
+  document.head.appendChild(styleEl);
+}
 
 export default TasksPage;

@@ -106,9 +106,12 @@ const AdminPage = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
+      const r = await request('get', '/admin/tasks');
+      setTasks(r.data);
+    } catch {
       const r = await request('get', '/tasks');
       setTasks(r.data.tasks);
-    } catch {}
+    }
     setLoading(false);
   };
 
@@ -330,8 +333,17 @@ const AdminPage = () => {
                     <span className="points">+{task.rewardPoints} Pts</span>
                   </div>
                   <p className="task-desc">{task.description}</p>
+                  
+                  {task.stats && (
+                    <div className="task-stats-bar" style={{ display: 'flex', gap: 12, marginBottom: 20, padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                      <div className="stat-mini"><Clock size={12} color="#F59E0B" /> <span>{task.stats.pending}</span></div>
+                      <div className="stat-mini"><CheckCircle size={12} color="#10B981" /> <span>{task.stats.approved}</span></div>
+                      <div className="stat-mini"><XCircle size={12} color="#EF4444" /> <span>{task.stats.rejected}</span></div>
+                    </div>
+                  )}
+
                   <div className="task-footer">
-                    <span className="input-type-badge">{task.inputType.toUpperCase()} REQUIRED</span>
+                    <span className="input-type-badge">{task.inputType.toUpperCase()}</span>
                     <div className="task-actions">
                       <button className="btn-icon" onClick={() => { 
                         setEditingTask(task); 

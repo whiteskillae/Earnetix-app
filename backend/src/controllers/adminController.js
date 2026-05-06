@@ -106,4 +106,47 @@ const toggleBlockUser = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, toggleBlockUser };
+const getTasksWithStats = async (req, res, next) => {
+  try {
+    const tasks = await Task.find().sort({ createdAt: -1 });
+    
+    // For each task, count submissions by status
+    const tasksWithStats = await Promise.all(tasks.map(async (task) => {
+      const stats = await Submission.aggregate([
+        { $match: { taskId: task._id } },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]);
+      
+      const statMap = { pending: 0, approved: 0, rejected: 0 };
+      stats.forEach(s => { statMap[s._id] = s.count; });
+      
+      return {
+        ...task.toObject(),
+        stats: statMap,
+        totalSubmissions: stats.reduce((acc, s) => acc + s.count, 0)
+      };
+    }));
+
+    res.json({ success: true, data: tasksWithStats });
+  } catch (error) { next(error); }
+};
+
+const adjustPoints = async (req, res, next) => {
+  try {
+    const { points, reason } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    user.points += Number(points);
+    await user.save();
+
+    await AdminLog.create({
+      adminId: req.user._id, action: 'adjust_points', targetId: user._id,
+      targetType: 'user', details: `Adjusted points by ${points}. Reason: ${reason}`, ip: req.ip,
+    });
+
+    res.json({ success: true, message: `Points adjusted by ${points}`, data: user });
+  } catch (error) { next(error); }
+};
+
+module.exports = { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, toggleBlockUser, getTasksWithStats, adjustPoints };
