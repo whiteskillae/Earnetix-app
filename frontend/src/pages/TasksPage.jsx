@@ -15,16 +15,20 @@ const TasksPage = () => {
   const [file, setFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
+  const [mySubs, setMySubs] = useState([]);
 
-  useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchData = async () => {
       try {
-        const res = await request('get', '/tasks');
-        setTasks(res.data.tasks);
+        const [tasksRes, subsRes] = await Promise.all([
+          request('get', '/tasks'),
+          request('get', '/submissions/my?limit=100')
+        ]);
+        setTasks(tasksRes.data.tasks);
+        setMySubs(subsRes.data.submissions);
       } catch {}
       setLoading(false);
     };
-    fetchTasks();
+    fetchData();
   }, []);
 
   const openSubmit = (task) => {
@@ -75,34 +79,62 @@ const TasksPage = () => {
 
       {/* Task Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-        {filtered.map((task) => (
-          <div key={task._id} className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <h4 style={{ color: 'var(--white)' }}>{task.title}</h4>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green)', fontWeight: 700, fontSize: '0.9rem' }}>
-                  <Zap size={16} /> {task.rewardPoints}
-                </span>
-              </div>
-              <p style={{ fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.5 }}>{task.description}</p>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {(task.inputType === 'image' || task.inputType === 'both') && (
-                  <span className="badge" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)' }}>
-                    <Image size={12} /> Image
+        {filtered.map((task) => {
+          const userSub = mySubs.find(s => s.taskId?._id === task._id);
+          const isApproved = userSub?.status === 'approved';
+          const isPending = userSub?.status === 'pending';
+          const isRejected = userSub?.status === 'rejected';
+          const canResubmit = isRejected && userSub?.submissionCount < 2;
+
+          return (
+            <div key={task._id} className="card" style={{ display: 'flex', flexDirection: 'column', border: isApproved ? '1px solid var(--green)' : '1px solid var(--dark-600)' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <h4 style={{ color: 'var(--white)' }}>{task.title}</h4>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green)', fontWeight: 700, fontSize: '0.9rem' }}>
+                    <Zap size={16} /> {task.rewardPoints}
                   </span>
-                )}
-                {(task.inputType === 'text' || task.inputType === 'both') && (
-                  <span className="badge" style={{ background: 'rgba(255,176,32,0.15)', color: 'var(--pending)' }}>
-                    <FileText size={12} /> Text
-                  </span>
-                )}
+                </div>
+                <p style={{ fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.5 }}>{task.description}</p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                  {(task.inputType === 'image' || task.inputType === 'both') && (
+                    <span className="badge" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)' }}>
+                      <Image size={12} /> Image
+                    </span>
+                  )}
+                  {(task.inputType === 'text' || task.inputType === 'both') && (
+                    <span className="badge" style={{ background: 'rgba(255,176,32,0.15)', color: 'var(--pending)' }}>
+                      <FileText size={12} /> Text
+                    </span>
+                  )}
+                  {userSub && (
+                    <span className={`badge badge-${userSub.status}`}>
+                      {userSub.status.toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {isApproved ? (
+                <div className="btn btn-block btn-success" style={{ cursor: 'default', opacity: 0.8 }}>
+                  <CheckCircle size={16} /> Task Completed
+                </div>
+              ) : isPending ? (
+                <div className="btn btn-block btn-outline" style={{ cursor: 'default', opacity: 0.6 }}>
+                  <Clock size={16} /> Under Review
+                </div>
+              ) : (
+                <button 
+                  className={`btn btn-block ${isRejected ? 'btn-danger' : 'btn-primary'}`} 
+                  onClick={() => openSubmit(task)}
+                  disabled={isRejected && !canResubmit}
+                >
+                  <Upload size={16} /> {isRejected ? (canResubmit ? 'Resubmit Proof' : 'Permanently Rejected') : 'Submit Proof'}
+                </button>
+              )}
             </div>
-            <button className="btn btn-primary btn-block" onClick={() => openSubmit(task)}>
-              <Upload size={16} /> Submit Proof
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (

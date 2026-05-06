@@ -88,4 +88,22 @@ const rejectSubmission = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission };
+const toggleBlockUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.role === 'admin') return res.status(400).json({ success: false, message: 'Cannot block admin' });
+
+    user.isBlocked = !user.isBlocked;
+    await user.save();
+
+    await AdminLog.create({
+      adminId: req.user._id, action: user.isBlocked ? 'block' : 'unblock', targetId: user._id,
+      targetType: 'user', details: `${user.isBlocked ? 'Blocked' : 'Unblocked'} user: ${user.email}`, ip: req.ip,
+    });
+
+    res.json({ success: true, message: `User ${user.isBlocked ? 'blocked' : 'unblocked'} successfully`, data: user });
+  } catch (error) { next(error); }
+};
+
+module.exports = { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, toggleBlockUser };

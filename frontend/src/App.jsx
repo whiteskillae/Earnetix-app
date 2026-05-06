@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import TasksPage from './pages/TasksPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
+import AnnouncementsPage from './pages/AnnouncementsPage';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -46,6 +47,7 @@ const AppRoutes = () => (
     {/* Protected */}
     <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
     <Route path="/tasks" element={<ProtectedRoute><AppLayout><TasksPage /></AppLayout></ProtectedRoute>} />
+    <Route path="/announcements" element={<ProtectedRoute><AppLayout><AnnouncementsPage /></AppLayout></ProtectedRoute>} />
     <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
 
     {/* Admin only */}

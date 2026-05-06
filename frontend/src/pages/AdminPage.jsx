@@ -3,7 +3,7 @@ import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Users, ListTodo, Clock, CheckCircle, XCircle, Eye, Plus, Zap } from 'lucide-react';
+import { Users, ListTodo, Clock, CheckCircle, XCircle, Eye, Plus, Zap, Bell, Trash2, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const AdminPage = () => {
   const { request } = useApi();
@@ -11,6 +11,7 @@ const AdminPage = () => {
   const [dashboard, setDashboard] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [users, setUsers] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subFilter, setSubFilter] = useState('pending');
 
@@ -27,9 +28,14 @@ const AdminPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewSub, setPreviewSub] = useState(null);
 
+  // Announcement modal
+  const [showAnnModal, setShowAnnModal] = useState(false);
+  const [annForm, setAnnForm] = useState({ title: '', content: '', priority: 'medium' });
+
   useEffect(() => { fetchDashboard(); }, []);
   useEffect(() => { if (tab === 'submissions') fetchSubmissions(); }, [tab, subFilter]);
   useEffect(() => { if (tab === 'users') fetchUsers(); }, [tab]);
+  useEffect(() => { if (tab === 'announcements') fetchAnnouncements(); }, [tab]);
 
   const fetchDashboard = async () => {
     try { const r = await request('get', '/admin/dashboard'); setDashboard(r.data); } catch {}
@@ -48,6 +54,12 @@ const AdminPage = () => {
     setLoading(false);
   };
 
+  const fetchAnnouncements = async () => {
+    setLoading(true);
+    try { const r = await request('get', '/announcements'); setAnnouncements(r.data); } catch {}
+    setLoading(false);
+  };
+
   const handleApprove = async (id) => {
     try { await request('put', `/admin/submissions/${id}/approve`); toast.success('Approved!'); fetchSubmissions(); fetchDashboard(); } catch {}
   };
@@ -62,6 +74,30 @@ const AdminPage = () => {
     try { await request('post', '/tasks', { ...taskForm, rewardPoints: Number(taskForm.rewardPoints) }); toast.success('Task created!'); setShowTaskModal(false); setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' }); } catch {}
   };
 
+  const handleToggleBlock = async (id) => {
+    try {
+      const res = await request('patch', `/admin/users/${id}/toggle-block`);
+      toast.success(res.message);
+      fetchUsers();
+    } catch {}
+  };
+
+  const handleCreateAnn = async (e) => {
+    e.preventDefault();
+    try {
+      await request('post', '/announcements', annForm);
+      toast.success('Announcement posted!');
+      setShowAnnModal(false);
+      setAnnForm({ title: '', content: '', priority: 'medium' });
+      fetchAnnouncements();
+    } catch {}
+  };
+
+  const handleDeleteAnn = async (id) => {
+    if (!window.confirm('Delete this announcement?')) return;
+    try { await request('delete', `/announcements/${id}`); toast.success('Deleted'); fetchAnnouncements(); } catch {}
+  };
+
   if (loading && tab === 'dashboard' && !dashboard) return <Loader text="Loading admin..." />;
 
   return (
@@ -69,13 +105,16 @@ const AdminPage = () => {
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <h1>Admin Panel</h1>
-          <button className="btn btn-primary" onClick={() => setShowTaskModal(true)}><Plus size={18} /> New Task</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-outline" onClick={() => setShowAnnModal(true)}><Bell size={18} /> Announcement</button>
+            <button className="btn btn-primary" onClick={() => setShowTaskModal(true)}><Plus size={18} /> New Task</button>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {['dashboard', 'submissions', 'users'].map((t) => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
+        {['dashboard', 'submissions', 'users', 'announcements'].map((t) => (
           <button key={t} className={`btn btn-sm ${tab === t ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab(t)}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -143,19 +182,54 @@ const AdminPage = () => {
         loading ? <Loader /> : (
           <div className="table-container">
             <table>
-              <thead><tr><th>Name</th><th>Email</th><th>Points</th><th>Verified</th><th>Joined</th></tr></thead>
+              <thead><tr><th>Name</th><th>Email</th><th>Points</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
               <tbody>
                 {users.map((u) => (
                   <tr key={u._id}>
                     <td style={{ fontWeight: 500, color: 'var(--white)' }}>{u.name}</td>
                     <td>{u.email}</td>
                     <td style={{ color: 'var(--green)', fontWeight: 600 }}>{u.points}</td>
-                    <td>{u.isVerified ? <span style={{ color: 'var(--green)' }}>✓</span> : <span style={{ color: 'var(--rejected)' }}>✗</span>}</td>
+                    <td>
+                      {u.isBlocked ? (
+                        <span className="badge badge-rejected" style={{ display: 'flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
+                          <ShieldAlert size={12} /> Blocked
+                        </span>
+                      ) : (
+                        <span className="badge badge-approved" style={{ display: 'flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
+                          <ShieldCheck size={12} /> Active
+                        </span>
+                      )}
+                    </td>
                     <td style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <button className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-danger'}`} onClick={() => handleToggleBlock(u._id)}>
+                        {u.isBlocked ? 'Unblock' : 'Block'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )
+      )}
+
+      {/* ANNOUNCEMENTS TAB */}
+      {tab === 'announcements' && (
+        loading ? <Loader /> : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {announcements.map((ann) => (
+              <div key={ann._id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ color: 'var(--white)' }}>{ann.title}</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)' }}>{ann.content.substring(0, 100)}...</p>
+                </div>
+                <button className="btn btn-sm btn-outline btn-danger" onClick={() => handleDeleteAnn(ann._id)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            {announcements.length === 0 && <div className="empty-state">No announcements</div>}
           </div>
         )
       )}
@@ -181,6 +255,23 @@ const AdminPage = () => {
         </form>
       </Modal>
 
+      {/* Announcement Modal */}
+      <Modal isOpen={showAnnModal} onClose={() => setShowAnnModal(false)} title="Post Announcement">
+        <form onSubmit={handleCreateAnn}>
+          <div className="form-group"><label>Title</label><input className="form-input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} required /></div>
+          <div className="form-group"><label>Content</label><textarea className="form-input" rows="4" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} required /></div>
+          <div className="form-group">
+            <label>Priority</label>
+            <select className="form-input" value={annForm.priority} onChange={(e) => setAnnForm({ ...annForm, priority: e.target.value })}>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <button type="submit" className="btn btn-primary btn-block">Post Announcement</button>
+        </form>
+      </Modal>
+
       {/* Preview Modal */}
       <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title="Submission Preview">
         {previewSub && (
@@ -190,6 +281,11 @@ const AdminPage = () => {
             <div style={{ fontSize: '0.85rem', color: 'var(--gray-400)', marginTop: 12 }}>
               <p>Submitted: {new Date(previewSub.createdAt).toLocaleString()}</p>
               <p>Attempt #{previewSub.submissionCount}</p>
+            </div>
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--dark-600)' }}>
+              <button className="btn btn-sm btn-danger btn-block" onClick={() => { handleToggleBlock(previewSub.userId._id); setShowPreview(false); }}>
+                {previewSub.userId?.isBlocked ? 'Unblock User' : 'Block User'}
+              </button>
             </div>
           </div>
         )}

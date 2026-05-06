@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell } from 'lucide-react';
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
@@ -11,6 +11,7 @@ const Sidebar = () => {
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/tasks', label: 'Tasks', icon: ListTodo },
+    { to: '/announcements', label: 'Updates', icon: Bell },
     { to: '/profile', label: 'Profile', icon: User },
   ];
 

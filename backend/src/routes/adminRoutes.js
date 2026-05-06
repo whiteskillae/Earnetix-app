@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission } = require('../controllers/adminController');
+const { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, toggleBlockUser } = require('../controllers/adminController');
 const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');
 const validate = require('../middleware/validate');
@@ -12,5 +12,6 @@ router.get('/users', getUsers);
 router.get('/submissions', getSubmissions);
 router.put('/submissions/:id/approve', approveSubmission);
 router.put('/submissions/:id/reject', validate(rejectSubmissionSchema), rejectSubmission);
+router.patch('/users/:id/toggle-block', toggleBlockUser);
 
 module.exports = router;
