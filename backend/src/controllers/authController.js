@@ -341,4 +341,32 @@ const logout = async (req, res, next) => {
   }
 };
 
-module.exports = { register, verifyOtp, resendOtp, login, googleAuth, refresh, logout };
+// ─── COMPLETE PROFILE ──────────────────────────────────
+const completeProfile = async (req, res, next) => {
+  try {
+    const { name, mobileNumber, countryCode, country } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (name) user.name = name;
+    user.mobileNumber = mobileNumber;
+    user.countryCode = countryCode;
+    user.country = country;
+    user.isProfileComplete = true;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile completed successfully',
+      data: { user: user.toJSON() }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, verifyOtp, resendOtp, login, googleAuth, refresh, logout, completeProfile };

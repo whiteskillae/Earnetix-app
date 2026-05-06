@@ -71,6 +71,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  mobileNumber: {
+    type: String,
+    default: null,
+  },
+  countryCode: {
+    type: String,
+    default: null,
+  },
+  country: {
+    type: String,
+    default: null,
+  },
+  isProfileComplete: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });

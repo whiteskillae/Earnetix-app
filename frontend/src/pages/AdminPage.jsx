@@ -39,6 +39,9 @@ const AdminPage = () => {
   const [showAnnModal, setShowAnnModal] = useState(false);
   const [annForm, setAnnForm] = useState({ title: '', content: '', priority: 'medium' });
 
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
   useEffect(() => {
     fetchDashboard();
   }, []);
@@ -339,9 +342,12 @@ const AdminPage = () => {
                       </td>
                       <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                       <td>
-                        <button className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-danger'}`} onClick={() => handleToggleBlock(u._id)}>
-                          {u.isBlocked ? 'Unblock User' : 'Block User'}
-                        </button>
+                        <div className="action-btns">
+                          <button className="btn-icon" title="View Details" onClick={() => { setSelectedUser(u); setShowDetailsModal(true); }}><Eye size={16} /></button>
+                          <button className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-danger'}`} onClick={() => handleToggleBlock(u._id)}>
+                            {u.isBlocked ? 'Unblock User' : 'Block User'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -431,7 +437,62 @@ const AdminPage = () => {
         )}
       </Modal>
 
+      <Modal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} title="User Intelligence Dossier">
+        {selectedUser && (
+          <div className="user-details-view">
+            <div className="detail-section">
+              <h5>Identity & Contact</h5>
+              <div className="detail-grid">
+                <div className="detail-item"><label>Full Name</label><span>{selectedUser.name}</span></div>
+                <div className="detail-item"><label>Email Address</label><span>{selectedUser.email}</span></div>
+                <div className="detail-item"><label>Phone</label><span>{selectedUser.countryCode} {selectedUser.mobileNumber || 'Not provided'}</span></div>
+                <div className="detail-item"><label>Location</label><span>{selectedUser.country || 'Not provided'}</span></div>
+              </div>
+            </div>
+
+            <div className="detail-section">
+              <h5>Account Information</h5>
+              <div className="detail-grid">
+                <div className="detail-item"><label>Earned Points</label><span className="points-value">{selectedUser.points}</span></div>
+                <div className="detail-item"><label>Role</label><span className="status-pill approved">{selectedUser.role}</span></div>
+                <div className="detail-item"><label>Status</label><span className={`status-pill ${selectedUser.isBlocked ? 'rejected' : 'approved'}`}>{selectedUser.isBlocked ? 'Blocked' : 'Active'}</span></div>
+                <div className="detail-item"><label>Registration</label><span>{new Date(selectedUser.createdAt).toLocaleString()}</span></div>
+                <div className="detail-item"><label>Profile Status</label><span>{selectedUser.isProfileComplete ? 'Complete' : 'Pending Onboarding'}</span></div>
+                <div className="detail-item"><label>Auth Method</label><span>{selectedUser.authProvider}</span></div>
+              </div>
+            </div>
+
+            <div className="detail-section">
+              <h5>Security Context</h5>
+              <div className="detail-grid">
+                <div className="detail-item"><label>Registration IP</label><code>{selectedUser.registrationIp || 'Unknown'}</code></div>
+                <div className="detail-item"><label>Last Known IP</label><code>{selectedUser.loginHistory?.[selectedUser.loginHistory.length-1]?.ip || 'Unknown'}</code></div>
+              </div>
+              <div className="history-list" style={{ marginTop: 12 }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: 8, display: 'block' }}>Recent Access Log</label>
+                {selectedUser.loginHistory?.slice(-5).reverse().map((h, i) => (
+                  <div key={i} className="history-item">
+                    <span className="h-ip">{h.ip}</span>
+                    <span className="h-date">{new Date(h.timestamp).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <style>{`
+        .user-details-view { display: flex; flex-direction: column; gap: 24px; padding: 10px 0; }
+        .detail-section h5 { color: var(--blue-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 1px solid #1F1F23; padding-bottom: 8px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .detail-item { display: flex; flex-direction: column; gap: 4px; }
+        .detail-item label { font-size: 0.7rem; color: var(--gray-500); }
+        .detail-item span { font-size: 0.9rem; color: var(--white); font-weight: 500; }
+        .detail-item code { font-size: 0.8rem; color: var(--green); background: rgba(16,185,129,0.1); padding: 2px 6px; border-radius: 4px; align-self: flex-start; }
+        .history-item { display: flex; justify-content: space-between; padding: 6px 10px; background: #18181B; border-radius: 6px; margin-bottom: 4px; font-size: 0.75rem; }
+        .history-item .h-ip { color: var(--gray-300); }
+        .history-item .h-date { color: var(--gray-500); }
         .admin-layout { display: flex; min-height: calc(100vh - 0px); background: #0A0A0C; }
         
         /* Admin Sidebar */

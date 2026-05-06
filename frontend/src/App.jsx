@@ -13,15 +13,21 @@ import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
 import AdminLoginPage from './pages/AdminLoginPage';
+import OnboardingPage from './pages/OnboardingPage';
 
 // Protected route wrapper
-const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { user, loading, isAdmin, isRefreshing } = useAuth();
+const ProtectedRoute = ({ children, adminOnly = false, isOnboarding = false }) => {
+  const { user, loading, isAdmin, isRefreshing, isProfileComplete } = useAuth();
   if (loading || isRefreshing) return <Loader text="Verifying access..." />;
   
   if (!user) {
     if (adminOnly) return <AdminLoginPage />;
     return <Navigate to="/login" replace />;
+  }
+
+  // Redirect to onboarding if profile is incomplete (and not already on onboarding page)
+  if (!isProfileComplete && !isOnboarding && user.role !== 'admin') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
@@ -49,6 +55,7 @@ const AppRoutes = () => (
     {/* Auth */}
     <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
     <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+    <Route path="/onboarding" element={<ProtectedRoute isOnboarding><OnboardingPage /></ProtectedRoute>} />
 
     {/* Protected */}
     <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
