@@ -22,8 +22,9 @@ app.set('trust proxy', true);
 
 // ─── SECURITY ──────────────────────────────────────────
 app.use(helmet({
-  crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Relaxed to allow Google/Social Auth popups
+  crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allowed for Google/Social Auth popups
   crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false, // Required for many cross-origin scripts/popups
 }));
 
 // CORS Configuration
