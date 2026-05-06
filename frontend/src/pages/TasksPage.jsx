@@ -56,6 +56,11 @@ const TasksPage = () => {
       if (imageFile) formData.append('image', imageFile);
       if (otherFile) formData.append('file', otherFile);
 
+      // Debug: Log FormData entries
+      for (let pair of formData.entries()) {
+        console.log('Submission Payload:', pair[0], pair[1]);
+      }
+
       let res;
       if (editingSubId) {
         res = await request('put', `/submissions/${editingSubId}/resubmit`, formData);
