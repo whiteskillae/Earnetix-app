@@ -17,6 +17,7 @@ const TasksPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [mySubs, setMySubs] = useState([]);
+  const [editingSubId, setEditingSubId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,8 +37,9 @@ const TasksPage = () => {
     fetchData();
   }, [request]);
 
-  const openSubmit = (task) => {
+  const openSubmit = (task, subId = null) => {
     setSelected(task);
+    setEditingSubId(subId);
     setTextContent('');
     setImageFile(null);
     setOtherFile(null);
@@ -54,9 +56,13 @@ const TasksPage = () => {
       if (imageFile) formData.append('image', imageFile);
       if (otherFile) formData.append('file', otherFile);
 
-      const res = await request('post', '/submissions', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      let res;
+      if (editingSubId) {
+        res = await request('put', `/submissions/${editingSubId}/resubmit`, formData);
+      } else {
+        res = await request('post', '/submissions', formData);
+      }
+      
       if (res.success) {
         toast.success('Proof submitted successfully!');
         setShowModal(false);
@@ -144,7 +150,7 @@ const TasksPage = () => {
               ) : (
                 <button 
                   className={`btn btn-block ${isRejected ? 'btn-danger' : 'btn-primary'}`} 
-                  onClick={() => openSubmit(task)}
+                  onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
                   disabled={isRejected && !canResubmit}
                 >
                   <Upload size={16} /> {isRejected ? (canResubmit ? 'Resubmit Proof' : 'Permanently Rejected') : 'Submit Proof'}

@@ -6,7 +6,7 @@ const auth = require('../middleware/auth');
 // Multer memory storage (buffer for hashing before Cloudinary upload)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB hard limit
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB hard limit
 });
 
 const uploadFields = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'file', maxCount: 1 }]);
