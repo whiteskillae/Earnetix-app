@@ -66,6 +66,9 @@ const AdminPage = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const [showPointsModal, setShowPointsModal] = useState(false);
+  const [pointsForm, setPointsForm] = useState({ points: 0, reason: '' });
+
   useEffect(() => {
     fetchDashboard();
   }, []);
@@ -194,6 +197,17 @@ const AdminPage = () => {
     try {
       const res = await request('patch', `/admin/users/${id}/toggle-block`);
       toast.success(res.message);
+      fetchUsers();
+    } catch {}
+  };
+
+  const handleAdjustPoints = async (e) => {
+    e.preventDefault();
+    try {
+      await request('post', `/admin/users/${selectedUser._id}/adjust-points`, pointsForm);
+      toast.success('Points adjusted successfully');
+      setShowPointsModal(false);
+      setPointsForm({ points: 0, reason: '' });
       fetchUsers();
     } catch {}
   };
@@ -399,8 +413,9 @@ const AdminPage = () => {
                       <td>
                         <div className="action-btns">
                           <button className="btn-icon" title="View Details" onClick={() => { setSelectedUser(u); setShowDetailsModal(true); }}><Eye size={16} /></button>
+                          <button className="btn-icon" title="Adjust Points" onClick={() => { setSelectedUser(u); setShowPointsModal(true); }}><Zap size={16} color="var(--yellow)" /></button>
                           <button className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-danger'}`} onClick={() => handleToggleBlock(u._id)}>
-                            {u.isBlocked ? 'Unblock User' : 'Block User'}
+                            {u.isBlocked ? 'Unblock' : 'Block'}
                           </button>
                         </div>
                       </td>
@@ -550,6 +565,26 @@ const AdminPage = () => {
               </div>
             </div>
           </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={showPointsModal} onClose={() => setShowPointsModal(false)} title="Adjust User Points">
+        {selectedUser && (
+          <form onSubmit={handleAdjustPoints}>
+            <div style={{ marginBottom: 16, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+              <p style={{ fontSize: '0.85rem' }}>Adjusting points for: <strong>{selectedUser.name}</strong></p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Current Points: <span style={{ color: 'var(--green)', fontWeight: 700 }}>{selectedUser.points}</span></p>
+            </div>
+            <div className="form-group">
+              <label>Point Delta (Use negative for deduction)</label>
+              <input type="number" className="form-input" value={pointsForm.points} onChange={(e) => setPointsForm({ ...pointsForm, points: e.target.value })} required />
+            </div>
+            <div className="form-group">
+              <label>Reason for Adjustment</label>
+              <input type="text" className="form-input" placeholder="e.g. Correction for task #123" value={pointsForm.reason} onChange={(e) => setPointsForm({ ...pointsForm, reason: e.target.value })} required />
+            </div>
+            <button type="submit" className="btn btn-primary btn-block">Confirm Adjustment</button>
+          </form>
         )}
       </Modal>
 
