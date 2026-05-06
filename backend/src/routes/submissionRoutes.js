@@ -9,8 +9,10 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB hard limit
 });
 
-router.post('/', auth, upload.single('image'), submitProof);
+const uploadFields = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'file', maxCount: 1 }]);
+
+router.post('/', auth, uploadFields, submitProof);
 router.get('/my', auth, getMySubmissions);
-router.put('/:id/resubmit', auth, upload.single('image'), resubmit);
+router.put('/:id/resubmit', auth, uploadFields, resubmit);
 
 module.exports = router;

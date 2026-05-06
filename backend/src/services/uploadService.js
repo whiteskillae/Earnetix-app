@@ -7,14 +7,15 @@ const BLOCKED_EXTENSIONS = ['exe', 'js', 'jsx', 'ts', 'tsx', 'apk', 'bat', 'cmd'
 /**
  * Validate file type and size.
  */
-const validateFile = (file, allowedExtensions, maxFileSize) => {
+const validateFile = (file, allowedExtensions = [], maxFileSize = 5 * 1024 * 1024) => {
   const ext = file.originalname.split('.').pop().toLowerCase();
 
   if (BLOCKED_EXTENSIONS.includes(ext)) {
     throw new Error(`File type .${ext} is not allowed for security reasons`);
   }
 
-  if (!allowedExtensions.includes(ext)) {
+  // If allowedExtensions is empty or contains '*', allow all non-blocked types
+  if (allowedExtensions.length > 0 && !allowedExtensions.includes('*') && !allowedExtensions.includes(ext)) {
     throw new Error(`File type .${ext} is not allowed. Allowed: ${allowedExtensions.join(', ')}`);
   }
 
@@ -35,10 +36,7 @@ const uploadToCloudinary = async (fileBuffer, folder = 'earnetix/submissions') =
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: 'image',
-        transformation: [
-          { quality: 'auto', fetch_format: 'auto' }, // auto-optimize
-        ],
+        resource_type: 'auto', // Changed to auto to support non-image files
       },
       (error, result) => {
         if (error) {

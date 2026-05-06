@@ -25,6 +25,14 @@ const submissionSchema = new mongoose.Schema({
     type: String,
     default: null, // Cloudinary public_id for deletion
   },
+  fileUrl: {
+    type: String,
+    default: null,
+  },
+  filePublicId: {
+    type: String,
+    default: null,
+  },
   fileHash: {
     type: String,
     default: null, // SHA-256 hash for duplicate detection

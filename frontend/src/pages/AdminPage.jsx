@@ -132,7 +132,9 @@ const AdminPage = () => {
       setEditingTask(null);
       setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' });
       fetchTasks();
-    } catch {}
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save task');
+    }
   };
 
   const handleDeleteTask = async (id) => {
@@ -386,7 +388,15 @@ const AdminPage = () => {
           <div className="form-group"><label>Instructions</label><textarea className="form-input" rows="4" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} required /></div>
           <div style={{ display: 'flex', gap: 12 }}>
             <div className="form-group" style={{ flex: 1 }}><label>Points Reward</label><input type="number" className="form-input" min="1" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
-            <div className="form-group" style={{ flex: 1 }}><label>Evidence Required</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}><option value="text">Text Only</option><option value="image">Screenshot Only</option><option value="both">Text + Screenshot</option></select></div>
+            <div className="form-group" style={{ flex: 1 }}><label>Evidence Required</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}>
+              <option value="text">Text Only</option>
+              <option value="image">Screenshot (Image)</option>
+              <option value="file">Any File (PDF/Zip/etc)</option>
+              <option value="text_image">Text + Screenshot</option>
+              <option value="text_file">Text + File</option>
+              <option value="image_file">Screenshot + File</option>
+              <option value="all">Text + Image + File</option>
+            </select></div>
           </div>
           <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Save Changes' : 'Launch Campaign'}</button>
         </form>
@@ -424,6 +434,14 @@ const AdminPage = () => {
             </div>
             {previewSub.textContent && <div className="proof-section"><h5>Text Evidence:</h5><div className="text-proof">{previewSub.textContent}</div></div>}
             {previewSub.imageUrl && <div className="proof-section"><h5>Screenshot Evidence:</h5><img src={previewSub.imageUrl} alt="Proof" className="img-proof" /></div>}
+            {previewSub.fileUrl && (
+              <div className="proof-section">
+                <h5>File Evidence:</h5>
+                <a href={previewSub.fileUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline">
+                  <Upload size={14} /> View/Download File
+                </a>
+              </div>
+            )}
             <div className="preview-meta">
               <span>Attempt #{previewSub.submissionCount}</span>
               <span>{new Date(previewSub.createdAt).toLocaleString()}</span>

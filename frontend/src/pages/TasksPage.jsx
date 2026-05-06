@@ -3,7 +3,7 @@ import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock } from 'lucide-react';
+import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock, File } from 'lucide-react';
 
 const TasksPage = () => {
   const { request } = useApi();
@@ -12,10 +12,12 @@ const TasksPage = () => {
   const [selected, setSelected] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [textContent, setTextContent] = useState('');
-  const [file, setFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [otherFile, setOtherFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [mySubs, setMySubs] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -23,9 +25,12 @@ const TasksPage = () => {
           request('get', '/tasks'),
           request('get', '/submissions/my?limit=100')
         ]);
-        setTasks(tasksRes.data.tasks);
-        setMySubs(subsRes.data.submissions);
-      } catch {}
+        if (tasksRes.success) setTasks(tasksRes.data.tasks);
+        if (subsRes.success) setMySubs(subsRes.data.submissions);
+      } catch (err) {
+        toast.error('Failed to load tasks. Please try again.');
+        console.error('Fetch error:', err);
+      }
       setLoading(false);
     };
     fetchData();
@@ -34,7 +39,8 @@ const TasksPage = () => {
   const openSubmit = (task) => {
     setSelected(task);
     setTextContent('');
-    setFile(null);
+    setImageFile(null);
+    setOtherFile(null);
     setShowModal(true);
   };
 
@@ -45,14 +51,22 @@ const TasksPage = () => {
       const formData = new FormData();
       formData.append('taskId', selected._id);
       if (textContent) formData.append('textContent', textContent);
-      if (file) formData.append('image', file);
+      if (imageFile) formData.append('image', imageFile);
+      if (otherFile) formData.append('file', otherFile);
 
-      await request('post', '/submissions', formData, {
+      const res = await request('post', '/submissions', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast.success('Proof submitted!');
-      setShowModal(false);
-    } catch {}
+      if (res.success) {
+        toast.success('Proof submitted successfully!');
+        setShowModal(false);
+        // Refresh submissions
+        const subsRes = await request('get', '/submissions/my?limit=100');
+        if (subsRes.success) setMySubs(subsRes.data.submissions);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Submission failed');
+    }
     setSubmitting(false);
   };
 
@@ -60,6 +74,14 @@ const TasksPage = () => {
     t.title.toLowerCase().includes(search.toLowerCase()) ||
     t.description.toLowerCase().includes(search.toLowerCase())
   );
+
+  const getRequirements = (type) => {
+    const reqs = [];
+    if (type.includes('text') || type === 'all') reqs.push('Text');
+    if (type.includes('image') || type === 'all') reqs.push('Screenshot');
+    if (type.includes('file') || type === 'all') reqs.push('File');
+    return reqs;
+  };
 
   if (loading) return <Loader text="Loading tasks..." />;
 
@@ -70,14 +92,12 @@ const TasksPage = () => {
         <p>Complete tasks and earn points</p>
       </div>
 
-      {/* Search */}
       <div style={{ marginBottom: 24, position: 'relative', maxWidth: 400 }}>
         <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)' }} />
         <input type="text" className="form-input" style={{ paddingLeft: 42 }}
           placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      {/* Task Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
         {filtered.map((task) => {
           const userSub = mySubs.find(s => s.taskId?._id === task._id);
@@ -97,16 +117,14 @@ const TasksPage = () => {
                 </div>
                 <p style={{ fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.5 }}>{task.description}</p>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                  {(task.inputType === 'image' || task.inputType === 'both') && (
-                    <span className="badge" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)' }}>
-                      <Image size={12} /> Image
+                  {getRequirements(task.inputType).map(r => (
+                    <span key={r} className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--gray-300)' }}>
+                      {r === 'Text' && <FileText size={12} />}
+                      {r === 'Screenshot' && <Image size={12} />}
+                      {r === 'File' && <File size={12} />}
+                      {r}
                     </span>
-                  )}
-                  {(task.inputType === 'text' || task.inputType === 'both') && (
-                    <span className="badge" style={{ background: 'rgba(255,176,32,0.15)', color: 'var(--pending)' }}>
-                      <FileText size={12} /> Text
-                    </span>
-                  )}
+                  ))}
                   {userSub && (
                     <span className={`badge badge-${userSub.status}`}>
                       {userSub.status.toUpperCase()}
@@ -145,40 +163,65 @@ const TasksPage = () => {
         </div>
       )}
 
-      {/* Submit Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={`Submit: ${selected?.title}`}>
-        <form onSubmit={handleSubmit}>
-          {(selected?.inputType === 'text' || selected?.inputType === 'both') && (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginBottom: 4 }}>Required Evidence:</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {getRequirements(selected?.inputType || '').map(r => <span key={r} style={{ color: 'var(--blue-light)', fontSize: '0.85rem', fontWeight: 600 }}>• {r}</span>)}
+            </div>
+          </div>
+
+          {(selected?.inputType.includes('text') || selected?.inputType === 'all') && (
             <div className="form-group">
-              <label>Text Response</label>
-              <textarea className="form-input" placeholder="Write your response..."
-                value={textContent} onChange={(e) => setTextContent(e.target.value)} required={selected?.inputType === 'text'} />
+              <label>Text Evidence</label>
+              <textarea className="form-input" placeholder="Paste link, code, or text here..."
+                rows={4} value={textContent} onChange={(e) => setTextContent(e.target.value)} required />
             </div>
           )}
 
-          {(selected?.inputType === 'image' || selected?.inputType === 'both') && (
+          {(selected?.inputType.includes('image') || selected?.inputType === 'all') && (
             <div className="form-group">
-              <label>Upload Image</label>
-              <div className={`file-upload ${file ? 'active' : ''}`}
-                onClick={() => document.getElementById('file-input').click()}>
-                <input id="file-input" type="file" accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => setFile(e.target.files[0])} />
-                {file ? (
-                  <p style={{ color: 'var(--green)' }}>✓ {file.name}</p>
+              <label>Screenshot Evidence</label>
+              <div className={`file-upload ${imageFile ? 'active' : ''}`}
+                onClick={() => document.getElementById('image-input').click()}>
+                <input id="image-input" type="file" accept="image/*"
+                  onChange={(e) => setImageFile(e.target.files[0])} required />
+                {imageFile ? (
+                  <p style={{ color: 'var(--green)' }}>✓ {imageFile.name}</p>
                 ) : (
                   <>
-                    <Upload size={32} style={{ marginBottom: 8, color: 'var(--gray-400)' }} />
-                    <p style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>Click to upload (JPG, PNG, WebP)</p>
+                    <Image size={24} style={{ marginBottom: 8, color: 'var(--gray-400)' }} />
+                    <p style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>Upload Screenshot (JPG, PNG)</p>
                   </>
                 )}
               </div>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+          {(selected?.inputType.includes('file') || selected?.inputType === 'all') && (
+            <div className="form-group">
+              <label>File Evidence (PDF, Zip, etc)</label>
+              <div className={`file-upload ${otherFile ? 'active' : ''}`}
+                onClick={() => document.getElementById('file-input').click()}>
+                <input id="file-input" type="file" 
+                  onChange={(e) => setOtherFile(e.target.files[0])} required />
+                {otherFile ? (
+                  <p style={{ color: 'var(--green)' }}>✓ {otherFile.name}</p>
+                ) : (
+                  <>
+                    <Upload size={24} style={{ marginBottom: 8, color: 'var(--gray-400)' }} />
+                    <p style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>Upload Document/Archive</p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
             <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
             <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit'}
+              {submitting ? 'Uploading Proof...' : 'Submit Evidence'}
             </button>
           </div>
         </form>
