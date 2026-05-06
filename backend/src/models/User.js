@@ -67,12 +67,17 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  registrationIp: {
+    type: String,
+    default: null,
+  },
 }, {
   timestamps: true,
 });
 
 // Indexes for fast lookup
 userSchema.index({ deviceFingerprint: 1 });
+userSchema.index({ registrationIp: 1 });
 
 // Never return sensitive fields in JSON
 userSchema.methods.toJSON = function () {

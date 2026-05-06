@@ -73,7 +73,8 @@ const rejectSubmission = async (req, res, next) => {
 
     submission.status = 'rejected';
     submission.rejectionReason = rejectionReason;
-    submission.canResubmit = true;
+    // 1 more chance to resubmit (submissionCount 1 -> canResubmit true, submissionCount 2 -> canResubmit false)
+    submission.canResubmit = submission.submissionCount < 2;
     submission.reviewedBy = req.user._id;
     submission.reviewedAt = new Date();
     await submission.save();

@@ -14,6 +14,7 @@ const submissionRoutes = require('./routes/submissionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
+app.set('trust proxy', true);
 
 // ─── SECURITY ──────────────────────────────────────────
 app.use(helmet());

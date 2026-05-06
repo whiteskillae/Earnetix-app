@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { Mail, Lock, User, Zap, Eye, EyeOff } from 'lucide-react';
+import { getDeviceFingerprint } from '../utils/fingerprint';
 
 const RegisterPage = () => {
   const [step, setStep] = useState('register'); // register | otp
@@ -19,6 +20,7 @@ const RegisterPage = () => {
     try {
       const res = await request('post', '/auth/google', {
         credential: tokenResponse.access_token,
+        deviceFingerprint: getDeviceFingerprint(),
       });
       login(res.data.accessToken, res.data.user);
       toast.success('Registration successful!');
@@ -34,7 +36,10 @@ const RegisterPage = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await request('post', '/auth/register', form);
+      await request('post', '/auth/register', { 
+        ...form, 
+        deviceFingerprint: getDeviceFingerprint() 
+      });
       toast.success('OTP sent to your email!');
       setStep('otp');
     } catch {}

@@ -5,6 +5,7 @@ import { useApi } from '../hooks/useApi';
 import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { Mail, Lock, Zap, Eye, EyeOff } from 'lucide-react';
+import { getDeviceFingerprint } from '../utils/fingerprint';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ const LoginPage = () => {
     try {
       const res = await request('post', '/auth/google', {
         credential: tokenResponse.access_token,
+        deviceFingerprint: getDeviceFingerprint(),
       });
       login(res.data.accessToken, res.data.user);
       toast.success('Login successful!');
@@ -33,7 +35,11 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await request('post', '/auth/login', { email, password });
+      const res = await request('post', '/auth/login', { 
+        email, 
+        password, 
+        deviceFingerprint: getDeviceFingerprint() 
+      });
       login(res.data.accessToken, res.data.user);
       toast.success('Welcome back!');
       navigate(res.data.user.role === 'admin' ? '/admin' : '/dashboard');

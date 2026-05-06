@@ -11,7 +11,24 @@ const submitProof = async (req, res, next) => {
     if (!task || !task.isActive) return res.status(404).json({ success: false, message: 'Task not found or inactive' });
 
     const existingCount = await Submission.countDocuments({ userId, taskId, status: { $in: ['pending', 'approved'] } });
-    if (existingCount >= task.maxSubmissionsPerUser) return res.status(400).json({ success: false, message: 'Submission limit reached' });
+    if (existingCount >= task.maxSubmissionsPerUser) return res.status(400).json({ success: false, message: 'Submission limit reached for this task' });
+
+    // Daily Limit Check: Only 8 tasks allowed per day
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const dailyTasks = await Submission.distinct('taskId', {
+      userId,
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    const dailyTaskIds = dailyTasks.map(id => id.toString());
+
+    if (dailyTaskIds.length >= 8 && !dailyTaskIds.includes(taskId.toString())) {
+      return res.status(400).json({ success: false, message: 'Daily limit of 8 tasks reached. Please try again tomorrow.' });
+    }
 
     let imageUrl = null, imagePublicId = null, fileHash = null;
 

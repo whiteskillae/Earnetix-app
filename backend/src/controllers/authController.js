@@ -16,6 +16,19 @@ const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
+    // Check IP address for multi-accounting
+    const ip = req.ip || req.connection.remoteAddress;
+    if (ip) {
+      const ipUser = await User.findOne({ registrationIp: ip });
+      if (ipUser) {
+        logger.warn(`Multi-account attempt from IP: ${ip}`);
+        return res.status(403).json({
+          success: false,
+          message: 'An account already exists from this network/device. Only one account per device is allowed.',
+        });
+      }
+    }
+
     // Check device fingerprint for multi-accounting
     if (deviceFingerprint) {
       const deviceUser = await User.findOne({ deviceFingerprint });
@@ -40,6 +53,7 @@ const register = async (req, res, next) => {
       email,
       passwordHash,
       deviceFingerprint,
+      registrationIp: ip,
       otp: { code: otp.code, expiresAt: otp.expiresAt },
     });
 
@@ -203,6 +217,19 @@ const googleAuth = async (req, res, next) => {
     let user = await User.findOne({ email });
 
     if (!user) {
+      // Check IP address
+      const ip = req.ip || req.connection.remoteAddress;
+      if (ip) {
+        const ipUser = await User.findOne({ registrationIp: ip });
+        if (ipUser) {
+          logger.warn(`Multi-account attempt (Google) from IP: ${ip}`);
+          return res.status(403).json({
+            success: false,
+            message: 'An account already exists from this network/device. Only one account per device is allowed.',
+          });
+        }
+      }
+
       // Check device fingerprint
       if (deviceFingerprint) {
         const deviceUser = await User.findOne({ deviceFingerprint });
@@ -222,6 +249,7 @@ const googleAuth = async (req, res, next) => {
         isVerified: true,
         avatar: picture,
         deviceFingerprint,
+        registrationIp: ip,
       });
     }
 
