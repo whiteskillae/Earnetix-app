@@ -21,6 +21,8 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX: z.string().default('100'),
   LOGIN_RATE_LIMIT_MAX: z.string().default('5'),
+  ADMIN_EMAIL: z.string().email().optional(),
+  ADMIN_PASSWORD: z.string().optional(),
 });
 
 let env;

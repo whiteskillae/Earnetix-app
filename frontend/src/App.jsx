@@ -15,8 +15,8 @@ import AnnouncementsPage from './pages/AnnouncementsPage';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { user, loading, isAdmin } = useAuth();
-  if (loading) return <Loader text="Loading..." />;
+  const { user, loading, isAdmin, isRefreshing } = useAuth();
+  if (loading || isRefreshing) return <Loader text="Verifying access..." />;
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
   return children;

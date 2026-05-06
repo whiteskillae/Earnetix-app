@@ -9,11 +9,13 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchProfile = useCallback(async () => {
+    setIsRefreshing(true);
     try {
       const token = localStorage.getItem('accessToken');
-      if (!token) { setLoading(false); return; }
+      if (!token) { setLoading(false); setIsRefreshing(false); return; }
       const { data } = await api.get('/users/profile');
       setUser(data.data);
       localStorage.setItem('user', JSON.stringify(data.data));
@@ -23,6 +25,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('accessToken');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -44,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, fetchProfile }}>
+    <AuthContext.Provider value={{ user, loading, isRefreshing, login, logout, isAdmin, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   );
