@@ -30,11 +30,11 @@ const errorHandler = (err, req, res, next) => {
     return res.status(401).json({ success: false, message: 'Invalid token' });
   }
 
-  // Default server error — never expose stack in production
-  const statusCode = err.statusCode || 500;
+  // Default server error
+  const statusCode = err.statusCode || (err.name === 'Error' ? 400 : 500); 
   res.status(statusCode).json({
     success: false,
-    message: env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    message: (env.NODE_ENV === 'production' && statusCode === 500) ? 'Internal server error' : err.message,
   });
 };
 

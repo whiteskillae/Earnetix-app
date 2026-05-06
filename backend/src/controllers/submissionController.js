@@ -6,6 +6,8 @@ const { hashText } = require('../utils/hashFile');
 const submitProof = async (req, res, next) => {
   try {
     const { taskId, textContent } = req.body;
+    if (!taskId) return res.status(400).json({ success: false, message: 'Task ID is required' });
+    
     const userId = req.user._id;
     const task = await Task.findById(taskId);
     if (!task || !task.isActive) return res.status(404).json({ success: false, message: 'Task not found or inactive' });
