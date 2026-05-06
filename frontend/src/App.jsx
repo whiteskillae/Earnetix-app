@@ -12,12 +12,18 @@ import TasksPage from './pages/TasksPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
+import AdminLoginPage from './pages/AdminLoginPage';
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAdmin, isRefreshing } = useAuth();
   if (loading || isRefreshing) return <Loader text="Verifying access..." />;
-  if (!user) return <Navigate to="/login" replace />;
+  
+  if (!user) {
+    if (adminOnly) return <AdminLoginPage />;
+    return <Navigate to="/login" replace />;
+  }
+
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 };
