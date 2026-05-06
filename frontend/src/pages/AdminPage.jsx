@@ -3,7 +3,11 @@ import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Users, ListTodo, Clock, CheckCircle, XCircle, Eye, Plus, Zap, Bell, Trash2, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { 
+  Users, ListTodo, Clock, CheckCircle, XCircle, Eye, Plus, Zap, 
+  Bell, Trash2, ShieldAlert, ShieldCheck, Search, Filter,
+  Settings, History, BarChart3, Edit, MoreVertical
+} from 'lucide-react';
 
 const AdminPage = () => {
   const { request } = useApi();
@@ -11,67 +15,127 @@ const AdminPage = () => {
   const [dashboard, setDashboard] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [users, setUsers] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subFilter, setSubFilter] = useState('pending');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Task creation
+  // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', rewardPoints: 10, inputType: 'image' });
+  const [editingTask, setEditingTask] = useState(null);
 
-  // Reject modal
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  // Preview modal
   const [showPreview, setShowPreview] = useState(false);
   const [previewSub, setPreviewSub] = useState(null);
 
-  // Announcement modal
   const [showAnnModal, setShowAnnModal] = useState(false);
   const [annForm, setAnnForm] = useState({ title: '', content: '', priority: 'medium' });
 
-  useEffect(() => { fetchDashboard(); }, []);
-  useEffect(() => { if (tab === 'submissions') fetchSubmissions(); }, [tab, subFilter]);
-  useEffect(() => { if (tab === 'users') fetchUsers(); }, [tab]);
-  useEffect(() => { if (tab === 'announcements') fetchAnnouncements(); }, [tab]);
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'submissions') fetchSubmissions();
+    if (tab === 'users') fetchUsers();
+    if (tab === 'tasks') fetchTasks();
+    if (tab === 'announcements') fetchAnnouncements();
+  }, [tab, subFilter]);
 
   const fetchDashboard = async () => {
-    try { const r = await request('get', '/admin/dashboard'); setDashboard(r.data); } catch {}
+    try {
+      const r = await request('get', '/admin/dashboard');
+      setDashboard(r.data);
+    } catch {}
     setLoading(false);
   };
 
   const fetchSubmissions = async () => {
     setLoading(true);
-    try { const r = await request('get', `/admin/submissions?status=${subFilter}&limit=50`); setSubmissions(r.data.submissions); } catch {}
+    try {
+      const r = await request('get', `/admin/submissions?status=${subFilter}&limit=100`);
+      setSubmissions(r.data.submissions);
+    } catch {}
     setLoading(false);
   };
 
   const fetchUsers = async () => {
     setLoading(true);
-    try { const r = await request('get', '/admin/users?limit=100'); setUsers(r.data.users); } catch {}
+    try {
+      const r = await request('get', '/admin/users?limit=200');
+      setUsers(r.data.users);
+    } catch {}
+    setLoading(false);
+  };
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    try {
+      const r = await request('get', '/tasks');
+      setTasks(r.data.tasks);
+    } catch {}
     setLoading(false);
   };
 
   const fetchAnnouncements = async () => {
     setLoading(true);
-    try { const r = await request('get', '/announcements'); setAnnouncements(r.data); } catch {}
+    try {
+      const r = await request('get', '/announcements');
+      setAnnouncements(r.data);
+    } catch {}
     setLoading(false);
   };
 
   const handleApprove = async (id) => {
-    try { await request('put', `/admin/submissions/${id}/approve`); toast.success('Approved!'); fetchSubmissions(); fetchDashboard(); } catch {}
+    try {
+      await request('put', `/admin/submissions/${id}/approve`);
+      toast.success('Submission Approved');
+      fetchSubmissions();
+      fetchDashboard();
+    } catch {}
   };
 
   const handleReject = async (e) => {
     e.preventDefault();
-    try { await request('put', `/admin/submissions/${rejectId}/reject`, { rejectionReason: rejectReason }); toast.success('Rejected'); setShowRejectModal(false); setRejectReason(''); fetchSubmissions(); fetchDashboard(); } catch {}
+    try {
+      await request('put', `/admin/submissions/${rejectId}/reject`, { rejectionReason: rejectReason });
+      toast.success('Submission Rejected');
+      setShowRejectModal(false);
+      setRejectReason('');
+      fetchSubmissions();
+      fetchDashboard();
+    } catch {}
   };
 
-  const handleCreateTask = async (e) => {
+  const handleCreateOrUpdateTask = async (e) => {
     e.preventDefault();
-    try { await request('post', '/tasks', { ...taskForm, rewardPoints: Number(taskForm.rewardPoints) }); toast.success('Task created!'); setShowTaskModal(false); setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' }); } catch {}
+    try {
+      if (editingTask) {
+        await request('put', `/tasks/${editingTask._id}`, { ...taskForm, rewardPoints: Number(taskForm.rewardPoints) });
+        toast.success('Task updated');
+      } else {
+        await request('post', '/tasks', { ...taskForm, rewardPoints: Number(taskForm.rewardPoints) });
+        toast.success('Task created');
+      }
+      setShowTaskModal(false);
+      setEditingTask(null);
+      setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' });
+      fetchTasks();
+    } catch {}
+  };
+
+  const handleDeleteTask = async (id) => {
+    if (!window.confirm('Delete this task? This will not affect existing submissions.')) return;
+    try {
+      await request('delete', `/tasks/${id}`);
+      toast.success('Task deleted');
+      fetchTasks();
+    } catch {}
   };
 
   const handleToggleBlock = async (id) => {
@@ -86,7 +150,7 @@ const AdminPage = () => {
     e.preventDefault();
     try {
       await request('post', '/announcements', annForm);
-      toast.success('Announcement posted!');
+      toast.success('Announcement posted');
       setShowAnnModal(false);
       setAnnForm({ title: '', content: '', priority: 'medium' });
       fetchAnnouncements();
@@ -95,209 +159,405 @@ const AdminPage = () => {
 
   const handleDeleteAnn = async (id) => {
     if (!window.confirm('Delete this announcement?')) return;
-    try { await request('delete', `/announcements/${id}`); toast.success('Deleted'); fetchAnnouncements(); } catch {}
+    try {
+      await request('delete', `/announcements/${id}`);
+      toast.success('Announcement deleted');
+      fetchAnnouncements();
+    } catch {}
   };
 
-  if (loading && tab === 'dashboard' && !dashboard) return <Loader text="Loading admin..." />;
+  if (loading && tab === 'dashboard' && !dashboard) return <Loader text="Loading Admin Intelligence..." />;
+
+  const filteredUsers = users.filter(u => 
+    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="fade-in">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <h1>Admin Panel</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-outline" onClick={() => setShowAnnModal(true)}><Bell size={18} /> Announcement</button>
-            <button className="btn btn-primary" onClick={() => setShowTaskModal(true)}><Plus size={18} /> New Task</button>
-          </div>
+    <div className="admin-layout fade-in">
+      {/* Admin Sidebar Navigation */}
+      <aside className="admin-nav">
+        <div className="admin-nav-header">
+          <ShieldCheck size={24} color="var(--blue-light)" />
+          <h3>Admin Control</h3>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
-        {['dashboard', 'submissions', 'users', 'announcements'].map((t) => (
-          <button key={t} className={`btn btn-sm ${tab === t ? 'btn-primary' : 'btn-outline'}`} onClick={() => setTab(t)}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+        <div className="admin-nav-links">
+          <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>
+            <BarChart3 size={18} /> Overview
           </button>
-        ))}
-      </div>
-
-      {/* DASHBOARD TAB */}
-      {tab === 'dashboard' && dashboard && (
-        <div className="stats-grid">
-          <StatCard icon={<Users size={22} />} label="Total Users" value={dashboard.totalUsers} color="var(--blue)" />
-          <StatCard icon={<ListTodo size={22} />} label="Total Tasks" value={dashboard.totalTasks} color="var(--green)" />
-          <StatCard icon={<Clock size={22} />} label="Pending" value={dashboard.pendingSubmissions} color="var(--pending)" />
-          <StatCard icon={<CheckCircle size={22} />} label="Approved" value={dashboard.approvedSubmissions} color="var(--approved)" />
-          <StatCard icon={<XCircle size={22} />} label="Rejected" value={dashboard.rejectedSubmissions} color="var(--rejected)" />
-          <StatCard icon={<Zap size={22} />} label="All Submissions" value={dashboard.totalSubmissions} color="var(--white)" />
+          <button className={tab === 'submissions' ? 'active' : ''} onClick={() => setTab('submissions')}>
+            <Clock size={18} /> User Submissions
+          </button>
+          <button className={tab === 'tasks' ? 'active' : ''} onClick={() => setTab('tasks')}>
+            <ListTodo size={18} /> Task Management
+          </button>
+          <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>
+            <Users size={18} /> User Directory
+          </button>
+          <button className={tab === 'announcements' ? 'active' : ''} onClick={() => setTab('announcements')}>
+            <Bell size={18} /> Announcements
+          </button>
         </div>
-      )}
+      </aside>
 
-      {/* SUBMISSIONS TAB */}
-      {tab === 'submissions' && (
-        <>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {['pending', 'approved', 'rejected'].map((f) => (
-              <button key={f} className={`btn btn-sm ${subFilter === f ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setSubFilter(f)}>
-                {f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
+      {/* Main Admin Content */}
+      <div className="admin-main">
+        <header className="admin-header">
+          <div>
+            <h2>{tab.charAt(0).toUpperCase() + tab.slice(1)} Management</h2>
+            <p className="subtitle">System administrator dashboard for Earnitix</p>
           </div>
-          {loading ? <Loader /> : (
-            <div className="table-container">
-              <table>
-                <thead><tr><th>User</th><th>Task</th><th>Points</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <div className="admin-actions">
+            <button className="btn btn-outline" onClick={() => setShowAnnModal(true)}><Bell size={18} /> Alert</button>
+            <button className="btn btn-primary" onClick={() => { setEditingTask(null); setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' }); setShowTaskModal(true); }}>
+              <Plus size={18} /> New Task
+            </button>
+          </div>
+        </header>
+
+        {/* DASHBOARD */}
+        {tab === 'dashboard' && dashboard && (
+          <div className="dashboard-view">
+            <div className="stats-grid">
+              <StatCard icon={<Users size={22} />} label="Total Users" value={dashboard.totalUsers} color="#3B82F6" trend="+12% this month" />
+              <StatCard icon={<Clock size={22} />} label="Pending Review" value={dashboard.pendingSubmissions} color="#F59E0B" trend="Requires Action" />
+              <StatCard icon={<CheckCircle size={22} />} label="Approved" value={dashboard.approvedSubmissions} color="#10B981" trend="Successfully processed" />
+              <StatCard icon={<XCircle size={22} />} label="Rejected" value={dashboard.rejectedSubmissions} color="#EF4444" trend="Denied access" />
+            </div>
+
+            <div className="recent-activity-section" style={{ marginTop: 32 }}>
+              <h3 style={{ marginBottom: 16 }}>System Overview</h3>
+              <div className="card" style={{ padding: 24, background: 'var(--dark-800)' }}>
+                <p style={{ color: 'var(--gray-400)' }}>The system is currently handling <strong>{dashboard.totalSubmissions}</strong> total task submissions across <strong>{dashboard.totalTasks}</strong> active campaigns.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SUBMISSIONS */}
+        {tab === 'submissions' && (
+          <div className="submissions-view">
+            <div className="view-filters">
+              <div className="filter-group">
+                {['pending', 'approved', 'rejected'].map(f => (
+                  <button key={f} className={subFilter === f ? 'active' : ''} onClick={() => setSubFilter(f)}>
+                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div className="search-box">
+                <Search size={16} />
+                <input type="text" placeholder="Search user or task..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>User Detail</th>
+                    <th>Task Target</th>
+                    <th>Reward</th>
+                    <th>Status</th>
+                    <th>Submission Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {submissions.map((s) => (
+                  {submissions.map(s => (
                     <tr key={s._id}>
-                      <td style={{ fontWeight: 500, color: 'var(--white)' }}>{s.userId?.name || '—'}<br /><span style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>{s.userId?.email}</span></td>
-                      <td>{s.taskId?.title || '—'}</td>
-                      <td><span style={{ color: 'var(--green)' }}>{s.taskId?.rewardPoints}</span></td>
-                      <td><span className={`badge badge-${s.status}`}>{s.status}</span></td>
-                      <td style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>{new Date(s.createdAt).toLocaleDateString()}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button className="btn btn-sm btn-outline" onClick={() => { setPreviewSub(s); setShowPreview(true); }}><Eye size={14} /></button>
+                        <div className="user-info-cell">
+                          <span className="user-name">{s.userId?.name || 'Unknown'}</span>
+                          <span className="user-email">{s.userId?.email}</span>
+                        </div>
+                      </td>
+                      <td>{s.taskId?.title || 'Deleted Task'}</td>
+                      <td><span className="points-badge">+{s.taskId?.rewardPoints}</span></td>
+                      <td><span className={`status-pill ${s.status}`}>{s.status}</span></td>
+                      <td>{new Date(s.createdAt).toLocaleString()}</td>
+                      <td>
+                        <div className="action-btns">
+                          <button className="btn-icon" title="View Proof" onClick={() => { setPreviewSub(s); setShowPreview(true); }}><Eye size={16} /></button>
                           {s.status === 'pending' && (
                             <>
-                              <button className="btn btn-sm btn-success" onClick={() => handleApprove(s._id)}>✓</button>
-                              <button className="btn btn-sm btn-danger" onClick={() => { setRejectId(s._id); setShowRejectModal(true); }}>✗</button>
+                              <button className="btn-icon success" title="Approve" onClick={() => handleApprove(s._id)}><CheckCircle size={16} /></button>
+                              <button className="btn-icon danger" title="Reject" onClick={() => { setRejectId(s._id); setShowRejectModal(true); }}><XCircle size={16} /></button>
                             </>
                           )}
                         </div>
                       </td>
                     </tr>
                   ))}
-                  {submissions.length === 0 && <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--gray-400)', padding: 32 }}>No submissions</td></tr>}
                 </tbody>
               </table>
             </div>
-          )}
-        </>
-      )}
-
-      {/* USERS TAB */}
-      {tab === 'users' && (
-        loading ? <Loader /> : (
-          <div className="table-container">
-            <table>
-              <thead><tr><th>Name</th><th>Email</th><th>Points</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u._id}>
-                    <td style={{ fontWeight: 500, color: 'var(--white)' }}>{u.name}</td>
-                    <td>{u.email}</td>
-                    <td style={{ color: 'var(--green)', fontWeight: 600 }}>{u.points}</td>
-                    <td>
-                      {u.isBlocked ? (
-                        <span className="badge badge-rejected" style={{ display: 'flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
-                          <ShieldAlert size={12} /> Blocked
-                        </span>
-                      ) : (
-                        <span className="badge badge-approved" style={{ display: 'flex', alignItems: 'center', gap: 4, width: 'fit-content' }}>
-                          <ShieldCheck size={12} /> Active
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                    <td>
-                      <button className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-danger'}`} onClick={() => handleToggleBlock(u._id)}>
-                        {u.isBlocked ? 'Unblock' : 'Block'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-        )
-      )}
+        )}
 
-      {/* ANNOUNCEMENTS TAB */}
-      {tab === 'announcements' && (
-        loading ? <Loader /> : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {announcements.map((ann) => (
-              <div key={ann._id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ color: 'var(--white)' }}>{ann.title}</h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)' }}>{ann.content.substring(0, 100)}...</p>
+        {/* TASKS */}
+        {tab === 'tasks' && (
+          <div className="tasks-view">
+            <div className="task-grid">
+              {tasks.map(task => (
+                <div key={task._id} className="task-admin-card card">
+                  <div className="task-card-header">
+                    <h4>{task.title}</h4>
+                    <span className="points">+{task.rewardPoints} Pts</span>
+                  </div>
+                  <p className="task-desc">{task.description}</p>
+                  <div className="task-footer">
+                    <span className="input-type-badge">{task.inputType.toUpperCase()} REQUIRED</span>
+                    <div className="task-actions">
+                      <button className="btn-icon" onClick={() => { 
+                        setEditingTask(task); 
+                        setTaskForm({ title: task.title, description: task.description, rewardPoints: task.rewardPoints, inputType: task.inputType });
+                        setShowTaskModal(true);
+                      }}><Edit size={16} /></button>
+                      <button className="btn-icon danger" onClick={() => handleDeleteTask(task._id)}><Trash2 size={16} /></button>
+                    </div>
+                  </div>
                 </div>
-                <button className="btn btn-sm btn-outline btn-danger" onClick={() => handleDeleteAnn(ann._id)}>
-                  <Trash2 size={14} />
-                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* USERS */}
+        {tab === 'users' && (
+          <div className="users-view">
+             <div className="view-filters">
+              <div className="search-box" style={{ flex: 1 }}>
+                <Search size={16} />
+                <input type="text" placeholder="Search name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
-            ))}
-            {announcements.length === 0 && <div className="empty-state">No announcements</div>}
-          </div>
-        )
-      )}
+            </div>
 
-      {/* Create Task Modal */}
-      <Modal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} title="Create New Task">
-        <form onSubmit={handleCreateTask}>
-          <div className="form-group"><label>Title</label><input className="form-input" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} required /></div>
-          <div className="form-group"><label>Description</label><textarea className="form-input" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} required /></div>
+            <div className="table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>User Profile</th>
+                    <th>Points</th>
+                    <th>Account Status</th>
+                    <th>Registration Date</th>
+                    <th>Security</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map(u => (
+                    <tr key={u._id}>
+                      <td>
+                        <div className="user-info-cell">
+                          <span className="user-name">{u.name}</span>
+                          <span className="user-email">{u.email}</span>
+                        </div>
+                      </td>
+                      <td><span className="points-value">{u.points}</span></td>
+                      <td>
+                        <span className={`status-pill ${u.isBlocked ? 'rejected' : 'approved'}`}>
+                          {u.isBlocked ? 'BLOCKED' : 'ACTIVE'}
+                        </span>
+                      </td>
+                      <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td>
+                        <button className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-danger'}`} onClick={() => handleToggleBlock(u._id)}>
+                          {u.isBlocked ? 'Unblock User' : 'Block User'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ANNOUNCEMENTS */}
+        {tab === 'announcements' && (
+          <div className="announcements-view">
+            <div className="ann-list">
+              {announcements.map(ann => (
+                <div key={ann._id} className="ann-card card">
+                  <div className="ann-header">
+                    <div className="ann-title">
+                      <span className={`priority-dot ${ann.priority}`}></span>
+                      <h4>{ann.title}</h4>
+                    </div>
+                    <button className="btn-icon danger" onClick={() => handleDeleteAnn(ann._id)}><Trash2 size={16} /></button>
+                  </div>
+                  <p>{ann.content}</p>
+                  <span className="ann-date">{new Date(ann.createdAt).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MODALS */}
+      <Modal isOpen={showTaskModal} onClose={() => { setShowTaskModal(false); setEditingTask(null); }} title={editingTask ? 'Edit Task' : 'Create New Campaign'}>
+        <form onSubmit={handleCreateOrUpdateTask}>
+          <div className="form-group"><label>Campaign Title</label><input className="form-input" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} required /></div>
+          <div className="form-group"><label>Instructions</label><textarea className="form-input" rows="4" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} required /></div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <div className="form-group" style={{ flex: 1 }}><label>Reward Points</label><input type="number" className="form-input" min="1" max="10000" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
-            <div className="form-group" style={{ flex: 1 }}><label>Input Type</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}><option value="text">Text</option><option value="image">Image</option><option value="both">Both</option></select></div>
+            <div className="form-group" style={{ flex: 1 }}><label>Points Reward</label><input type="number" className="form-input" min="1" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
+            <div className="form-group" style={{ flex: 1 }}><label>Evidence Required</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}><option value="text">Text Only</option><option value="image">Screenshot Only</option><option value="both">Text + Screenshot</option></select></div>
           </div>
-          <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>Create Task</button>
+          <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Save Changes' : 'Launch Campaign'}</button>
         </form>
       </Modal>
 
-      {/* Reject Modal */}
-      <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="Reject Submission">
+      <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="Reject Evidence">
         <form onSubmit={handleReject}>
-          <div className="form-group"><label>Rejection Reason</label><textarea className="form-input" placeholder="Explain why..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} required minLength={5} /></div>
-          <button type="submit" className="btn btn-danger btn-block">Reject Submission</button>
+          <div className="form-group"><label>Rejection Notice</label><textarea className="form-input" placeholder="Explain what went wrong..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} required /></div>
+          <button type="submit" className="btn btn-danger btn-block">Confirm Rejection</button>
         </form>
       </Modal>
 
-      {/* Announcement Modal */}
-      <Modal isOpen={showAnnModal} onClose={() => setShowAnnModal(false)} title="Post Announcement">
+      <Modal isOpen={showAnnModal} onClose={() => setShowAnnModal(false)} title="Global Broadcast">
         <form onSubmit={handleCreateAnn}>
-          <div className="form-group"><label>Title</label><input className="form-input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} required /></div>
-          <div className="form-group"><label>Content</label><textarea className="form-input" rows="4" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} required /></div>
+          <div className="form-group"><label>Notice Title</label><input className="form-input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} required /></div>
+          <div className="form-group"><label>Broadcast Content</label><textarea className="form-input" rows="4" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} required /></div>
           <div className="form-group">
-            <label>Priority</label>
+            <label>Priority Level</label>
             <select className="form-input" value={annForm.priority} onChange={(e) => setAnnForm({ ...annForm, priority: e.target.value })}>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
+              <option value="low">Standard Info</option>
+              <option value="medium">Important Notice</option>
+              <option value="high">Critical Alert</option>
             </select>
           </div>
-          <button type="submit" className="btn btn-primary btn-block">Post Announcement</button>
+          <button type="submit" className="btn btn-primary btn-block">Send to All Users</button>
         </form>
       </Modal>
 
-      {/* Preview Modal */}
-      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title="Submission Preview">
+      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title="Submission Verification">
         {previewSub && (
-          <div>
-            {previewSub.textContent && <div className="form-group"><label>Text Response</label><div className="card" style={{ padding: 16 }}><p style={{ color: 'var(--white)', whiteSpace: 'pre-wrap' }}>{previewSub.textContent}</p></div></div>}
-            {previewSub.imageUrl && <div className="form-group"><label>Image</label><img src={previewSub.imageUrl} alt="Submission" style={{ borderRadius: 'var(--radius-md)', maxHeight: 300, objectFit: 'contain' }} /></div>}
-            <div style={{ fontSize: '0.85rem', color: 'var(--gray-400)', marginTop: 12 }}>
-              <p>Submitted: {new Date(previewSub.createdAt).toLocaleString()}</p>
-              <p>Attempt #{previewSub.submissionCount}</p>
+          <div className="preview-content">
+            <div className="preview-user-info">
+              <p><strong>User:</strong> {previewSub.userId?.name}</p>
+              <p><strong>Task:</strong> {previewSub.taskId?.title}</p>
             </div>
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--dark-600)' }}>
-              <button className="btn btn-sm btn-danger btn-block" onClick={() => { handleToggleBlock(previewSub.userId._id); setShowPreview(false); }}>
+            {previewSub.textContent && <div className="proof-section"><h5>Text Evidence:</h5><div className="text-proof">{previewSub.textContent}</div></div>}
+            {previewSub.imageUrl && <div className="proof-section"><h5>Screenshot Evidence:</h5><img src={previewSub.imageUrl} alt="Proof" className="img-proof" /></div>}
+            <div className="preview-meta">
+              <span>Attempt #{previewSub.submissionCount}</span>
+              <span>{new Date(previewSub.createdAt).toLocaleString()}</span>
+            </div>
+            <div className="preview-actions">
+              <button className="btn btn-sm btn-danger" onClick={() => { handleToggleBlock(previewSub.userId?._id); setShowPreview(false); }}>
                 {previewSub.userId?.isBlocked ? 'Unblock User' : 'Block User'}
               </button>
             </div>
           </div>
         )}
       </Modal>
+
+      <style>{`
+        .admin-layout { display: flex; min-height: calc(100vh - 0px); background: #0A0A0C; }
+        
+        /* Admin Sidebar */
+        .admin-nav {
+          width: 260px; background: #111114; border-right: 1px solid #1F1F23;
+          display: flex; flex-direction: column; flex-shrink: 0;
+        }
+        .admin-nav-header { padding: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1F1F23; }
+        .admin-nav-header h3 { font-size: 1rem; color: var(--white); font-weight: 700; letter-spacing: 0.5px; }
+        .admin-nav-links { padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+        .admin-nav-links button {
+          display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+          background: transparent; border: none; color: var(--gray-400);
+          font-size: 0.9rem; font-weight: 500; cursor: pointer; border-radius: 8px;
+          transition: all 0.2s; text-align: left;
+        }
+        .admin-nav-links button:hover { background: #1F1F23; color: var(--white); }
+        .admin-nav-links button.active { background: var(--blue); color: var(--white); box-shadow: 0 4px 12px rgba(59,130,246,0.2); }
+
+        /* Main Area */
+        .admin-main { flex: 1; padding: 32px; overflow-y: auto; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; gap: 24px; }
+        .admin-header h2 { font-size: 1.75rem; color: var(--white); font-weight: 800; }
+        .subtitle { color: var(--gray-400); margin-top: 4px; font-size: 0.9rem; }
+        .admin-actions { display: flex; gap: 12px; }
+
+        /* Table Styling */
+        .table-wrapper { background: #111114; border-radius: 12px; border: 1px solid #1F1F23; overflow: hidden; margin-top: 24px; }
+        .admin-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .admin-table th { padding: 16px 20px; background: #18181B; color: var(--gray-400); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+        .admin-table td { padding: 16px 20px; border-bottom: 1px solid #1F1F23; font-size: 0.9rem; }
+        .user-info-cell { display: flex; flex-direction: column; }
+        .user-name { color: var(--white); font-weight: 600; }
+        .user-email { color: var(--gray-400); font-size: 0.8rem; }
+        .points-badge { color: var(--green); font-weight: 700; background: rgba(16,185,129,0.1); padding: 4px 8px; border-radius: 6px; }
+        .status-pill { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
+        .status-pill.pending { background: rgba(245,158,11,0.15); color: #F59E0B; }
+        .status-pill.approved { background: rgba(16,185,129,0.15); color: #10B981; }
+        .status-pill.rejected { background: rgba(239,68,68,0.15); color: #EF4444; }
+        .action-btns { display: flex; gap: 8px; }
+        .btn-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #1F1F23; border: 1px solid #2D2D33; border-radius: 6px; color: var(--gray-300); cursor: pointer; transition: all 0.2s; }
+        .btn-icon:hover { background: #2D2D33; color: var(--white); }
+        .btn-icon.success:hover { background: var(--green); color: var(--white); border-color: var(--green); }
+        .btn-icon.danger:hover { background: var(--rejected); color: var(--white); border-color: var(--rejected); }
+
+        /* Filters */
+        .view-filters { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+        .filter-group { display: flex; background: #111114; padding: 4px; border-radius: 8px; border: 1px solid #1F1F23; }
+        .filter-group button { padding: 8px 16px; border-radius: 6px; border: none; background: transparent; color: var(--gray-400); cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+        .filter-group button.active { background: #1F1F23; color: var(--white); }
+        .search-box { position: relative; background: #111114; border: 1px solid #1F1F23; border-radius: 8px; padding: 0 12px; display: flex; align-items: center; gap: 8px; min-width: 240px; }
+        .search-box input { background: transparent; border: none; color: var(--white); padding: 10px 0; font-size: 0.9rem; width: 100%; outline: none; }
+
+        /* Task Cards */
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; margin-top: 24px; }
+        .task-admin-card { background: #111114; border: 1px solid #1F1F23; padding: 24px; position: relative; display: flex; flex-direction: column; }
+        .task-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .task-card-header h4 { color: var(--white); font-size: 1.1rem; }
+        .task-card-header .points { font-weight: 700; color: var(--blue-light); }
+        .task-desc { font-size: 0.9rem; color: var(--gray-400); line-height: 1.5; flex: 1; margin-bottom: 20px; }
+        .task-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #1F1F23; }
+        .input-type-badge { font-size: 0.7rem; font-weight: 800; color: var(--gray-500); background: #18181B; padding: 4px 8px; border-radius: 4px; }
+        .task-actions { display: flex; gap: 8px; }
+
+        /* Announcements */
+        .ann-list { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
+        .ann-card { background: #111114; border: 1px solid #1F1F23; padding: 20px; }
+        .ann-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .ann-title { display: flex; align-items: center; gap: 10px; }
+        .priority-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .priority-dot.high { background: var(--rejected); box-shadow: 0 0 10px var(--rejected); }
+        .priority-dot.medium { background: var(--pending); }
+        .priority-dot.low { background: var(--blue); }
+        .ann-card h4 { color: var(--white); font-size: 1rem; }
+        .ann-card p { color: var(--gray-400); font-size: 0.9rem; line-height: 1.6; }
+        .ann-date { font-size: 0.75rem; color: var(--gray-500); margin-top: 12px; display: block; }
+
+        /* Preview Modal */
+        .preview-content { padding: 10px 0; }
+        .preview-user-info { margin-bottom: 20px; border-bottom: 1px solid #1F1F23; padding-bottom: 16px; }
+        .preview-user-info p { font-size: 0.9rem; margin-bottom: 4px; }
+        .proof-section { margin-bottom: 20px; }
+        .proof-section h5 { color: var(--white); margin-bottom: 8px; font-size: 0.9rem; }
+        .text-proof { background: #18181B; padding: 16px; border-radius: 8px; font-size: 0.9rem; border: 1px solid #2D2D33; white-space: pre-wrap; }
+        .img-proof { width: 100%; border-radius: 8px; margin-top: 8px; border: 1px solid #2D2D33; }
+        .preview-meta { display: flex; justify-content: space-between; color: var(--gray-500); font-size: 0.8rem; margin-top: 16px; }
+        .preview-actions { margin-top: 24px; display: flex; justify-content: center; }
+
+        @media (max-width: 1024px) {
+          .admin-nav { display: none; }
+          .admin-main { padding: 20px; }
+        }
+      `}</style>
     </div>
   );
 };
 
-const StatCard = ({ icon, label, value, color }) => (
-  <div className="stat-card">
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color }}>{icon}<span className="stat-label">{label}</span></div>
-    <div className="stat-value" style={{ color }}>{value}</div>
+const StatCard = ({ icon, label, value, color, trend }) => (
+  <div className="stat-card" style={{ borderLeft: `4px solid ${color}`, background: '#111114' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--gray-400)' }}>
+      {icon} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{label}</span>
+    </div>
+    <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--white)', margin: '12px 0' }}>{value}</div>
+    <div style={{ fontSize: '0.75rem', color: trend.includes('Requires') ? '#F59E0B' : trend.includes('Denied') ? '#EF4444' : '#10B981' }}>{trend}</div>
   </div>
 );
 
