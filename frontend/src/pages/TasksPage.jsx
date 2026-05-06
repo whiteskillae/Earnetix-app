@@ -16,7 +16,7 @@ const TasksPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [mySubs, setMySubs] = useState([]);
-
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const [tasksRes, subsRes] = await Promise.all([
@@ -29,7 +29,7 @@ const TasksPage = () => {
       setLoading(false);
     };
     fetchData();
-  }, []);
+  }, [request]);
 
   const openSubmit = (task) => {
     setSelected(task);
