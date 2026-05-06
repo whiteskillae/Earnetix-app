@@ -8,15 +8,19 @@ const Sidebar = () => {
   const { user, isAdmin, logout } = useAuth();
   const location = useLocation();
 
-  const navItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/tasks', label: 'Tasks', icon: ListTodo },
-    { to: '/announcements', label: 'Updates', icon: Bell },
-    { to: '/profile', label: 'Profile', icon: User },
-  ];
+  let navItems = [];
 
   if (isAdmin) {
-    navItems.push({ to: '/admin', label: 'Admin Panel', icon: Shield });
+    navItems = [
+      { to: '/admin', label: 'Admin Panel', icon: Shield },
+    ];
+  } else {
+    navItems = [
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/tasks', label: 'Tasks', icon: ListTodo },
+      { to: '/announcements', label: 'Updates', icon: Bell },
+      { to: '/profile', label: 'Profile', icon: User },
+    ];
   }
 
   const isActive = (path) => location.pathname === path;
