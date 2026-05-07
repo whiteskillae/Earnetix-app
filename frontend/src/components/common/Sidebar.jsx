@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users } from 'lucide-react';
 
-const Sidebar = () => {
-  const [open, setOpen] = useState(false);
+const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user, isAdmin, logout } = useAuth();
   const location = useLocation();
 
@@ -34,18 +32,16 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button className="sidebar-toggle" onClick={() => setOpen(!open)} aria-label="Toggle menu">
-        {open ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
       {/* Overlay */}
-      {open && <div className="sidebar-overlay" onClick={() => setOpen(false)} />}
+      <div 
+        className={`sidebar-overlay ${isOpen ? 'open' : ''}`} 
+        onClick={() => setIsOpen(false)} 
+      />
 
-      <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
         {/* Brand */}
         <div className="sidebar-brand">
-          <Link to="/dashboard" onClick={() => setOpen(false)}>
+          <Link to="/dashboard" onClick={() => setIsOpen(false)}>
             <div className="sidebar-logo">
               <Zap size={22} fill="white" />
             </div>
@@ -54,7 +50,7 @@ const Sidebar = () => {
               <span>Premium Rewards</span>
             </div>
           </Link>
-          <button className="sidebar-mobile-close" onClick={() => setOpen(false)}>
+          <button className="sidebar-mobile-close" onClick={() => setIsOpen(false)}>
             <X size={20} />
           </button>
         </div>
@@ -67,7 +63,7 @@ const Sidebar = () => {
               key={item.to}
               to={item.to}
               className={`sidebar-link ${isActive(item.to) ? 'active' : ''}`}
-              onClick={() => setOpen(false)}
+              onClick={() => setIsOpen(false)}
             >
               <item.icon size={20} className="sidebar-icon" />
               <span>{item.label}</span>

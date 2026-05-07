@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -49,18 +49,24 @@ const GuestRoute = ({ children }) => {
 };
 
 // Layout with sidebar
-const AppLayout = ({ children }) => (
-  <div className="app-layout">
-    <MobileHeader />
-    <Sidebar />
-    <main className="app-main">
-      <div className="fade-in">
-        {children}
-      </div>
-    </main>
-    <BottomNav />
-  </div>
-);
+const AppLayout = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  return (
+    <div className="app-layout">
+      <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <main className="app-main">
+        <div className="fade-in">
+          {children}
+        </div>
+      </main>
+      <BottomNav />
+    </div>
+  );
+};
+
+
 
 const AppRoutes = () => (
   <Suspense fallback={<Loader text="Loading module..." />}>
