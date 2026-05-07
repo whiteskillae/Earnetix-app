@@ -32,12 +32,14 @@ const allowedOrigins = [
   env.CLIENT_URL,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'https://earnitix-app.vercel.app',
   'https://earnitix-app-93ba.vercel.app'
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow if origin is in the allowed list, OR if it's a Vercel preview deployment
+    if (!origin || allowedOrigins.includes(origin) || /^https:\/\/earnitix-app.*\.vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
