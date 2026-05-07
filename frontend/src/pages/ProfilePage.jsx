@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import Loader from '../components/common/Loader';
-import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
+import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut } from 'lucide-react';
 
 const ProfilePage = () => {
-  const { user, fetchProfile } = useAuth();
+  const { user, fetchProfile, logout } = useAuth();
   const { request } = useApi();
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,34 +25,53 @@ const ProfilePage = () => {
 
   return (
     <div className="fade-in">
-      <div className="page-header"><h1>My Profile</h1></div>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>My Profile</h1>
+        <button className="btn btn-outline btn-sm" onClick={logout} style={{ color: 'var(--rejected)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+          <LogOut size={16} /> Logout
+        </button>
+      </div>
 
       {/* Profile Card */}
       <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
         <div style={{
-          width: 72, height: 72, borderRadius: '50%',
+          width: 80, height: 80, borderRadius: '50%',
           background: 'linear-gradient(135deg, var(--blue), var(--green))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.8rem', fontWeight: 700, color: 'var(--white)', flexShrink: 0,
+          fontSize: '2rem', fontWeight: 700, color: 'var(--white)', flexShrink: 0,
+          boxShadow: '0 0 20px var(--blue-glow)'
         }}>
           {user?.name?.charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <h2 style={{ color: 'var(--white)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <User size={20} /> {user?.name}
+            {user?.name}
           </h2>
-          <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem' }}>
+          <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.9rem', color: 'var(--gray-400)' }}>
             <Mail size={16} /> {user?.email}
           </p>
         </div>
         <div style={{
-          background: 'var(--green-glow)', padding: '16px 28px', borderRadius: 'var(--radius-lg)',
-          textAlign: 'center', border: '1px solid rgba(0,209,102,0.2)',
+          background: 'linear-gradient(145deg, var(--dark-800), var(--dark-950))', 
+          padding: '20px 32px', 
+          borderRadius: 'var(--radius-lg)',
+          textAlign: 'center', 
+          border: '1px solid var(--dark-700)',
+          minWidth: '140px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontFamily: 'var(--font-heading)', fontSize: '1.8rem', fontWeight: 800 }}>
-            <Zap size={24} /> {user?.points || 0}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 8, 
+            color: 'var(--green)', 
+            fontFamily: 'Poppins, sans-serif', 
+            fontSize: '2rem', 
+            fontWeight: 800 
+          }}>
+            <Zap size={24} fill="var(--green)" /> {user?.points || 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--gray-300)', marginTop: 2 }}>POINTS</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontWeight: 600, letterSpacing: '1px', marginTop: 4 }}>TOTAL POINTS</div>
         </div>
       </div>
 

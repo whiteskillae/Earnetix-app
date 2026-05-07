@@ -35,37 +35,31 @@ const DashboardPage = () => {
     <div className="fade-in">
       <div className="page-header">
         <h1>Welcome back, {user?.name?.split(' ')[0]} 👋</h1>
-        <p>Here's your activity overview</p>
+        <p>Here's what's happening with your earnings today.</p>
       </div>
 
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <Zap size={20} style={{ color: 'var(--green)' }} />
-            <span className="stat-label">Points Balance</span>
+          <div className="stat-label">Points Balance</div>
+          <div className="stat-value" style={{ color: 'var(--green)' }}>
+            <Zap size={24} fill="var(--green)" style={{ marginRight: 8, verticalAlign: 'middle' }} />
+            {user?.points || 0}
           </div>
-          <div className="stat-value" style={{ color: 'var(--green)' }}>{user?.points || 0}</div>
         </div>
+        
         <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <ListTodo size={20} style={{ color: 'var(--blue)' }} />
-            <span className="stat-label">Total Submissions</span>
-          </div>
+          <div className="stat-label">Total Submissions</div>
           <div className="stat-value">{stats?.total || 0}</div>
         </div>
+
         <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <CheckCircle size={20} style={{ color: 'var(--approved)' }} />
-            <span className="stat-label">Approved</span>
-          </div>
+          <div className="stat-label">Approved</div>
           <div className="stat-value" style={{ color: 'var(--approved)' }}>{stats?.approved || 0}</div>
         </div>
+
         <div className="stat-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <Clock size={20} style={{ color: 'var(--pending)' }} />
-            <span className="stat-label">Pending</span>
-          </div>
+          <div className="stat-label">Pending Review</div>
           <div className="stat-value" style={{ color: 'var(--pending)' }}>{stats?.pending || 0}</div>
         </div>
       </div>

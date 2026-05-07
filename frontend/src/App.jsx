@@ -5,6 +5,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import Sidebar from './components/common/Sidebar';
+import BottomNav from './components/common/BottomNav';
+import MobileHeader from './components/common/MobileHeader';
 import Loader from './components/common/Loader';
 
 // Lazy loaded pages to optimize bundle size
@@ -49,8 +51,14 @@ const GuestRoute = ({ children }) => {
 // Layout with sidebar
 const AppLayout = ({ children }) => (
   <div className="app-layout">
+    <MobileHeader />
     <Sidebar />
-    <main className="app-main">{children}</main>
+    <main className="app-main">
+      <div className="fade-in">
+        {children}
+      </div>
+    </main>
+    <BottomNav />
   </div>
 );
 
