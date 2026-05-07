@@ -104,7 +104,7 @@ const TasksPage = () => {
           <h1>Available Tasks</h1>
           <p>Complete tasks and earn points</p>
         </div>
-        <div className="daily-progress-card">
+        <div className="progress-card">
           <div className="progress-info">
             <span>Daily Progress</span>
             <span>{mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/8</span>
@@ -121,7 +121,7 @@ const TasksPage = () => {
           placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+      <div className="grid-3">
         {filtered.map((task) => {
           const userSub = mySubs.find(s => s.taskId?._id === task._id);
           const isApproved = userSub?.status === 'approved';
@@ -130,26 +130,23 @@ const TasksPage = () => {
           const canResubmit = isRejected && userSub?.submissionCount < 2;
 
           return (
-            <div key={task._id} className="card" style={{ display: 'flex', flexDirection: 'column', border: isApproved ? '1px solid var(--green)' : '1px solid var(--dark-600)' }}>
+            <div key={task._id} className="card" style={{ display: 'flex', flexDirection: 'column', border: isApproved ? '1px solid var(--green)' : '1px solid var(--dark-700)' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div className="flex-between" style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <h4 style={{ color: 'var(--white)' }}>{task.title}</h4>
                     {new Date(task.createdAt) > new Date(Date.now() - 24 * 60 * 60 * 1000) && (
                       <span className="new-badge">NEW</span>
                     )}
                   </div>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green)', fontWeight: 700, fontSize: '0.9rem' }}>
-                    <Zap size={16} /> {task.rewardPoints}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green)', fontWeight: 800, fontSize: '1rem' }}>
+                    <Zap size={16} fill="var(--green)" /> {task.rewardPoints}
                   </span>
                 </div>
-                <p style={{ fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.5 }}>{task.description}</p>
+                <p style={{ fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.5, color: 'var(--gray-300)' }}>{task.description}</p>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                   {getRequirements(task.inputType).map(r => (
-                    <span key={r} className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--gray-300)' }}>
-                      {r === 'Text' && <FileText size={12} />}
-                      {r === 'Screenshot' && <Image size={12} />}
-                      {r === 'File' && <File size={12} />}
+                    <span key={r} className="badge" style={{ background: 'var(--dark-800)', color: 'var(--gray-400)', border: '1px solid var(--dark-700)' }}>
                       {r}
                     </span>
                   ))}
@@ -163,7 +160,7 @@ const TasksPage = () => {
 
               {isApproved ? (
                 <div className="btn btn-block btn-success" style={{ cursor: 'default', opacity: 0.8 }}>
-                  <CheckCircle size={16} /> Task Completed
+                  <CheckCircle size={16} /> Completed
                 </div>
               ) : isPending ? (
                 <div className="btn btn-block btn-outline" style={{ cursor: 'default', opacity: 0.6 }}>
@@ -175,7 +172,7 @@ const TasksPage = () => {
                   onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
                   disabled={isRejected && !canResubmit}
                 >
-                  <Upload size={16} /> {isRejected ? (canResubmit ? 'Resubmit Proof' : 'Permanently Rejected') : 'Submit Proof'}
+                  <Upload size={16} /> {isRejected ? (canResubmit ? 'Resubmit Proof' : 'Rejected') : 'Submit Proof'}
                 </button>
               )}
             </div>
@@ -185,42 +182,42 @@ const TasksPage = () => {
 
       {filtered.length === 0 && (
         <div className="empty-state">
-          <ListTodoIcon />
+          <Zap size={48} />
           <h3>No tasks available</h3>
           <p>Check back later for new tasks!</p>
         </div>
       )}
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={`Submit: ${selected?.title}`}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <p style={{ fontSize: '0.8rem', color: 'var(--gray-400)', marginBottom: 4 }}>Required Evidence:</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {getRequirements(selected?.inputType || '').map(r => <span key={r} style={{ color: 'var(--blue-light)', fontSize: '0.85rem', fontWeight: 600 }}>• {r}</span>)}
+        <form onSubmit={handleSubmit} className="fade-in">
+          <div style={{ padding: '16px', background: 'var(--dark-800)', borderRadius: '12px', border: '1px solid var(--dark-700)', marginBottom: 24 }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Evidence Required:</p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {getRequirements(selected?.inputType || '').map(r => <span key={r} style={{ color: 'var(--blue-light)', fontSize: '0.9rem', fontWeight: 600 }}>✓ {r}</span>)}
             </div>
           </div>
 
           {(selected?.inputType.includes('text') || selected?.inputType === 'all') && (
             <div className="form-group">
-              <label>Text Evidence</label>
-              <textarea className="form-input" placeholder="Paste link, code, or text here..."
+              <label>Text Proof</label>
+              <textarea className="form-input" placeholder="Paste link or text here..."
                 rows={4} value={textContent} onChange={(e) => setTextContent(e.target.value)} required />
             </div>
           )}
 
           {(selected?.inputType.includes('image') || selected?.inputType === 'all') && (
             <div className="form-group">
-              <label>Screenshot Evidence</label>
+              <label>Screenshot Proof</label>
               <div className={`file-upload ${imageFile ? 'active' : ''}`}
                 onClick={() => document.getElementById('image-input').click()}>
                 <input id="image-input" type="file" accept="image/*"
                   onChange={(e) => setImageFile(e.target.files[0])} required />
                 {imageFile ? (
-                  <p style={{ color: 'var(--green)' }}>✓ {imageFile.name}</p>
+                  <div className="text-success" style={{ fontWeight: 600 }}>✓ {imageFile.name}</div>
                 ) : (
                   <>
-                    <Image size={24} style={{ marginBottom: 8, color: 'var(--gray-400)' }} />
-                    <p style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>Upload Screenshot (JPG, PNG)</p>
+                    <Image size={24} style={{ marginBottom: 8, color: 'var(--gray-500)' }} />
+                    <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Click to upload Screenshot</p>
                   </>
                 )}
               </div>
@@ -229,27 +226,27 @@ const TasksPage = () => {
 
           {(selected?.inputType.includes('file') || selected?.inputType === 'all') && (
             <div className="form-group">
-              <label>File Evidence (PDF, Zip, etc)</label>
+              <label>File Proof</label>
               <div className={`file-upload ${otherFile ? 'active' : ''}`}
                 onClick={() => document.getElementById('file-input').click()}>
                 <input id="file-input" type="file" 
                   onChange={(e) => setOtherFile(e.target.files[0])} required />
                 {otherFile ? (
-                  <p style={{ color: 'var(--green)' }}>✓ {otherFile.name}</p>
+                  <div className="text-success" style={{ fontWeight: 600 }}>✓ {otherFile.name}</div>
                 ) : (
                   <>
-                    <Upload size={24} style={{ marginBottom: 8, color: 'var(--gray-400)' }} />
-                    <p style={{ color: 'var(--gray-400)', fontSize: '0.85rem' }}>Upload Document/Archive</p>
+                    <Upload size={24} style={{ marginBottom: 8, color: 'var(--gray-500)' }} />
+                    <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Click to upload File</p>
                   </>
                 )}
               </div>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-            <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={submitting}>
-              {submitting ? 'Uploading Proof...' : 'Submit Evidence'}
+          <div className="flex-gap" style={{ marginTop: 24 }}>
+            <button type="button" className="btn btn-outline btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+              {submitting ? 'Uploading...' : 'Submit Proof'}
             </button>
           </div>
         </form>
@@ -257,60 +254,5 @@ const TasksPage = () => {
     </div>
   );
 };
-
-const ListTodoIcon = () => <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>;
-
-const styles = `
-  .daily-progress-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 12px 16px;
-    min-width: 200px;
-  }
-  .progress-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--gray-400);
-  }
-  .progress-bar-bg {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--blue), var(--green));
-    transition: width 0.3s ease;
-  }
-  .new-badge {
-    background: var(--blue);
-    color: white;
-    font-size: 0.6rem;
-    font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
-    letter-spacing: 0.5px;
-  }
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-bottom: 32px;
-  }
-`;
-
-// Inject styles
-if (typeof document !== 'undefined') {
-  const styleEl = document.createElement('style');
-  styleEl.innerHTML = styles;
-  document.head.appendChild(styleEl);
-}
 
 export default TasksPage;

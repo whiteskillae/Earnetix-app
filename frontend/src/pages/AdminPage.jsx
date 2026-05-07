@@ -588,121 +588,17 @@ const AdminPage = () => {
         )}
       </Modal>
 
-      <style>{`
-        .user-details-view { display: flex; flex-direction: column; gap: 24px; padding: 10px 0; }
-        .detail-section h5 { color: var(--blue-light); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; border-bottom: 1px solid #1F1F23; padding-bottom: 8px; }
-        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .detail-item { display: flex; flex-direction: column; gap: 4px; }
-        .detail-item label { font-size: 0.7rem; color: var(--gray-500); }
-        .detail-item span { font-size: 0.9rem; color: var(--white); font-weight: 500; }
-        .detail-item code { font-size: 0.8rem; color: var(--green); background: rgba(16,185,129,0.1); padding: 2px 6px; border-radius: 4px; align-self: flex-start; }
-        .history-item { display: flex; justify-content: space-between; padding: 6px 10px; background: #18181B; border-radius: 6px; margin-bottom: 4px; font-size: 0.75rem; }
-        .history-item .h-ip { color: var(--gray-300); }
-        .history-item .h-date { color: var(--gray-500); }
-        .admin-layout { display: flex; min-height: calc(100vh - 0px); background: #0A0A0C; }
-        
-        /* Admin Sidebar */
-        .admin-nav {
-          width: 260px; background: #111114; border-right: 1px solid #1F1F23;
-          display: flex; flex-direction: column; flex-shrink: 0;
-        }
-        .admin-nav-header { padding: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1F1F23; }
-        .admin-nav-header h3 { font-size: 1rem; color: var(--white); font-weight: 700; letter-spacing: 0.5px; }
-        .admin-nav-links { padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
-        .admin-nav-links button {
-          display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-          background: transparent; border: none; color: var(--gray-400);
-          font-size: 0.9rem; font-weight: 500; cursor: pointer; border-radius: 8px;
-          transition: all 0.2s; text-align: left;
-        }
-        .admin-nav-links button:hover { background: #1F1F23; color: var(--white); }
-        .admin-nav-links button.active { background: var(--blue); color: var(--white); box-shadow: 0 4px 12px rgba(59,130,246,0.2); }
-
-        /* Main Area */
-        .admin-main { flex: 1; padding: 32px; overflow-y: auto; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; gap: 24px; }
-        .admin-header h2 { font-size: 1.75rem; color: var(--white); font-weight: 800; }
-        .subtitle { color: var(--gray-400); margin-top: 4px; font-size: 0.9rem; }
-        .admin-actions { display: flex; gap: 12px; }
-
-        /* Table Styling */
-        .table-wrapper { background: #111114; border-radius: 12px; border: 1px solid #1F1F23; overflow: hidden; margin-top: 24px; }
-        .admin-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .admin-table th { padding: 16px 20px; background: #18181B; color: var(--gray-400); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
-        .admin-table td { padding: 16px 20px; border-bottom: 1px solid #1F1F23; font-size: 0.9rem; }
-        .user-info-cell { display: flex; flex-direction: column; }
-        .user-name { color: var(--white); font-weight: 600; }
-        .user-email { color: var(--gray-400); font-size: 0.8rem; }
-        .points-badge { color: var(--green); font-weight: 700; background: rgba(16,185,129,0.1); padding: 4px 8px; border-radius: 6px; }
-        .status-pill { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
-        .status-pill.pending { background: rgba(245,158,11,0.15); color: #F59E0B; }
-        .status-pill.approved { background: rgba(16,185,129,0.15); color: #10B981; }
-        .status-pill.rejected { background: rgba(239,68,68,0.15); color: #EF4444; }
-        .action-btns { display: flex; gap: 8px; }
-        .btn-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #1F1F23; border: 1px solid #2D2D33; border-radius: 6px; color: var(--gray-300); cursor: pointer; transition: all 0.2s; }
-        .btn-icon:hover { background: #2D2D33; color: var(--white); }
-        .btn-icon.success:hover { background: var(--green); color: var(--white); border-color: var(--green); }
-        .btn-icon.danger:hover { background: var(--rejected); color: var(--white); border-color: var(--rejected); }
-
-        /* Filters */
-        .view-filters { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
-        .filter-group { display: flex; background: #111114; padding: 4px; border-radius: 8px; border: 1px solid #1F1F23; }
-        .filter-group button { padding: 8px 16px; border-radius: 6px; border: none; background: transparent; color: var(--gray-400); cursor: pointer; font-size: 0.85rem; font-weight: 500; }
-        .filter-group button.active { background: #1F1F23; color: var(--white); }
-        .search-box { position: relative; background: #111114; border: 1px solid #1F1F23; border-radius: 8px; padding: 0 12px; display: flex; align-items: center; gap: 8px; min-width: 240px; }
-        .search-box input { background: transparent; border: none; color: var(--white); padding: 10px 0; font-size: 0.9rem; width: 100%; outline: none; }
-
-        /* Task Cards */
-        .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; margin-top: 24px; }
-        .task-admin-card { background: #111114; border: 1px solid #1F1F23; padding: 24px; position: relative; display: flex; flex-direction: column; }
-        .task-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .task-card-header h4 { color: var(--white); font-size: 1.1rem; }
-        .task-card-header .points { font-weight: 700; color: var(--blue-light); }
-        .task-desc { font-size: 0.9rem; color: var(--gray-400); line-height: 1.5; flex: 1; margin-bottom: 20px; }
-        .task-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #1F1F23; }
-        .input-type-badge { font-size: 0.7rem; font-weight: 800; color: var(--gray-500); background: #18181B; padding: 4px 8px; border-radius: 4px; }
-        .task-actions { display: flex; gap: 8px; }
-
-        /* Announcements */
-        .ann-list { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; }
-        .ann-card { background: #111114; border: 1px solid #1F1F23; padding: 20px; }
-        .ann-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .ann-title { display: flex; align-items: center; gap: 10px; }
-        .priority-dot { width: 8px; height: 8px; border-radius: 50%; }
-        .priority-dot.high { background: var(--rejected); box-shadow: 0 0 10px var(--rejected); }
-        .priority-dot.medium { background: var(--pending); }
-        .priority-dot.low { background: var(--blue); }
-        .ann-card h4 { color: var(--white); font-size: 1rem; }
-        .ann-card p { color: var(--gray-400); font-size: 0.9rem; line-height: 1.6; }
-        .ann-date { font-size: 0.75rem; color: var(--gray-500); margin-top: 12px; display: block; }
-
-        /* Preview Modal */
-        .preview-content { padding: 10px 0; }
-        .preview-user-info { margin-bottom: 20px; border-bottom: 1px solid #1F1F23; padding-bottom: 16px; }
-        .preview-user-info p { font-size: 0.9rem; margin-bottom: 4px; }
-        .proof-section { margin-bottom: 20px; }
-        .proof-section h5 { color: var(--white); margin-bottom: 8px; font-size: 0.9rem; }
-        .text-proof { background: #18181B; padding: 16px; border-radius: 8px; font-size: 0.9rem; border: 1px solid #2D2D33; white-space: pre-wrap; }
-        .img-proof { width: 100%; border-radius: 8px; margin-top: 8px; border: 1px solid #2D2D33; }
-        .preview-meta { display: flex; justify-content: space-between; color: var(--gray-500); font-size: 0.8rem; margin-top: 16px; }
-        .preview-actions { margin-top: 24px; display: flex; justify-content: center; }
-
-        @media (max-width: 1024px) {
-          .admin-nav { display: none; }
-          .admin-main { padding: 20px; }
-        }
-      `}</style>
     </div>
   );
 };
 
 const StatCard = ({ icon, label, value, color, trend }) => (
-  <div className="stat-card" style={{ borderLeft: `4px solid ${color}`, background: '#111114' }}>
+  <div className="stat-card" style={{ borderLeft: `4px solid ${color}`, background: 'var(--dark-900)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--gray-400)' }}>
-      {icon} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{label}</span>
+      {icon} <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>{label}</span>
     </div>
-    <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--white)', margin: '12px 0' }}>{value}</div>
-    <div style={{ fontSize: '0.75rem', color: trend.includes('Requires') ? '#F59E0B' : trend.includes('Denied') ? '#EF4444' : '#10B981' }}>{trend}</div>
+    <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--white)', margin: '12px 0' }}>{value}</div>
+    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: trend.includes('Requires') ? 'var(--yellow)' : trend.includes('Denied') ? 'var(--rejected)' : 'var(--green)' }}>{trend}</div>
   </div>
 );
 
