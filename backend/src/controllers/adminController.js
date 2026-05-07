@@ -109,27 +109,31 @@ const toggleBlockUser = async (req, res, next) => {
 const getTasksWithStats = async (req, res, next) => {
   try {
     const tasks = await Task.find().sort({ createdAt: -1 });
-    
-    // For each task, count submissions by status
-    const tasksWithStats = await Promise.all(tasks.map(async (task) => {
-      const stats = await Submission.aggregate([
-        { $match: { taskId: task._id } },
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ]);
-      
-      const statMap = { pending: 0, approved: 0, rejected: 0 };
-      stats.forEach(s => { statMap[s._id] = s.count; });
-      
-      return {
-        ...task.toObject(),
-        stats: statMap,
-        totalSubmissions: stats.reduce((acc, s) => acc + s.count, 0)
-      };
+
+    // Single aggregation query instead of one-per-task (O(N) -> O(1))
+    const submissionStats = await Submission.aggregate([
+      { $group: { _id: { taskId: '$taskId', status: '$status' }, count: { $sum: 1 } } }
+    ]);
+
+    // Build a lookup map: { taskId: { pending: N, approved: N, rejected: N } }
+    const statsMap = {};
+    submissionStats.forEach(s => {
+      const id = s._id.taskId.toString();
+      if (!statsMap[id]) statsMap[id] = { pending: 0, approved: 0, rejected: 0, total: 0 };
+      statsMap[id][s._id.status] = s.count;
+      statsMap[id].total += s.count;
+    });
+
+    const tasksWithStats = tasks.map(task => ({
+      ...task.toObject(),
+      stats: statsMap[task._id.toString()] || { pending: 0, approved: 0, rejected: 0 },
+      totalSubmissions: statsMap[task._id.toString()]?.total || 0,
     }));
 
     res.json({ success: true, data: tasksWithStats });
   } catch (error) { next(error); }
 };
+
 
 const adjustPoints = async (req, res, next) => {
   try {

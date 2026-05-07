@@ -71,5 +71,7 @@ const submissionSchema = new mongoose.Schema({
 submissionSchema.index({ userId: 1, taskId: 1 });
 submissionSchema.index({ fileHash: 1 });
 submissionSchema.index({ status: 1 });
+submissionSchema.index({ userId: 1, createdAt: -1 }); // for daily limit queries
+
 
 module.exports = mongoose.model('Submission', submissionSchema);
