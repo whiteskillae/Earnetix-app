@@ -67,6 +67,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  blockedUntil: {
+    type: Date,
+    default: null,
+  },
   registrationIp: {
     type: String,
     default: null,

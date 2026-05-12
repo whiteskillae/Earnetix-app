@@ -21,7 +21,20 @@ const auth = async (req, res, next) => {
     }
 
     if (user.isBlocked) {
-      return res.status(403).json({ success: false, message: 'Account has been blocked.' });
+      return res.status(403).json({ success: false, message: 'Account has been permanently blocked.' });
+    }
+
+    if (user.blockedUntil && user.blockedUntil > new Date()) {
+      const remainingMs = user.blockedUntil - new Date();
+      const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return res.status(403).json({ 
+        success: false, 
+        message: `Access restricted for ${hours}h ${minutes}m.`,
+        code: 'TEMP_BLOCK',
+        blockedUntil: user.blockedUntil
+      });
     }
 
     req.user = user;

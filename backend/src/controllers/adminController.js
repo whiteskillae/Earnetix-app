@@ -153,4 +153,24 @@ const adjustPoints = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, toggleBlockUser, getTasksWithStats, adjustPoints };
+const blockUserTemporary = async (req, res, next) => {
+  try {
+    const { durationHours = 24 } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.role === 'admin') return res.status(400).json({ success: false, message: 'Cannot block admin' });
+
+    const blockedUntil = new Date(Date.now() + durationHours * 60 * 60 * 1000);
+    user.blockedUntil = blockedUntil;
+    await user.save();
+
+    await AdminLog.create({
+      adminId: req.user._id, action: 'temp_block', targetId: user._id,
+      targetType: 'user', details: `Temporarily blocked user for ${durationHours} hours until ${blockedUntil.toISOString()}`, ip: req.ip,
+    });
+
+    res.json({ success: true, message: `User blocked for ${durationHours} hours`, data: user });
+  } catch (error) { next(error); }
+};
+
+module.exports = { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary };
