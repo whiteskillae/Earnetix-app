@@ -24,7 +24,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },
       { to: '/profile', label: 'Profile', icon: User },
-      { to: '/reports', label: 'Report Issue', icon: Shield },
     ];
   }
 

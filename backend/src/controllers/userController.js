@@ -47,7 +47,7 @@ const getLeaderboard = async (req, res, next) => {
     const topUsers = await User.find({ role: 'user' })
       .sort({ points: -1 })
       .limit(50)
-      .select('name points pointsHistory createdAt');
+      .select('name points country createdAt');
 
     // Cache for 10 minutes
     cache.set('leaderboard', topUsers, 600);

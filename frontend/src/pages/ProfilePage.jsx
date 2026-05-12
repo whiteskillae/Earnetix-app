@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin, TrendingUp } from 'lucide-react';
+import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin, TrendingUp, Wallet } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user, fetchProfile, logout, setUser } = useAuth();
@@ -87,11 +87,16 @@ const ProfilePage = () => {
                </div>
             </div>
          </div>
-         <div className="points-display-premium glass-panel" style={{ padding: '24px 32px', borderRadius: '24px', textAlign: 'center', border: '1px solid rgba(251, 191, 36, 0.15)' }}>
-            <div className="points-val" style={{ color: '#fbbf24', fontSize: '2.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Zap size={32} fill="#fbbf24" strokeWidth={0} /> {user?.points || 0}
+         <div className="points-display-premium glass-panel" style={{ padding: '24px 32px', borderRadius: '24px', textAlign: 'center', border: '1px solid rgba(251, 191, 36, 0.15)', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+            <div>
+               <div className="points-val" style={{ color: '#fbbf24', fontSize: '2.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                 <Zap size={32} fill="#fbbf24" strokeWidth={0} /> {user?.points || 0}
+               </div>
+               <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
             </div>
-            <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
+            <button className="btn btn-primary btn-sm" style={{ width: '100%', borderRadius: '12px' }} onClick={() => toast.success('Withdrawal System Initializing...')}>
+               <Wallet size={16} /> Withdraw
+            </button>
          </div>
       </div>
 

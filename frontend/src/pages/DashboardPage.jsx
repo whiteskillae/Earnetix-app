@@ -57,20 +57,24 @@ const DashboardPage = () => {
         </div>
 
         {/* Global Asset Card */}
-        <div className="wallet-card-premium slide-up" style={{ background: 'var(--blue-gradient)', borderRadius: '32px', padding: '32px', marginTop: '32px', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px var(--blue-glow)' }}>
-           <div style={{ position: 'relative', zIndex: 1 }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.8 }}>TOTAL CREDIT ASSETS</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '12px 0' }}>
-                 <Zap size={40} fill="white" strokeWidth={0} />
-                 <span style={{ fontSize: '3rem', fontWeight: 900 }}>{user?.points?.toLocaleString() || 0}</span>
+        <div className="glass-panel slide-up" style={{ padding: '24px', marginTop: '24px', border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ width: '64px', height: '64px', background: 'var(--blue-gradient)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 20px var(--blue-glow)' }}>
+                 <Zap size={32} color="white" fill="white" />
               </div>
-              <p style={{ fontSize: '0.9rem', opacity: 0.7, fontWeight: 600 }}>≈ ${(user?.points / 100).toFixed(2)} USD VALUATION</p>
+              <div>
+                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Credit Assets</span>
+                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>{user?.points?.toLocaleString() || 0}</h2>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--green)', fontWeight: 800 }}>PTS</span>
+                 </div>
+              </div>
            </div>
-           <button className="btn-premium" style={{ position: 'absolute', bottom: '32px', right: '32px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', color: 'white', padding: '12px 24px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }} onClick={() => navigate('/profile')}>
-              WITHDRAW <ArrowRight size={18} />
-           </button>
-           {/* Decorative circles */}
-           <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }}></div>
+           <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-primary" style={{ padding: '12px 24px', borderRadius: '16px' }} onClick={() => navigate('/profile')}>
+                 <Wallet size={18} /> WITHDRAW
+              </button>
+           </div>
         </div>
       </header>
 
@@ -141,8 +145,7 @@ const DashboardPage = () => {
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-500)' }}>SYSTEM OPERATIONAL: SECTOR 7-G</span>
          </div>
          <div style={{ display: 'flex', gap: '24px' }}>
-            <Link to="/reports" style={{ color: 'var(--gray-500)', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none' }}>SUPPORT</Link>
-            <Link to="/announcements" style={{ color: 'var(--gray-500)', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none' }}>UPDATES</Link>
+            <Link to="/announcements" style={{ color: 'var(--gray-500)', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none' }}>SYSTEM UPDATES</Link>
          </div>
       </footer>
     </div>
