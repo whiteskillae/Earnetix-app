@@ -4,6 +4,8 @@ import { useApi } from '../hooks/useApi';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin, TrendingUp, Wallet } from 'lucide-react';
+import Select from 'react-select';
+import { countries } from '../utils/countries';
 
 const ProfilePage = () => {
   const { user, fetchProfile, logout, setUser } = useAuth();
@@ -13,6 +15,36 @@ const ProfilePage = () => {
   const [filter, setFilter] = useState('all');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+
+  const selectStyles = {
+    control: (base) => ({
+      ...base,
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid var(--glass-border)',
+      borderRadius: '20px',
+      padding: '6px',
+      color: 'white',
+      boxShadow: 'none',
+      '&:hover': { borderColor: 'var(--blue-light)' }
+    }),
+    menu: (base) => ({
+      ...base,
+      background: '#1a1a2e',
+      border: '1px solid var(--glass-border)',
+      borderRadius: '16px',
+      padding: '8px'
+    }),
+    option: (base, state) => ({
+      ...base,
+      background: state.isFocused ? 'var(--blue-gradient)' : 'transparent',
+      color: 'white',
+      borderRadius: '12px',
+      cursor: 'pointer'
+    }),
+    singleValue: (base) => ({ ...base, color: 'white' }),
+    input: (base) => ({ ...base, color: 'white' }),
+    placeholder: (base) => ({ ...base, color: 'var(--gray-500)' })
+  };
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -205,20 +237,19 @@ const ProfilePage = () => {
                  <div className="grid-2">
                     <div className="form-group">
                        <label>Region</label>
-                       <select className="form-input" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required>
-                          <option value="India">India</option>
-                          <option value="United States">United States</option>
-                          <option value="United Kingdom">United Kingdom</option>
-                          <option value="UAE">UAE</option>
-                          <option value="Nigeria">Nigeria</option>
-                          <option value="Pakistan">Pakistan</option>
-                          <option value="Bangladesh">Bangladesh</option>
-                       </select>
+                       <Select
+                          options={countries}
+                          value={countries.find(c => c.value === formData.country)}
+                          onChange={opt => setFormData({...formData, country: opt.value, countryCode: opt.code})}
+                          className="react-select-container"
+                          classNamePrefix="react-select"
+                          styles={selectStyles}
+                       />
                     </div>
                     <div className="form-group">
                        <label>Contact String</label>
                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <input style={{ width: '70px' }} className="form-input" value={formData.countryCode} onChange={e => setFormData({...formData, countryCode: e.target.value})} placeholder="+91" required />
+                          <input style={{ width: '80px' }} className="form-input" value={formData.countryCode} onChange={e => setFormData({...formData, countryCode: e.target.value})} placeholder="+91" required />
                           <input style={{ flex: 1 }} className="form-input" value={formData.mobileNumber} onChange={e => setFormData({...formData, mobileNumber: e.target.value})} placeholder="Number" required />
                        </div>
                     </div>

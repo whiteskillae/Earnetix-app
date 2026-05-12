@@ -5,6 +5,8 @@ import { useApi } from '../hooks/useApi';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';
 import { User, Phone, Globe, MapPin, ArrowRight } from 'lucide-react';
+import Select from 'react-select';
+import { countries } from '../utils/countries';
 
 const OnboardingPage = () => {
   const { user, setUser } = useAuth();
@@ -23,6 +25,37 @@ const OnboardingPage = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  const selectStyles = {
+    control: (base) => ({
+      ...base,
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px',
+      padding: '8px',
+      color: 'white',
+      boxShadow: 'none',
+      '&:hover': { borderColor: 'var(--blue-light)' }
+    }),
+    menu: (base) => ({
+      ...base,
+      background: '#1a1a2e',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px',
+      padding: '8px',
+      zIndex: 100
+    }),
+    option: (base, state) => ({
+      ...base,
+      background: state.isFocused ? 'var(--blue-gradient)' : 'transparent',
+      color: 'white',
+      borderRadius: '12px',
+      cursor: 'pointer'
+    }),
+    singleValue: (base) => ({ ...base, color: 'white' }),
+    input: (base) => ({ ...base, color: 'white' }),
+    placeholder: (base) => ({ ...base, color: 'var(--gray-500)' })
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,21 +103,12 @@ const OnboardingPage = () => {
           <div style={{ display: 'flex', gap: 12 }}>
             <div className="form-group" style={{ width: '100px' }}>
               <label><Globe size={16} /> Code</label>
-              <select 
+              <input 
                 className="form-input"
                 value={formData.countryCode}
-                onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
-                required
-              >
-                <option value="+91">+91 (IN)</option>
-                <option value="+1">+1 (US/CA)</option>
-                <option value="+44">+44 (UK)</option>
-                <option value="+61">+61 (AU)</option>
-                <option value="+971">+971 (UAE)</option>
-                <option value="+65">+65 (SG)</option>
-                <option value="+49">+49 (DE)</option>
-                <option value="+33">+33 (FR)</option>
-              </select>
+                readOnly
+                placeholder="+91"
+              />
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label><Phone size={16} /> Mobile Number</label>
@@ -100,24 +124,14 @@ const OnboardingPage = () => {
           </div>
 
           <div className="form-group">
-            <label><MapPin size={16} /> Country</label>
-            <select 
-              className="form-input"
-              value={formData.country}
-              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              required
-            >
-              <option value="India">India</option>
-              <option value="United States">United States</option>
-              <option value="United Kingdom">United Kingdom</option>
-              <option value="Canada">Canada</option>
-              <option value="Australia">Australia</option>
-              <option value="United Arab Emirates">UAE</option>
-              <option value="Singapore">Singapore</option>
-              <option value="Germany">Germany</option>
-              <option value="France">France</option>
-              <option value="Other">Other</option>
-            </select>
+            <label><MapPin size={16} /> Country & Region</label>
+            <Select
+              options={countries}
+              value={countries.find(c => c.value === formData.country)}
+              onChange={opt => setFormData({...formData, country: opt.value, countryCode: opt.code})}
+              styles={selectStyles}
+              placeholder="Search country..."
+            />
           </div>
 
           <div className="form-group">
