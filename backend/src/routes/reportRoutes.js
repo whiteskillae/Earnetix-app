@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
-const { protect, admin } = require('../middleware/auth');
+const auth = require('../middleware/auth');
+const adminGuard = require('../middleware/adminGuard');
 
 // User routes
-router.post('/', protect, reportController.submitReport);
+router.post('/', auth, reportController.submitReport);
 
 // Admin routes
-router.get('/admin/all', protect, admin, reportController.getAllReports);
-router.put('/admin/:id', protect, admin, reportController.updateReportStatus);
+router.get('/admin/all', auth, adminGuard, reportController.getAllReports);
+router.put('/admin/:id', auth, adminGuard, reportController.updateReportStatus);
 
 module.exports = router;
