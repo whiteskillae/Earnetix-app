@@ -11,13 +11,20 @@ import {
   X
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const AdminLayout = ({ children }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'dashboard';
   const navigate = useNavigate();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+
+  // Close sidebar on mobile when tab changes
+  useEffect(() => {
+    if (window.innerWidth <= 1024) {
+      setIsSidebarOpen(false);
+    }
+  }, [activeTab]);
 
   const menuItems = [
     { id: 'dashboard', label: 'Overview', icon: <LayoutDashboard size={20} /> },
@@ -32,13 +39,25 @@ const AdminLayout = ({ children }) => {
   };
 
   const handleLogout = () => {
-    // Basic logout logic - in real app, clear tokens
     localStorage.removeItem('token');
     navigate('/admin/login');
   };
 
   return (
     <div className="admin-layout-new">
+      {/* Mobile Toggle */}
+      <button 
+        className="admin-mobile-toggle" 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && window.innerWidth <= 1024 && (
+        <div className="admin-sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
+
       {/* Sidebar */}
       <aside className={`admin-sidebar-new ${!isSidebarOpen ? 'collapsed' : ''}`}>
         <div className="admin-sidebar-header">
@@ -71,17 +90,17 @@ const AdminLayout = ({ children }) => {
 
       {/* Main Content */}
       <main className="admin-content-new">
-        <header className="flex-between" style={{ marginBottom: '40px' }}>
+        <header className="flex-between admin-main-header" style={{ marginBottom: '40px' }}>
           <div>
             <h2 className="fade-in-right">Welcome back, Administrator</h2>
             <p className="subtitle">System Health: <span className="text-success">Optimal</span></p>
           </div>
-          <div className="flex-gap">
+          <div className="flex-gap admin-header-actions">
             <button className="btn-icon"><Bell size={18} /></button>
             <button className="btn-icon"><Settings size={18} /></button>
-            <div className="admin-profile" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '6px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-               <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>A</div>
-               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Main Admin</span>
+            <div className="admin-profile">
+               <div className="avatar-small">A</div>
+               <span className="profile-name">Main Admin</span>
             </div>
           </div>
         </header>
