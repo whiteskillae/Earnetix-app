@@ -49,168 +49,193 @@ const ProfilePage = () => {
       });
       
       if (res.success) {
-        toast.success('Profile updated!');
+        toast.success('Identity Updated');
         setUser(res.data);
         setIsEditModalOpen(false);
       }
     } catch (err) {
-      toast.error('Update failed');
+      toast.error('Update Failed');
     } finally {
       setEditLoading(false);
     }
   };
 
+  if (loading && subs.length === 0) return null; // Quick transition
+
   return (
     <div className="profile-page fade-in">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>My Account</h1>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <h1>ACCOUNT INTELLIGENCE</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-outline btn-sm" onClick={() => setIsEditModalOpen(true)}>
-            <Edit3 size={16} /> Edit
-          </button>
-          <button className="btn btn-outline btn-sm" onClick={logout} style={{ color: 'var(--rejected)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-            <LogOut size={16} /> Logout
+          <button className="btn btn-outline btn-sm" style={{ borderRadius: '14px' }} onClick={() => setIsEditModalOpen(true)}>
+            <Edit3 size={16} /> Edit Profile
           </button>
         </div>
       </div>
 
       {/* Profile Header Card */}
-      <div className="profile-header-card glass-panel">
-         <div className="user-info-section">
-            <div className="profile-avatar-huge">{user?.name?.charAt(0).toUpperCase()}</div>
+      <div className="profile-header-card glass-panel" style={{ padding: '32px', borderRadius: '32px', border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
+         <div className="user-info-section" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <div className="user-avatar-wrap" style={{ width: '100px', height: '100px', fontSize: '2.5rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
             <div className="user-text">
-               <h2>{user?.name}</h2>
-               <p><Mail size={14} /> {user?.email}</p>
-               <div className="user-tags">
-                  <span className="tag"><Globe size={12} /> {user?.country}</span>
-                  <span className="tag"><Phone size={12} /> {user?.countryCode} {user?.mobileNumber}</span>
+               <h2 style={{ fontSize: '1.75rem', marginBottom: '8px' }}>{user?.name}</h2>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                 <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><Mail size={14} /> {user?.email}</p>
+                 <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><MapPin size={14} /> {user?.country}</p>
                </div>
             </div>
          </div>
-         <div className="points-display-premium">
-            <div className="points-val"><Zap size={24} fill="#fbbf24" color="#fbbf24" /> {user?.points || 0}</div>
-            <span className="points-label">AVAILABLE POINTS</span>
+         <div className="points-display-premium glass-panel" style={{ padding: '24px 32px', borderRadius: '24px', textAlign: 'center', border: '1px solid rgba(251, 191, 36, 0.15)' }}>
+            <div className="points-val" style={{ color: '#fbbf24', fontSize: '2.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Zap size={32} fill="#fbbf24" strokeWidth={0} /> {user?.points || 0}
+            </div>
+            <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
          </div>
       </div>
 
       {/* Detailed Info Grid */}
-      <div className="profile-details-grid grid-2">
-         <div className="glass-panel detail-card">
-            <h4 className="flex-gap"><Target size={18} color="#3b82f6" /> Education & Background</h4>
-            <div className="detail-item">
-               <span className="label">Qualification</span>
-               <span className="value">{user?.qualifications || 'Not specified'}</span>
-            </div>
-            <div className="detail-item">
-               <span className="label">Skills & Expertise</span>
-               <div className="skills-wrap">
-                  {user?.skills?.length > 0 ? user.skills.map(skill => (
-                    <span key={skill} className="skill-chip">{skill}</span>
-                  )) : <span className="value">No skills added</span>}
-               </div>
+      <div className="grid-2" style={{ marginTop: '24px' }}>
+         <div className="premium-card">
+            <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', color: 'var(--blue-light)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Target size={20} /> BACKGROUND & EXPERTISE
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Current Qualification</label>
+                <p style={{ fontWeight: 700, marginTop: '4px' }}>{user?.qualifications || 'Undisclosed'}</p>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Professional Skills</label>
+                <div className="skills-wrap" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                   {user?.skills?.length > 0 ? user.skills.map(skill => (
+                     <span key={skill} className="skill-chip">{skill}</span>
+                   )) : <span style={{ opacity: 0.5 }}>None Listed</span>}
+                </div>
+              </div>
             </div>
          </div>
 
-         <div className="glass-panel detail-card">
-            <h4 className="flex-gap"><CheckCircle size={18} color="#10b981" /> Performance Stats</h4>
-            <div className="stats-mini-row">
-               <div className="mini-box">
-                  <span className="val">{subs.length}</span>
-                  <span className="lab">Total</span>
+         <div className="premium-card">
+            <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <TrendingUp size={20} /> OPERATIONAL EFFICIENCY
+            </h3>
+            <div className="stats-mini-row" style={{ display: 'grid', gridTemplate-columns: 'repeat(3, 1fr)', gap: '12px' }}>
+               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px' }}>
+                  <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900 }}>{subs.length}</span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>TASKS</span>
                </div>
-               <div className="mini-box">
-                  <span className="val">{subs.filter(s => s.status === 'approved').length}</span>
-                  <span className="lab">Approved</span>
+               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>{subs.filter(s => s.status === 'approved').length}</span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>SUCCESS</span>
                </div>
-               <div className="mini-box">
-                  <span className="val">{subs.filter(s => s.status === 'pending').length}</span>
-                  <span className="lab">Pending</span>
+               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                  <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900, color: '#f59e0b' }}>{subs.filter(s => s.status === 'pending').length}</span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>PENDING</span>
                </div>
             </div>
          </div>
       </div>
 
       {/* Submissions Section */}
-      <div className="card" style={{ marginTop: '32px' }}>
-        <div className="flex-between" style={{ marginBottom: '24px' }}>
-          <h3>Submissions History</h3>
-          <div className="filter-chips">
+      <div className="premium-card" style={{ marginTop: '32px' }}>
+        <div className="flex-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+          <h3>MISSION HISTORY</h3>
+          <div className="filter-group">
             {['all', 'pending', 'approved', 'rejected'].map((f) => (
-              <button key={f} className={`filter-chip ${filter === f ? 'active' : ''}`}
+              <button key={f} className={filter === f ? 'active' : ''}
                 onClick={() => { setFilter(f); setLoading(true); }}>
-                {f}
+                {f.toUpperCase()}
               </button>
             ))}
           </div>
         </div>
 
-        {loading ? <Loader /> : subs.length === 0 ? (
-          <div className="empty-state"><h3>No records found</h3></div>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead><tr><th>Task Campaign</th><th>Reward</th><th>Status</th><th>Updated</th></tr></thead>
-              <tbody>
-                {subs.map((s) => (
-                  <tr key={s._id}>
-                    <td style={{ fontWeight: 600 }}>{s.taskId?.title || '—'}</td>
-                    <td style={{ fontWeight: 700, color: '#10b981' }}>+{s.taskId?.rewardPoints}</td>
-                    <td>
-                       <span className={`status-pill ${s.status}`}>{s.status}</span>
-                    </td>
-                    <td style={{ fontSize: '0.8rem', opacity: 0.6 }}>{new Date(s.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="table-responsive">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Operation</th>
+                <th>Yield</th>
+                <th>Status</th>
+                <th className="text-right">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subs.map((s) => (
+                <tr key={s._id}>
+                  <td style={{ fontWeight: 700, color: 'white' }}>{s.taskId?.title || 'Unknown Mission'}</td>
+                  <td style={{ fontWeight: 800, color: 'var(--green)' }}>+{s.taskId?.rewardPoints}</td>
+                  <td>
+                     <span className={`status-pill-new status-${s.status}`}>{s.status}</span>
+                  </td>
+                  <td className="text-right" style={{ fontSize: '0.8rem', opacity: 0.6 }}>{new Date(s.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {subs.length === 0 && (
+            <div style={{ padding: '60px', textAlign: 'center', opacity: 0.4 }}>
+              No operational records for this sector.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit Profile Modal */}
       {isEditModalOpen && (
-        <div className="modal-overlay">
-           <div className="modal-content glass-panel slide-up">
+        <div className="modal-new-overlay">
+           <div className="modal-new-content slide-up">
               <div className="modal-header">
-                 <h3>Edit Personal Information</h3>
-                 <button onClick={() => setIsEditModalOpen(false)} className="btn-icon"><X size={20} /></button>
+                 <h2>UPDATE IDENTITY</h2>
+                 <button onClick={() => setIsEditModalOpen(false)} className="modal-close"><X size={20} /></button>
               </div>
-              <form onSubmit={handleUpdate} className="edit-form">
+              <form onSubmit={handleUpdate}>
                  <div className="form-group">
-                    <label>Full Name</label>
+                    <label>Assigned Name</label>
                     <input className="form-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
                  </div>
                  <div className="grid-2">
                     <div className="form-group">
-                       <label>Country</label>
+                       <label>Region</label>
                        <select className="form-input" value={formData.country} onChange={e => setFormData({...formData, country: e.target.value})} required>
                           <option value="India">India</option>
                           <option value="United States">United States</option>
                           <option value="United Kingdom">United Kingdom</option>
-                          <option value="Canada">Canada</option>
                           <option value="UAE">UAE</option>
+                          <option value="Nigeria">Nigeria</option>
+                          <option value="Pakistan">Pakistan</option>
+                          <option value="Bangladesh">Bangladesh</option>
                        </select>
                     </div>
                     <div className="form-group">
-                       <label>Mobile Number</label>
-                       <input className="form-input" value={formData.mobileNumber} onChange={e => setFormData({...formData, mobileNumber: e.target.value})} required />
+                       <label>Contact String</label>
+                       <div style={{ display: 'flex', gap: '8px' }}>
+                          <input style={{ width: '70px' }} className="form-input" value={formData.countryCode} onChange={e => setFormData({...formData, countryCode: e.target.value})} placeholder="+91" required />
+                          <input style={{ flex: 1 }} className="form-input" value={formData.mobileNumber} onChange={e => setFormData({...formData, mobileNumber: e.target.value})} placeholder="Number" required />
+                       </div>
                     </div>
                  </div>
                  <div className="form-group">
-                    <label>Qualifications</label>
-                    <input className="form-input" value={formData.qualifications} onChange={e => setFormData({...formData, qualifications: e.target.value})} />
+                    <label>Qualification Protocol</label>
+                    <input className="form-input" value={formData.qualifications} onChange={e => setFormData({...formData, qualifications: e.target.value})} placeholder="e.g. Graduate" />
                  </div>
                  <div className="form-group">
-                    <label>Skills (Comma separated)</label>
-                    <input className="form-input" value={formData.skills} onChange={e => setFormData({...formData, skills: e.target.value})} />
+                    <label>Specialist Skills (Comma Delimited)</label>
+                    <input className="form-input" value={formData.skills} onChange={e => setFormData({...formData, skills: e.target.value})} placeholder="e.g. Design, Coding" />
                  </div>
-                 <button className="btn btn-primary btn-block" disabled={editLoading}>
-                    {editLoading ? 'Saving...' : 'Update Profile'}
+                 <button className="btn-premium btn-primary-new btn-block" style={{ marginTop: '20px' }} disabled={editLoading}>
+                    {editLoading ? 'SYNCHRONIZING...' : 'EXECUTE UPDATE'}
                  </button>
               </form>
            </div>
         </div>
       )}
+    </div>
+  );
+};
 
       <style>{`
         .profile-page { padding-bottom: 100px; }

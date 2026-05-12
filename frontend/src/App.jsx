@@ -20,6 +20,9 @@ const AnnouncementsPage = lazy(() => import('./pages/AnnouncementsPage'));
 const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const ReportPage = lazy(() => import('./pages/ReportPage'));
+import { ShieldAlert } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 
 // Protected route wrapper
@@ -63,6 +66,11 @@ const AppLayout = ({ children }) => {
         </div>
       </main>
       <BottomNav />
+      
+      {/* Floating Report Trigger */}
+      <Link to="/reports" className="report-popup-trigger">
+        <ShieldAlert size={28} />
+      </Link>
     </div>
   );
 };
@@ -70,7 +78,7 @@ const AppLayout = ({ children }) => {
 
 
 const AppRoutes = () => (
-  <Suspense fallback={<Loader text="Loading module..." />}>
+  <Suspense fallback={null}>
     <Routes>
       {/* Auth */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
@@ -83,6 +91,7 @@ const AppRoutes = () => (
       <Route path="/announcements" element={<ProtectedRoute><AppLayout><AnnouncementsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><AppLayout><LeaderboardPage /></AppLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute><AppLayout><ReportPage /></AppLayout></ProtectedRoute>} />
 
       {/* Admin only */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />

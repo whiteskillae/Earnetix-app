@@ -1,159 +1,135 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
-import Loader from '../components/common/Loader';
-import { Trophy, Medal, Crown, TrendingUp, Users } from 'lucide-react';
+import { Trophy, Crown, TrendingUp, Medal, Star } from 'lucide-react';
 
 const LeaderboardPage = () => {
-  const { request, loading } = useApi();
-  const [leaders, setLeaders] = useState([]);
+  const [data, setData] = useState(null);
+  const { loading, request } = useApi();
 
   useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const res = await request('get', '/users/leaderboard');
+        setData(res.data.data);
+      } catch (err) {}
+    };
     fetchLeaderboard();
-  }, []);
+  }, [request]);
 
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await request('get', '/users/leaderboard');
-      setLeaders(res.data);
-    } catch {}
-  };
+  if (loading && !data) return null; // Quick transition - no full page loader
 
-  if (loading && leaders.length === 0) return <Loader text="Calculating rankings..." />;
-
-  const topThree = leaders.slice(0, 3);
-  const remaining = leaders.slice(3);
+  const topThree = data?.slice(0, 3) || [];
+  const others = data?.slice(3) || [];
 
   return (
     <div className="leaderboard-view fade-in">
-      <header className="page-header" style={{ marginBottom: '40px', textAlign: 'center' }}>
-         <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>Global Hall of Fame</h1>
-         <p className="subtitle">The top earners in the EARNETIX ecosystem</p>
-      </header>
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+          <Trophy color="#f59e0b" size={32} /> HALL OF FAME
+        </h1>
+        <p>Recognizing our top performing agents worldwide</p>
+      </div>
 
-      {/* Podium Section */}
+      {/* Premium Podium */}
       <div className="podium-container">
         {/* Second Place */}
         {topThree[1] && (
-          <div className="podium-item second">
-            <div className="avatar-wrapper">
-              <div className="podium-rank">2</div>
-              <div className="avatar-big">{topThree[1].name.charAt(0)}</div>
-              <Medal size={24} className="medal-icon" color="#cbd5e1" />
+          <div className="podium-item second slide-up" style={{ animationDelay: '0.1s' }}>
+            <div className="podium-avatar">
+               <div className="user-avatar-wrap" style={{ width: '70px', height: '70px', fontSize: '1.5rem', background: 'linear-gradient(135deg, #94a3b8 0%, #475569 100%)' }}>
+                 {topThree[1].name.charAt(0)}
+               </div>
+               <div className="rank-badge" style={{ background: '#94a3b8' }}>2</div>
             </div>
-            <div className="podium-info">
-              <h3>{topThree[1].name}</h3>
-              <p className="points-badge">{topThree[1].points} PTS</p>
-            </div>
+            <div className="podium-name">{topThree[1].name}</div>
+            <div className="podium-points">{topThree[1].points.toLocaleString()} PTS</div>
           </div>
         )}
 
         {/* First Place */}
         {topThree[0] && (
-          <div className="podium-item first">
-            <div className="avatar-wrapper">
-              <Crown size={32} className="crown-icon" color="#fbbf24" />
-              <div className="podium-rank">1</div>
-              <div className="avatar-huge">{topThree[0].name.charAt(0)}</div>
+          <div className="podium-item first slide-up">
+            <div className="podium-avatar">
+               <Crown className="crown-icon" style={{ position: 'absolute', top: '-25px', color: '#f59e0b' }} size={32} fill="#f59e0b" />
+               <div className="user-avatar-wrap" style={{ width: '100px', height: '100px', fontSize: '2.5rem', border: '4px solid #f59e0b' }}>
+                 {topThree[0].name.charAt(0)}
+               </div>
+               <div className="rank-badge">1</div>
             </div>
-            <div className="podium-info">
-              <h3>{topThree[0].name}</h3>
-              <p className="points-badge primary">{topThree[0].points} PTS</p>
-            </div>
+            <div className="podium-name" style={{ fontSize: '1.1rem' }}>{topThree[0].name}</div>
+            <div className="podium-points" style={{ fontSize: '0.9rem' }}>{topThree[0].points.toLocaleString()} PTS</div>
           </div>
         )}
 
         {/* Third Place */}
         {topThree[2] && (
-          <div className="podium-item third">
-            <div className="avatar-wrapper">
-              <div className="podium-rank">3</div>
-              <div className="avatar-big">{topThree[2].name.charAt(0)}</div>
-              <Medal size={24} className="medal-icon" color="#b45309" />
+          <div className="podium-item third slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="podium-avatar">
+               <div className="user-avatar-wrap" style={{ width: '60px', height: '60px', fontSize: '1.2rem', background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' }}>
+                 {topThree[2].name.charAt(0)}
+               </div>
+               <div className="rank-badge" style={{ background: '#b45309' }}>3</div>
             </div>
-            <div className="podium-info">
-              <h3>{topThree[2].name}</h3>
-              <p className="points-badge">{topThree[2].points} PTS</p>
-            </div>
+            <div className="podium-name">{topThree[2].name}</div>
+            <div className="podium-points">{topThree[2].points.toLocaleString()} PTS</div>
           </div>
         )}
       </div>
 
-      {/* List Section */}
-      <div className="glass-panel" style={{ marginTop: '40px' }}>
-        <div className="flex-between" style={{ padding: '0 16px 20px' }}>
-           <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <TrendingUp size={18} color="#3b82f6" /> Rankings #4 - #50
-           </h4>
-           <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Updated hourly</span>
+      {/* Global Rankings List */}
+      <div className="rankings-list glass-panel" style={{ padding: '10px' }}>
+        <div style={{ padding: '15px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={18} color="var(--blue)" /> GLOBAL RANKINGS
+          </h3>
+          <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 700 }}>UPDATED REAL-TIME</span>
         </div>
-        
-        <div className="leader-list">
-          {remaining.map((user, index) => (
-            <div key={user._id} className="leader-row">
-               <div className="rank">#{index + 4}</div>
-               <div className="user-pill">
-                  <div className="avatar-mini">{user.name.charAt(0)}</div>
-                  <div className="user-meta">
-                    <span className="name">{user.name}</span>
-                    <span className="date">Joined {new Date(user.createdAt).toLocaleDateString()}</span>
-                  </div>
-               </div>
-               <div className="score">{user.points} <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>PTS</span></div>
+
+        <div className="rankings-scroll" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+          {others.map((user, index) => (
+            <div key={user._id} className="rank-row">
+              <div className="rank-number">#{index + 4}</div>
+              <div className="user-avatar-wrap" style={{ width: '36px', height: '36px', fontSize: '0.9rem', borderRadius: '10px' }}>
+                {user.name.charAt(0)}
+              </div>
+              <div className="rank-user-info">
+                <span className="rank-username">{user.name}</span>
+                <span className="rank-meta">{user.country || 'Global Citizen'}</span>
+              </div>
+              <div className="rank-score">
+                {user.points.toLocaleString()} <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)' }}>PTS</span>
+              </div>
             </div>
           ))}
+          
+          {data?.length === 0 && (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--gray-500)' }}>
+              Calculating rankings... Check back soon!
+            </div>
+          )}
         </div>
       </div>
 
       <style>{`
-        .podium-container {
+        .rank-row {
           display: flex;
-          align-items: flex-end;
-          justify-content: center;
-          gap: 20px;
-          margin-top: 60px;
-          padding: 0 10px;
-        }
-        .podium-item {
-          flex: 1;
-          max-width: 140px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
           align-items: center;
-          transition: transform 0.3s ease;
+          gap: 16px;
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(255,255,255,0.03);
+          transition: var(--transition);
         }
-        .podium-item:hover { transform: translateY(-5px); }
-        .podium-item.first { order: 2; max-width: 180px; }
-        .podium-item.second { order: 1; }
-        .podium-item.third { order: 3; }
-
-        .avatar-wrapper { position: relative; margin-bottom: 16px; }
-        .avatar-huge { width: 100px; height: 100px; border-radius: 30px; background: var(--blue-gradient); display: flex; alignItems: center; justifyContent: center; font-size: 2.5rem; font-weight: 800; border: 4px solid #fbbf24; box-shadow: 0 0 30px rgba(251, 191, 36, 0.3); }
-        .avatar-big { width: 80px; height: 80px; border-radius: 24px; background: rgba(255,255,255,0.05); display: flex; alignItems: center; justifyContent: center; font-size: 1.8rem; font-weight: 800; border: 2px solid rgba(255,255,255,0.1); }
+        .rank-row:hover { background: rgba(255,255,255,0.02); }
+        .rank-number { font-weight: 800; font-size: 0.9rem; color: var(--gray-500); width: 30px; }
+        .rank-user-info { display: flex; flex-direction: column; flex: 1; }
+        .rank-username { font-weight: 700; color: white; font-size: 0.95rem; }
+        .rank-meta { font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .rank-score { font-weight: 800; color: var(--green); font-size: 1rem; text-align: right; }
         
-        .podium-rank { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); background: #1e293b; padding: 2px 12px; border-radius: 20px; font-weight: 800; border: 2px solid rgba(255,255,255,0.1); font-size: 0.9rem; z-index: 10; }
-        .crown-icon { position: absolute; top: -35px; left: 50%; transform: translateX(-50%) rotate(-10deg); filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5)); }
-        .medal-icon { position: absolute; top: -15px; right: -10px; }
-
-        .podium-info h3 { font-size: 1rem; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-        .points-badge { font-size: 0.8rem; font-weight: 800; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 4px 12px; border-radius: 10px; }
-        .points-badge.primary { color: #fbbf24; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); }
-
-        .leader-row { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.03); gap: 16px; }
-        .leader-row:last-child { border: none; }
-        .leader-row .rank { width: 40px; font-weight: 800; color: #64748b; font-size: 0.9rem; }
-        .user-pill { flex: 1; display: flex; align-items: center; gap: 12px; }
-        .avatar-mini { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.03); display: flex; alignItems: center; justifyContent: center; font-weight: 800; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.05); }
-        .user-meta { display: flex; flex-direction: column; }
-        .user-meta .name { font-weight: 700; font-size: 0.95rem; }
-        .user-meta .date { font-size: 0.7rem; color: #64748b; }
-        .leader-row .score { font-weight: 800; color: #10b981; }
-
-        @media (max-width: 480px) {
-          .podium-container { gap: 10px; }
-          .avatar-huge { width: 80px; height: 80px; font-size: 2rem; }
-          .avatar-big { width: 60px; height: 60px; font-size: 1.5rem; }
-          .podium-info h3 { font-size: 0.85rem; }
+        .crown-icon { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0); }
+          50% { transform: translateY(-5px) rotate(5deg); }
         }
       `}</style>
     </div>

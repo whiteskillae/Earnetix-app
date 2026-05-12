@@ -12,6 +12,7 @@ import AdminDashboard from '../components/admin/AdminDashboard';
 import UserManagement from '../components/admin/UserManagement';
 import TaskManagement from '../components/admin/TaskManagement';
 import SubmissionReview from '../components/admin/SubmissionReview';
+import ReportsView from '../components/admin/ReportsView';
 
 const AdminPage = () => {
   const { request } = useApi();
@@ -56,6 +57,7 @@ const AdminPage = () => {
     if (tab === 'users') fetchUsers();
     if (tab === 'tasks') fetchTasks();
     if (tab === 'announcements') fetchAnnouncements();
+    if (tab === 'reports') {}; // Handled internally in component but could add fetch logic here if needed
   }, [tab, subFilter]);
 
   const fetchDashboard = async () => {
@@ -224,6 +226,8 @@ const AdminPage = () => {
           onPreview={(s) => { setPreviewSub(s); setShowPreview(true); }}
         />
       )}
+
+      {tab === 'reports' && <ReportsView />}
 
       {tab === 'announcements' && (
         <div className="glass-panel">

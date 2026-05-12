@@ -3,8 +3,7 @@ import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock, File, Eye } from 'lucide-react';
-
+import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock, File, Eye, Target, TrendingUp, AlertCircle } from 'lucide-react';
 
 const TasksPage = () => {
   const { request } = useApi();
@@ -30,8 +29,7 @@ const TasksPage = () => {
         if (tasksRes.success) setTasks(tasksRes.data.tasks);
         if (subsRes.success) setMySubs(subsRes.data.submissions);
       } catch (err) {
-        toast.error('Failed to load tasks. Please try again.');
-        console.error('Fetch error:', err);
+        toast.error('Sector data retrieval failed.');
       }
       setLoading(false);
     };
@@ -57,11 +55,6 @@ const TasksPage = () => {
       if (imageFile) formData.append('image', imageFile);
       if (otherFile) formData.append('file', otherFile);
 
-      // Debug: Log FormData entries
-      for (let pair of formData.entries()) {
-        console.log('Submission Payload:', pair[0], pair[1]);
-      }
-
       let res;
       if (editingSubId) {
         res = await request('put', `/submissions/${editingSubId}/resubmit`, formData);
@@ -70,14 +63,13 @@ const TasksPage = () => {
       }
       
       if (res.success) {
-        toast.success('Proof submitted successfully!');
+        toast.success('Evidence Logged Successfully');
         setShowModal(false);
-        // Refresh submissions
         const subsRes = await request('get', '/submissions/my?limit=100');
         if (subsRes.success) setMySubs(subsRes.data.submissions);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission failed');
+      toast.error(err.response?.data?.message || 'Upload failed');
     }
     setSubmitting(false);
   };
@@ -89,39 +81,55 @@ const TasksPage = () => {
 
   const getRequirements = (type) => {
     const reqs = [];
-    if (type.includes('text') || type === 'all') reqs.push('Text');
-    if (type.includes('image') || type === 'all') reqs.push('Screenshot');
-    if (type.includes('file') || type === 'all') reqs.push('File');
+    if (type.includes('text') || type === 'all') reqs.push('TEXT');
+    if (type.includes('image') || type === 'all') reqs.push('SCREENSHOT');
+    if (type.includes('link') || type === 'all') reqs.push('URL/LINK');
+    if (type.includes('file') || type === 'all') reqs.push('ARCHIVE');
     return reqs;
   };
 
-  if (loading) return <Loader text="Loading tasks..." />;
+  if (loading && tasks.length === 0) return null; // Quick transition
 
   return (
-    <div className="fade-in">
-      <div className="page-header">
+    <div className="tasks-view fade-in">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px', flexWrap: 'wrap', gap: '24px' }}>
         <div>
-          <h1>Available Tasks</h1>
-          <p>Complete tasks and earn points</p>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Target color="var(--blue)" size={32} /> MISSION CONTROL
+          </h1>
+          <p>Execute campaigns to neutralize targets and earn credits</p>
         </div>
-        <div className="progress-card">
-          <div className="progress-info">
-            <span>Daily Progress</span>
-            <span>{mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/8</span>
+        
+        <div className="progress-container-new glass-panel" style={{ padding: '16px 24px', borderRadius: '24px', minWidth: '240px' }}>
+          <div className="flex-between" style={{ marginBottom: '8px' }}>
+             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)' }}>DAILY QUOTA</span>
+             <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--green)' }}>
+                {mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/10
+             </span>
           </div>
-          <div className="progress-bar-bg">
-            <div className="progress-bar-fill" style={{ width: `${(mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length / 8) * 100}%` }}></div>
+          <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+             <div style={{ 
+                height: '100%', 
+                background: 'var(--green-gradient)', 
+                width: `${Math.min((mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length / 10) * 100, 100)}%`,
+                transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
+             }}></div>
           </div>
         </div>
       </div>
 
-      <div style={{ marginBottom: 24, position: 'relative', maxWidth: 400 }}>
-        <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)' }} />
-        <input type="text" className="form-input" style={{ paddingLeft: 42 }}
-          placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="search-bar-premium glass-panel" style={{ marginBottom: '32px', maxWidth: '500px', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 24px', borderRadius: '20px' }}>
+        <Search size={20} color="var(--gray-500)" />
+        <input 
+          type="text" 
+          placeholder="Filter missions by ID or Objective..." 
+          style={{ background: 'none', border: 'none', color: 'white', flex: 1, fontSize: '0.95rem', fontWeight: 600, outline: 'none' }}
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+        />
       </div>
 
-      <div className="grid-3">
+      <div className="grid-3" style={{ gap: '24px' }}>
         {filtered.map((task) => {
           const userSub = mySubs.find(s => s.taskId?._id === task._id);
           const isApproved = userSub?.status === 'approved';
@@ -130,49 +138,45 @@ const TasksPage = () => {
           const canResubmit = isRejected && userSub?.submissionCount < 2;
 
           return (
-            <div key={task._id} className="card" style={{ display: 'flex', flexDirection: 'column', border: isApproved ? '1px solid var(--green)' : '1px solid var(--dark-700)' }}>
+            <div key={task._id} className="premium-card slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div style={{ flex: 1 }}>
-                <div className="flex-between" style={{ marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h4 style={{ color: 'var(--white)' }}>{task.title}</h4>
-                    {new Date(task.createdAt) > new Date(Date.now() - 24 * 60 * 60 * 1000) && (
-                      <span className="new-badge">NEW</span>
-                    )}
-                  </div>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green)', fontWeight: 800, fontSize: '1rem' }}>
-                    <Zap size={16} fill="var(--green)" /> {task.rewardPoints}
-                  </span>
+                <div className="flex-between" style={{ marginBottom: '16px' }}>
+                   <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: 'var(--blue)' }}>
+                      <Zap size={20} fill="var(--blue)" strokeWidth={0} />
+                   </div>
+                   <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--green)' }}>
+                      +{task.rewardPoints} <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>PTS</span>
+                   </div>
                 </div>
-                <p style={{ fontSize: '0.85rem', marginBottom: 16, lineHeight: 1.5, color: 'var(--gray-300)' }}>{task.description}</p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                  {getRequirements(task.inputType).map(r => (
-                    <span key={r} className="badge" style={{ background: 'var(--dark-800)', color: 'var(--gray-400)', border: '1px solid var(--dark-700)' }}>
-                      {r}
-                    </span>
-                  ))}
-                  {userSub && (
-                    <span className={`badge badge-${userSub.status}`}>
-                      {userSub.status.toUpperCase()}
-                    </span>
-                  )}
+
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', fontWeight: 800 }}>{task.title}</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', lineHeight: 1.6, marginBottom: '20px' }}>{task.description}</p>
+                
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                   {getRequirements(task.inputType).map(r => (
+                     <span key={r} style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', border: '1px solid var(--glass-border)', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
+                        {r}
+                     </span>
+                   ))}
                 </div>
               </div>
 
               {isApproved ? (
-                <div className="btn btn-block btn-success" style={{ cursor: 'default', opacity: 0.8 }}>
-                  <CheckCircle size={16} /> Completed
+                <div className="status-pill-new status-approved" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
+                  <CheckCircle size={18} /> COMPLETED
                 </div>
               ) : isPending ? (
-                <div className="btn btn-block btn-outline" style={{ cursor: 'default', opacity: 0.6 }}>
-                  <Clock size={16} /> Under Review
+                <div className="status-pill-new status-pending" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
+                  <Clock size={18} /> IN REVIEW
                 </div>
               ) : (
                 <button 
-                  className={`btn btn-block ${isRejected ? 'btn-danger' : 'btn-primary'}`} 
+                  className={`btn-premium btn-block ${isRejected ? 'btn-danger' : 'btn-primary-new'}`}
+                  style={{ height: '48px' }}
                   onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
                   disabled={isRejected && !canResubmit}
                 >
-                  <Upload size={16} /> {isRejected ? (canResubmit ? 'Resubmit Proof' : 'Rejected') : 'Submit Proof'}
+                  <Upload size={18} /> {isRejected ? (canResubmit ? 'RE-LOG EVIDENCE' : 'LOCKED') : 'EXECUTE MISSION'}
                 </button>
               )}
             </div>
@@ -180,77 +184,74 @@ const TasksPage = () => {
         })}
       </div>
 
-      {filtered.length === 0 && (
-        <div className="empty-state">
-          <Zap size={48} />
-          <h3>No tasks available</h3>
-          <p>Check back later for new tasks!</p>
-        </div>
-      )}
-
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={`Submit: ${selected?.title}`}>
-        <form onSubmit={handleSubmit} className="fade-in">
-          <div style={{ padding: '16px', background: 'var(--dark-800)', borderRadius: '12px', border: '1px solid var(--dark-700)', marginBottom: 24 }}>
-            <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Evidence Required:</p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              {getRequirements(selected?.inputType || '').map(r => <span key={r} style={{ color: 'var(--blue-light)', fontSize: '0.9rem', fontWeight: 600 }}>✓ {r}</span>)}
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={`MISSION DATA: ${selected?.title}`}>
+        <form onSubmit={handleSubmit}>
+          <div className="glass-panel" style={{ padding: '20px', borderRadius: '20px', marginBottom: '24px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: 'var(--blue)', fontWeight: 800 }}>REQUIRED INTELLIGENCE</h4>
+            <div style={{ display: 'flex', gap: '16px' }}>
+               {getRequirements(selected?.inputType || '').map(r => (
+                 <div key={r} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700 }}>
+                    <CheckCircle size={14} color="var(--green)" /> {r}
+                 </div>
+               ))}
             </div>
           </div>
 
-          {(selected?.inputType.includes('text') || selected?.inputType === 'all') && (
-            <div className="form-group">
-              <label>Text Proof</label>
-              <textarea className="form-input" placeholder="Paste link or text here..."
-                rows={4} value={textContent} onChange={(e) => setTextContent(e.target.value)} required />
-            </div>
-          )}
-
-          {(selected?.inputType.includes('image') || selected?.inputType === 'all') && (
-            <div className="form-group">
-              <label>Screenshot Proof</label>
-              <div className={`file-upload ${imageFile ? 'active' : ''}`}
-                onClick={() => document.getElementById('image-input').click()}>
-                <input id="image-input" type="file" accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files[0])} required />
-                {imageFile ? (
-                  <div className="text-success" style={{ fontWeight: 600 }}>✓ {imageFile.name}</div>
-                ) : (
-                  <>
-                    <Image size={24} style={{ marginBottom: 8, color: 'var(--gray-500)' }} />
-                    <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Click to upload Screenshot</p>
-                  </>
-                )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {(selected?.inputType.includes('text') || selected?.inputType.includes('link') || selected?.inputType === 'all') && (
+              <div className="form-group">
+                <label>Proof String (Text/URL)</label>
+                <textarea 
+                  className="form-input" 
+                  placeholder="Paste your submission data here..."
+                  rows={4} 
+                  value={textContent} 
+                  onChange={(e) => setTextContent(e.target.value)} 
+                  required 
+                />
               </div>
-            </div>
-          )}
+            )}
 
-          {(selected?.inputType.includes('file') || selected?.inputType === 'all') && (
-            <div className="form-group">
-              <label>File Proof</label>
-              <div className={`file-upload ${otherFile ? 'active' : ''}`}
-                onClick={() => document.getElementById('file-input').click()}>
-                <input id="file-input" type="file" 
-                  onChange={(e) => setOtherFile(e.target.files[0])} required />
-                {otherFile ? (
-                  <div className="text-success" style={{ fontWeight: 600 }}>✓ {otherFile.name}</div>
-                ) : (
-                  <>
-                    <Upload size={24} style={{ marginBottom: 8, color: 'var(--gray-500)' }} />
-                    <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Click to upload File</p>
-                  </>
-                )}
+            {(selected?.inputType.includes('image') || selected?.inputType === 'all') && (
+              <div className="form-group">
+                <label>Visual Evidence (Screenshot)</label>
+                <div 
+                  className="file-upload-premium"
+                  onClick={() => document.getElementById('image-input').click()}
+                  style={{ 
+                    height: '140px', border: '2px dashed var(--glass-border)', 
+                    borderRadius: '24px', display: 'flex', flex-direction: 'column',
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    transition: 'var(--transition)', background: imageFile ? 'rgba(16, 185, 129, 0.05)' : 'transparent'
+                  }}
+                >
+                  <input id="image-input" type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={(e) => setImageFile(e.target.files[0])} required />
+                  {imageFile ? (
+                    <div style={{ textAlign: 'center' }}>
+                       <CheckCircle size={32} color="var(--green)" />
+                       <p style={{ margin: '8px 0 0', fontWeight: 700 }}>{imageFile.name}</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Image size={32} color="var(--gray-600)" />
+                      <p style={{ margin: '12px 0 0', color: 'var(--gray-500)', fontSize: '0.9rem', fontWeight: 600 }}>Click to capture image</p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="flex-gap" style={{ marginTop: 24 }}>
-            <button type="button" className="btn btn-outline btn-block" onClick={() => setShowModal(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
-              {submitting ? 'Uploading...' : 'Submit Proof'}
+            <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '60px', marginTop: '12px' }} disabled={submitting}>
+              {submitting ? 'SYNCHRONIZING...' : 'SUBMIT INTEL'}
             </button>
           </div>
         </form>
       </Modal>
+
+      <style>{`
+        .file-upload-premium:hover { border-color: var(--blue-light); background: rgba(59, 130, 246, 0.05); }
+      `}</style>
     </div>
   );
 };

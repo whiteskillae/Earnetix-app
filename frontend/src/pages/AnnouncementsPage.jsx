@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
-import Loader from '../components/common/Loader';
-import { Bell, Info, AlertTriangle, Clock } from 'lucide-react';
+import { Bell, Info, AlertTriangle, Clock, Megaphone } from 'lucide-react';
 
 const AnnouncementsPage = () => {
   const { request, loading } = useApi();
@@ -17,56 +16,54 @@ const AnnouncementsPage = () => {
     fetchAnnouncements();
   }, [request]);
 
-  if (loading && announcements.length === 0) return <Loader text="Checking for updates..." />;
+  if (loading && announcements.length === 0) return null; // Quick transition
 
-  const getPriorityColor = (p) => {
-    if (p === 'high') return 'var(--rejected)';
-    if (p === 'medium') return 'var(--pending)';
-    return 'var(--blue-light)';
-  };
-
-  const getIcon = (p) => {
-    if (p === 'high') return <AlertTriangle size={20} />;
-    return <Info size={20} />;
+  const getPriorityConfig = (p) => {
+    if (p === 'high') return { color: '#ef4444', label: 'CRITICAL', icon: AlertTriangle };
+    if (p === 'medium') return { color: '#f59e0b', label: 'IMPORTANT', icon: Info };
+    return { color: '#3b82f6', label: 'STANDARD', icon: Bell };
   };
 
   return (
-    <div className="fade-in">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="auth-logo" style={{ width: 42, height: 42, margin: 0 }}>
-            <Bell size={20} />
-          </div>
-          <div>
-            <h1>Announcements</h1>
-            <p>Important updates and news from EARNETIX</p>
-          </div>
-        </div>
+    <div className="announcements-view fade-in">
+      <div className="page-header" style={{ marginBottom: '40px' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Megaphone color="var(--blue)" size={32} /> BROADCASTS
+        </h1>
+        <p>Intelligence updates and system notifications</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {announcements.map((ann) => (
-          <div key={ann._id} className="card" style={{ borderLeft: `4px solid ${getPriorityColor(ann.priority)}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: getPriorityColor(ann.priority) }}>{getIcon(ann.priority)}</span>
-                <h3 style={{ fontSize: '1.1rem', color: 'var(--white)' }}>{ann.title}</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {announcements.map((ann) => {
+          const config = getPriorityConfig(ann.priority);
+          return (
+            <div key={ann._id} className="premium-card slide-up" style={{ padding: '32px', borderLeft: `4px solid ${config.color}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', background: `${config.color}15`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: config.color }}>
+                    <config.icon size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', margin: 0 }}>{ann.title}</h3>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: config.color, letterSpacing: '0.1em' }}>{config.label} BROADCAST</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-500)', fontSize: '0.8rem', fontWeight: 700 }}>
+                  <Clock size={14} /> {new Date(ann.createdAt).toLocaleDateString()}
+                </div>
               </div>
-              <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Clock size={12} /> {new Date(ann.createdAt).toLocaleDateString()}
-              </span>
+              <p style={{ color: 'var(--gray-300)', lineHeight: 1.7, fontSize: '1rem', whiteSpace: 'pre-wrap', margin: 0 }}>
+                {ann.content}
+              </p>
             </div>
-            <p style={{ color: 'var(--gray-300)', lineHeight: 1.6, fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>
-              {ann.content}
-            </p>
-          </div>
-        ))}
+          );
+        })}
 
         {announcements.length === 0 && (
-          <div className="empty-state">
-            <Bell size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
-            <h3>All quiet for now</h3>
-            <p>No new announcements. Check back later!</p>
+          <div className="glass-panel" style={{ padding: '80px', textAlign: 'center', color: 'var(--gray-500)' }}>
+            <Bell size={48} style={{ opacity: 0.1, marginBottom: '20px' }} />
+            <h3 style={{ margin: 0 }}>Terminal Quiet</h3>
+            <p style={{ margin: '8px 0 0' }}>No active broadcasts in this sector.</p>
           </div>
         )}
       </div>

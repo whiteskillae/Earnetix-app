@@ -16,6 +16,7 @@ const taskRoutes = require('./routes/taskRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 app.set('trust proxy', true);
@@ -74,6 +75,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -14,6 +14,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { to: '/admin?tab=submissions', label: 'Submissions', icon: Clock },
       { to: '/admin?tab=tasks', label: 'Tasks Mgmt', icon: ListTodo },
       { to: '/admin?tab=users', label: 'User Directory', icon: Users },
+      { to: '/admin?tab=reports', label: 'Intelligence', icon: Shield },
       { to: '/admin?tab=announcements', label: 'Announcements', icon: Bell },
     ];
   } else {
@@ -23,6 +24,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },
       { to: '/profile', label: 'Profile', icon: User },
+      { to: '/reports', label: 'Report Issue', icon: Shield },
     ];
   }
 
@@ -52,11 +54,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             </div>
           </Link>
 
-          {/* Close button for mobile */}
           <button 
             className="sidebar-close-btn" 
             onClick={() => setIsOpen(false)}
-            style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', border: 'none', padding: '8px', borderRadius: '10px', color: 'white', marginLeft: 'auto' }}
           >
             <X size={20} />
           </button>
@@ -79,27 +79,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         </nav>
 
         {/* User info + logout */}
-        <div style={{ marginTop: 'auto', padding: '20px 0' }}>
+        <div style={{ marginTop: 'auto', padding: '10px 0' }}>
           <div style={{ 
             display: 'flex', alignItems: 'center', gap: '12px', padding: '16px',
-            background: 'var(--dark-900)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)',
+            background: 'var(--dark-900)', border: '1px solid var(--glass-border)', borderRadius: '20px',
             marginBottom: '12px'
           }}>
-            <div style={{ 
-              width: '40px', height: '40px', borderRadius: '12px',
-              background: 'var(--blue-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, color: 'white'
-            }}>
+            <div className="user-avatar-wrap">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div style={{ overflow: 'hidden' }}>
               <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user?.name}</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', margin: 0 }}>{isAdmin ? 'Administrator' : 'Verified User'}</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--gray-500)', margin: 0, fontWeight: 600 }}>{isAdmin ? 'ADMIN ACCESS' : 'VERIFIED ACCOUNT'}</p>
             </div>
           </div>
-          <button className="btn btn-outline btn-block" onClick={logout} style={{ justifyContent: 'flex-start', gap: '12px' }}>
+          <button className="btn btn-outline btn-block" onClick={logout} style={{ justifyContent: 'flex-start', gap: '12px', borderRadius: '16px' }}>
             <LogOut size={18} />
-            <span>Sign Out</span>
+            <span>Terminate Session</span>
           </button>
         </div>
       </aside>

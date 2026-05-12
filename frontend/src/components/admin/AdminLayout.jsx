@@ -8,7 +8,8 @@ import {
   Settings, 
   Bell,
   Menu,
-  X
+  X,
+  Shield
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -31,6 +32,7 @@ const AdminLayout = ({ children }) => {
     { id: 'users', label: 'User Directory', icon: <Users size={20} /> },
     { id: 'tasks', label: 'Campaign Manager', icon: <ListTodo size={20} /> },
     { id: 'submissions', label: 'Review Center', icon: <CheckSquare size={20} /> },
+    { id: 'reports', label: 'Intelligence', icon: <Shield size={20} /> },
     { id: 'announcements', label: 'Broadcasting', icon: <Megaphone size={20} /> },
   ];
 
