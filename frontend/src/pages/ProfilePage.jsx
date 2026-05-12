@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin } from 'lucide-react';
+import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin, TrendingUp } from 'lucide-react';
 
 const ProfilePage = () => {
   const { user, fetchProfile, logout, setUser } = useAuth();
