@@ -98,50 +98,6 @@ const LoginPage = () => {
           Don't have an account? <Link to="/register">Create one</Link>
         </p>
       </div>
-
-      <style>{`
-        .auth-page {
-          min-height: 100vh; display: flex; align-items: center;
-          justify-content: center; padding: 24px;
-          background: radial-gradient(ellipse at top, rgba(0,102,255,0.08), transparent 50%),
-                      radial-gradient(ellipse at bottom right, rgba(0,209,102,0.06), transparent 50%),
-                      var(--black);
-        }
-        .auth-card {
-          width: 100%; max-width: 420px;
-          background: var(--dark-800); border: 1px solid var(--dark-600);
-          border-radius: var(--radius-xl); padding: 40px;
-        }
-        .auth-brand { text-align: center; margin-bottom: 32px; }
-        .auth-logo {
-          width: 56px; height: 56px; margin: 0 auto 16px;
-          border-radius: var(--radius-lg);
-          background: linear-gradient(135deg, var(--blue), var(--green));
-          display: flex; align-items: center; justify-content: center;
-          color: var(--white);
-        }
-        .auth-brand h1 {
-          font-family: var(--font-heading); font-size: 1.5rem;
-          letter-spacing: 2px; color: var(--white);
-        }
-        .auth-brand p {
-          font-size: 0.8rem; color: var(--gray-400); margin-top: 4px;
-        }
-        .input-icon-wrap { position: relative; }
-        .input-icon {
-          position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-          color: var(--gray-400); pointer-events: none;
-        }
-        .input-icon-right {
-          position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-          background: none; border: none; color: var(--gray-400); cursor: pointer;
-        }
-        .auth-footer {
-          text-align: center; margin-top: 24px; font-size: 0.85rem;
-          color: var(--gray-400);
-        }
-        .auth-footer a { color: var(--blue-light); font-weight: 600; }
-      `}</style>
     </div>
   );
 };
