@@ -241,7 +241,7 @@ const ProfilePage = () => {
         .profile-page { padding-bottom: 100px; }
         .profile-header-card { display: flex; justify-content: space-between; align-items: center; padding: 32px; margin-bottom: 24px; border-radius: 24px; gap: 20px; }
         .user-info-section { display: flex; align-items: center; gap: 24px; }
-        .profile-avatar-huge { width: 80px; height: 80px; border-radius: 24px; background: var(--blue-gradient); display: flex; align-items: center; justifyContent: center; font-size: 2rem; font-weight: 800; color: white; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
+        .profile-avatar-huge { width: 80px; height: 80px; border-radius: 24px; background: var(--blue-gradient); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: white; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
         .user-text h2 { margin: 0 0 4px; font-size: 1.5rem; }
         .user-text p { margin: 0; color: #64748b; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
         .user-tags { display: flex; gap: 10px; margin-top: 12px; }
@@ -272,7 +272,7 @@ const ProfilePage = () => {
         .status-pill.pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
         .status-pill.rejected { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justifyContent: center; z-index: 2000; padding: 20px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
         .modal-content { width: 100%; max-width: 500px; padding: 32px; border-radius: 24px; position: relative; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .edit-form { display: flex; flex-direction: column; gap: 16px; }
@@ -285,6 +285,6 @@ const ProfilePage = () => {
         }
       `}</style>
     </div>
-  
-
+  );
+};  
 export default ProfilePage;
