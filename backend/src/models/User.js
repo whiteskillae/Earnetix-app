@@ -106,6 +106,7 @@ const userSchema = new mongoose.Schema({
 // Indexes for fast lookup
 userSchema.index({ deviceFingerprint: 1 });
 userSchema.index({ registrationIp: 1 });
+userSchema.index({ role: 1, points: -1 }); // Index for leaderboard
 
 // Never return sensitive fields in JSON
 userSchema.methods.toJSON = function () {
