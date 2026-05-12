@@ -220,7 +220,7 @@ const TasksPage = () => {
                   onClick={() => document.getElementById('image-input').click()}
                   style={{ 
                     height: '140px', border: '2px dashed var(--glass-border)', 
-                    borderRadius: '24px', display: 'flex', flex-direction: 'column',
+                    borderRadius: '24px', display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                     transition: 'var(--transition)', background: imageFile ? 'rgba(16, 185, 129, 0.05)' : 'transparent'
                   }}

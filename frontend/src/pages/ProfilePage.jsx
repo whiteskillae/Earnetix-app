@@ -121,7 +121,7 @@ const ProfilePage = () => {
             <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <TrendingUp size={20} /> OPERATIONAL EFFICIENCY
             </h3>
-            <div className="stats-mini-row" style={{ display: 'grid', gridTemplate-columns: 'repeat(3, 1fr)', gap: '12px' }}>
+            <div className="stats-mini-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px' }}>
                   <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900 }}>{subs.length}</span>
                   <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>TASKS</span>
@@ -285,7 +285,6 @@ const ProfilePage = () => {
         }
       `}</style>
     </div>
-  );
-};
+  
 
 export default ProfilePage;
