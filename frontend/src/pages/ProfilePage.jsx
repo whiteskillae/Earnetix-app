@@ -233,10 +233,6 @@ const ProfilePage = () => {
            </div>
         </div>
       )}
-    </div>
-  );
-};
-
       <style>{`
         .profile-page { padding-bottom: 100px; }
         .profile-header-card { display: flex; justify-content: space-between; align-items: center; padding: 32px; margin-bottom: 24px; border-radius: 24px; gap: 20px; }
@@ -273,6 +269,7 @@ const ProfilePage = () => {
         .status-pill.rejected { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+
         .modal-content { width: 100%; max-width: 500px; padding: 32px; border-radius: 24px; position: relative; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .edit-form { display: flex; flex-direction: column; gap: 16px; }
