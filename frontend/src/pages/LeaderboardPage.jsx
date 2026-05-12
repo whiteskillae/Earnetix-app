@@ -4,19 +4,39 @@ import { Trophy, Crown, TrendingUp, Medal, Star } from 'lucide-react';
 
 const LeaderboardPage = () => {
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
   const { loading, request } = useApi();
 
+  const fetchLeaderboard = async () => {
+    setError(null);
+    try {
+      const res = await request('get', '/users/leaderboard');
+      setData(res.data.data);
+    } catch (err) {
+      setError("The High Command intelligence feed is temporarily offline. Please attempt reconnection.");
+    }
+  };
+
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const res = await request('get', '/users/leaderboard');
-        setData(res.data.data);
-      } catch (err) {}
-    };
     fetchLeaderboard();
   }, [request]);
 
-  if (loading && !data) return null; // Quick transition - no full page loader
+  if (loading && !data) return (
+    <div className="flex-center" style={{ height: '60vh' }}>
+       <div className="loader-new"></div>
+    </div>
+  );
+
+  if (error && !data) return (
+    <div className="flex-center" style={{ height: '60vh', flexDirection: 'column', gap: '20px', textAlign: 'center', padding: '20px' }}>
+       <div className="logo-icon" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', width: '80px', height: '80px', borderRadius: '24px' }}>
+          <Star size={40} />
+       </div>
+       <h2 style={{ margin: 0 }}>CONNECTION INTERRUPTED</h2>
+       <p style={{ color: 'var(--gray-500)', maxWidth: '400px' }}>{error}</p>
+       <button className="btn btn-primary" onClick={fetchLeaderboard}>RE-INITIALIZE FEED</button>
+    </div>
+  );
 
   const topThree = data?.slice(0, 3) || [];
   const others = data?.slice(3) || [];
