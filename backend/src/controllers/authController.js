@@ -163,8 +163,18 @@ const login = async (req, res, next) => {
     user.loginHistory.push({ ip, userAgent });
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20); // keep last 20
 
-    // Update device fingerprint
-    if (deviceFingerprint) user.deviceFingerprint = deviceFingerprint;
+    // Update device fingerprint & Check for multi-accounting
+    if (deviceFingerprint) {
+      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id } });
+      if (otherUser) {
+        logger.warn(`Multi-account login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Security Alert: This device is already associated with another account. Multi-accounting is prohibited.' 
+        });
+      }
+      user.deviceFingerprint = deviceFingerprint;
+    }
 
     // Generate tokens
     const payload = { userId: user._id, role: user.role };
@@ -263,7 +273,17 @@ const googleAuth = async (req, res, next) => {
     user.loginHistory.push({ ip, userAgent });
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20);
 
-    if (deviceFingerprint) user.deviceFingerprint = deviceFingerprint;
+    if (deviceFingerprint) {
+      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id } });
+      if (otherUser) {
+        logger.warn(`Multi-account Google login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Security Alert: This device is already associated with another account.' 
+        });
+      }
+      user.deviceFingerprint = deviceFingerprint;
+    }
 
     // Generate tokens
     const payload = { userId: user._id, role: user.role };
