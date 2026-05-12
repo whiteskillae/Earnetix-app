@@ -344,7 +344,7 @@ const logout = async (req, res, next) => {
 // ─── COMPLETE PROFILE ──────────────────────────────────
 const completeProfile = async (req, res, next) => {
   try {
-    const { name, mobileNumber, countryCode, country } = req.body;
+    const { name, mobileNumber, countryCode, country, qualifications, skills } = req.body;
 
     const user = await User.findById(req.user._id);
     if (!user) {
@@ -352,9 +352,12 @@ const completeProfile = async (req, res, next) => {
     }
 
     if (name) user.name = name;
-    user.mobileNumber = mobileNumber;
-    user.countryCode = countryCode;
-    user.country = country;
+    if (mobileNumber) user.mobileNumber = mobileNumber;
+    if (countryCode) user.countryCode = countryCode;
+    if (country) user.country = country;
+    if (qualifications) user.qualifications = qualifications;
+    if (skills) user.skills = skills;
+    
     user.isProfileComplete = true;
 
     await user.save();

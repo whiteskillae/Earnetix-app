@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user, isAdmin, logout } = useAuth();
@@ -20,6 +20,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     navItems = [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/tasks', label: 'Tasks', icon: ListTodo },
+      { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },
       { to: '/profile', label: 'Profile', icon: User },
     ];
@@ -50,6 +51,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               <span style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Premium Rewards</span>
             </div>
           </Link>
+
+          {/* Close button for mobile */}
+          <button 
+            className="sidebar-close-btn" 
+            onClick={() => setIsOpen(false)}
+            style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', border: 'none', padding: '8px', borderRadius: '10px', color: 'white', marginLeft: 'auto' }}
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* Navigation */}

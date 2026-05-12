@@ -91,6 +91,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  qualifications: {
+    type: String,
+    default: null,
+  },
+  skills: {
+    type: [String],
+    default: [],
+  },
 }, {
   timestamps: true,
 });

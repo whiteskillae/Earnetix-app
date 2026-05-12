@@ -44,11 +44,27 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUserData = (newData) => {
+    const updated = { ...user, ...newData };
+    setUser(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+  };
+
   const isAdmin = user?.role === 'admin';
   const isProfileComplete = user?.isProfileComplete;
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, isRefreshing, login, logout, isAdmin, isProfileComplete, fetchProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      setUser: updateUserData, 
+      loading, 
+      isRefreshing, 
+      login, 
+      logout, 
+      isAdmin, 
+      isProfileComplete, 
+      fetchProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );

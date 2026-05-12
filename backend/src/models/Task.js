@@ -21,7 +21,7 @@ const taskSchema = new mongoose.Schema({
   },
   inputType: {
     type: String,
-    enum: ['text', 'image', 'file', 'text_image', 'text_file', 'image_file', 'all'],
+    enum: ['text', 'image', 'file', 'link', 'text_image', 'text_link', 'all'],
     required: [true, 'Input type is required'],
   },
   allowedExtensions: {

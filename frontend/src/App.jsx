@@ -19,6 +19,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const AnnouncementsPage = lazy(() => import('./pages/AnnouncementsPage'));
 const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 
 
 // Protected route wrapper
@@ -80,6 +81,7 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><AppLayout><TasksPage /></AppLayout></ProtectedRoute>} />
       <Route path="/announcements" element={<ProtectedRoute><AppLayout><AnnouncementsPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/leaderboard" element={<ProtectedRoute><AppLayout><LeaderboardPage /></AppLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
 
       {/* Admin only */}

@@ -70,14 +70,21 @@ const OnboardingPage = () => {
           <div style={{ display: 'flex', gap: 12 }}>
             <div className="form-group" style={{ width: '100px' }}>
               <label><Globe size={16} /> Code</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="+91"
+              <select 
+                className="form-input"
                 value={formData.countryCode}
                 onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
                 required
-              />
+              >
+                <option value="+91">+91 (IN)</option>
+                <option value="+1">+1 (US/CA)</option>
+                <option value="+44">+44 (UK)</option>
+                <option value="+61">+61 (AU)</option>
+                <option value="+971">+971 (UAE)</option>
+                <option value="+65">+65 (SG)</option>
+                <option value="+49">+49 (DE)</option>
+                <option value="+33">+33 (FR)</option>
+              </select>
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label><Phone size={16} /> Mobile Number</label>
@@ -105,12 +112,46 @@ const OnboardingPage = () => {
               <option value="United Kingdom">United Kingdom</option>
               <option value="Canada">Canada</option>
               <option value="Australia">Australia</option>
+              <option value="United Arab Emirates">UAE</option>
+              <option value="Singapore">Singapore</option>
+              <option value="Germany">Germany</option>
+              <option value="France">France</option>
               <option value="Other">Other</option>
             </select>
           </div>
 
+          <div className="form-group">
+            <label><Target size={16} /> Highest Qualification</label>
+            <select 
+              className="form-input"
+              value={formData.qualifications || ''}
+              onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
+              required
+            >
+              <option value="">Select Qualification</option>
+              <option value="High School">High School</option>
+              <option value="Bachelor Degree">Bachelor's Degree</option>
+              <option value="Master Degree">Master's Degree</option>
+              <option value="PhD">PhD</option>
+              <option value="Diploma">Diploma</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label><Zap size={16} /> Key Skills (comma separated)</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              placeholder="e.g. Design, Coding, Writing"
+              value={formData.skills?.join(', ') || ''}
+              onChange={(e) => setFormData({ ...formData, skills: e.target.value.split(',').map(s => s.trim()) })}
+              required
+            />
+          </div>
+
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Saving...' : 'Get Started'} <ArrowRight size={18} />
+            {loading ? 'Saving Profile...' : 'Complete Registration'} <ArrowRight size={18} />
           </button>
         </form>
       </div>

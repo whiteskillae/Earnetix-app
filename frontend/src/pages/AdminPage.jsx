@@ -259,10 +259,12 @@ const AdminPage = () => {
           <div className="grid-2">
             <div className="form-group"><label>Credit Reward</label><input type="number" className="form-input" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
             <div className="form-group"><label>Evidence Type</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}>
-              <option value="image">Screenshot</option>
-              <option value="text">Text Response</option>
-              <option value="file">Document/Archive</option>
-              <option value="all">Full Evidence (Text+Img+File)</option>
+              <option value="image">Screenshot Only</option>
+              <option value="link">Link/URL Only</option>
+              <option value="text">Text Response Only</option>
+              <option value="text_link">Text + Link</option>
+              <option value="text_image">Text + Screenshot</option>
+              <option value="all">Full Evidence (Text+Img+File+Link)</option>
             </select></div>
           </div>
           <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Update Protocol' : 'Deploy Campaign'}</button>
@@ -306,6 +308,7 @@ const AdminPage = () => {
               <p style={{ fontSize: '0.9rem' }}><strong>Objective:</strong> {previewSub.taskId?.title}</p>
             </div>
             {previewSub.textContent && <div className="proof-section"><h5>Text Evidence:</h5><div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem' }}>{previewSub.textContent}</div></div>}
+            {previewSub.linkUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Submission Link:</h5><a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all' }}>{previewSub.linkUrl}</a></div>}
             {previewSub.imageUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Screenshot Proof:</h5><img src={previewSub.imageUrl} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} /></div>}
             {previewSub.fileUrl && (
               <div className="proof-section" style={{ marginTop: '20px' }}>
@@ -327,23 +330,47 @@ const AdminPage = () => {
         {selectedUser && (
           <div className="user-details-view">
             <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
-               <h5 style={{ color: '#3b82f6', marginBottom: '12px' }}>Identity Context</h5>
+               <h5 style={{ color: '#3b82f6', marginBottom: '12px' }}>Identity & Background</h5>
                <div className="grid-2">
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Name</label><p>{selectedUser.name}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Email</label><p>{selectedUser.email}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Mobile</label><p>{selectedUser.countryCode} {selectedUser.mobileNumber}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Country</label><p>{selectedUser.country}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Qualification</label><p>{selectedUser.qualifications || '—'}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Skills</label><p>{selectedUser.skills?.join(', ') || '—'}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Credits</label><p className="text-success" style={{ fontWeight: 800 }}>{selectedUser.points}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>IP Address</label><p><code>{selectedUser.registrationIp || 'Unknown'}</code></p></div>
                </div>
             </div>
             
-            <div className="glass-panel" style={{ padding: '20px' }}>
+            <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
                <h5 style={{ color: '#10b981', marginBottom: '12px' }}>Security Audit Log</h5>
-               {selectedUser.loginHistory?.slice(-3).reverse().map((h, i) => (
+               {selectedUser.loginHistory?.slice(-2).reverse().map((h, i) => (
                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                     <span>{h.ip}</span>
                     <span style={{ opacity: 0.5 }}>{new Date(h.timestamp).toLocaleString()}</span>
                  </div>
                ))}
+            </div>
+
+            <div className="admin-actions-card">
+               <h5 style={{ color: '#ef4444', marginBottom: '12px' }}>Access Control</h5>
+               <div className="flex-gap">
+                  <button 
+                    className="btn btn-outline" 
+                    style={{ flex: 1, borderColor: 'rgba(245, 158, 11, 0.3)' }}
+                    onClick={() => { handleBlockTemp(selectedUser._id); setShowDetailsModal(false); }}
+                  >
+                    24H TEMP BLOCK
+                  </button>
+                  <button 
+                    className={`btn ${selectedUser.isBlocked ? 'btn-success' : 'btn-danger'}`}
+                    style={{ flex: 1 }}
+                    onClick={() => { handleToggleBlock(selectedUser._id); setShowDetailsModal(false); }}
+                  >
+                    {selectedUser.isBlocked ? 'REVOKE BAN' : 'PERMANENT BAN'}
+                  </button>
+               </div>
             </div>
           </div>
         )}

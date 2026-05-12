@@ -50,12 +50,7 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
                   </div>
                 </td>
                 <td>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="points-badge">+{u.points}</span>
-                      <button className="btn-icon" onClick={() => onAdjustPoints(u)} style={{ width: '28px', height: '28px' }}>
-                        <Zap size={12} color="#f59e0b" />
-                      </button>
-                   </div>
+                   <span className="points-badge">+{u.points}</span>
                 </td>
                 <td>
                   {u.isBlocked ? (
@@ -83,25 +78,9 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
                       <Eye size={16} />
                     </button>
                     
-                    <div className="flex-gap">
-                       {!u.isBlocked && !isTempBlocked(u) && (
-                         <button 
-                           className="btn btn-sm btn-outline" 
-                           style={{ padding: '6px 12px', fontSize: '0.7rem', borderColor: 'rgba(245, 158, 11, 0.3)' }}
-                           onClick={() => onBlockTemp(u._id)}
-                         >
-                           24H BLOCK
-                         </button>
-                       )}
-                       
-                       <button 
-                         className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-danger'}`}
-                         style={{ padding: '6px 12px', fontSize: '0.7rem' }}
-                         onClick={() => onToggleBlock(u._id)}
-                       >
-                         {u.isBlocked ? 'REVOKE BAN' : 'BAN USER'}
-                       </button>
-                    </div>
+                    <button className="btn-icon" onClick={() => onAdjustPoints(u)} title="Adjust Credits">
+                      <Zap size={16} color="#f59e0b" />
+                    </button>
                   </div>
                 </td>
               </tr>

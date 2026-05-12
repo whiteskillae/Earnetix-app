@@ -5,7 +5,7 @@ const { hashText } = require('../utils/hashFile');
 
 const submitProof = async (req, res, next) => {
   try {
-    const { taskId, textContent } = req.body;
+    const { taskId, textContent, linkUrl } = req.body;
     if (!taskId) return res.status(400).json({ success: false, message: 'Task ID is required' });
     
     // Validate ObjectId format to prevent CastError
@@ -20,7 +20,7 @@ const submitProof = async (req, res, next) => {
     const existingCount = await Submission.countDocuments({ userId, taskId, status: { $in: ['pending', 'approved'] } });
     if (existingCount >= task.maxSubmissionsPerUser) return res.status(400).json({ success: false, message: 'Submission limit reached for this task' });
 
-    // Daily Limit Check: Only 8 tasks allowed per day
+    // Daily Limit Check
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
@@ -31,10 +31,8 @@ const submitProof = async (req, res, next) => {
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
 
-    const dailyTaskIds = dailyTasks.map(id => id.toString());
-
-    if (dailyTaskIds.length >= 8 && !dailyTaskIds.includes(taskId.toString())) {
-      return res.status(400).json({ success: false, message: 'Daily limit of 8 tasks reached. Please try again tomorrow.' });
+    if (dailyTasks.length >= 8 && !dailyTasks.map(id => id.toString()).includes(taskId.toString())) {
+      return res.status(400).json({ success: false, message: 'Daily limit of 8 tasks reached.' });
     }
 
     let imageUrl = null, imagePublicId = null, fileUrl = null, filePublicId = null, fileHash = null;
@@ -53,24 +51,26 @@ const submitProof = async (req, res, next) => {
       validateFile(otherFile, task.allowedExtensions, task.maxFileSize);
       const r = await uploadToCloudinary(otherFile.buffer);
       fileUrl = r.url; filePublicId = r.publicId; 
-      if (!fileHash) fileHash = r.hash; // prioritize image hash for duplicates, but use file hash if no image
+      if (!fileHash) fileHash = r.hash;
     }
 
     if (textContent) fileHash = fileHash || hashText(textContent);
+    if (linkUrl) fileHash = fileHash || hashText(linkUrl);
 
     // Dynamic Validation based on inputType
     const it = task.inputType;
     const hasText = !!textContent;
     const hasImage = !!imageUrl;
     const hasFile = !!fileUrl;
+    const hasLink = !!linkUrl;
 
     if (it === 'text' && !hasText) return res.status(400).json({ success: false, message: 'Text response required' });
     if (it === 'image' && !hasImage) return res.status(400).json({ success: false, message: 'Screenshot required' });
     if (it === 'file' && !hasFile) return res.status(400).json({ success: false, message: 'File upload required' });
+    if (it === 'link' && !hasLink) return res.status(400).json({ success: false, message: 'Link/URL required' });
     if (it === 'text_image' && (!hasText || !hasImage)) return res.status(400).json({ success: false, message: 'Both text and screenshot required' });
-    if (it === 'text_file' && (!hasText || !hasFile)) return res.status(400).json({ success: false, message: 'Both text and file required' });
-    if (it === 'image_file' && (!hasImage || !hasFile)) return res.status(400).json({ success: false, message: 'Both screenshot and file required' });
-    if (it === 'all' && (!hasText || !hasImage || !hasFile)) return res.status(400).json({ success: false, message: 'Text, screenshot, and file required' });
+    if (it === 'text_link' && (!hasText || !hasLink)) return res.status(400).json({ success: false, message: 'Both text and link required' });
+    if (it === 'all' && (!hasText || !hasImage || !hasFile || !hasLink)) return res.status(400).json({ success: false, message: 'All evidence types required' });
 
     if (fileHash) {
       const dup = await Submission.findOne({ fileHash, status: { $in: ['pending', 'approved'] } });
@@ -82,7 +82,7 @@ const submitProof = async (req, res, next) => {
     }
 
     const submission = await Submission.create({ 
-      userId, taskId, textContent, 
+      userId, taskId, textContent, linkUrl,
       imageUrl, imagePublicId, 
       fileUrl, filePublicId, 
       fileHash 

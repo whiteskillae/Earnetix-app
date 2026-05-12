@@ -37,6 +37,11 @@ const submissionSchema = new mongoose.Schema({
     type: String,
     default: null, // SHA-256 hash for duplicate detection
   },
+  linkUrl: {
+    type: String,
+    trim: true,
+    default: null,
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
