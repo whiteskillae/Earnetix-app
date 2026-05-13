@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';
-import { User, Phone, Globe, MapPin, ArrowRight } from 'lucide-react';
+import { User, Phone, Globe, MapPin, ArrowRight, Target, Zap } from 'lucide-react';
 import Select from 'react-select';
 import { countries } from '../utils/countries';
 
