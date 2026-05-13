@@ -19,10 +19,14 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.get('/users/profile');
       setUser(data.data);
       localStorage.setItem('user', JSON.stringify(data.data));
-    } catch {
-      setUser(null);
-      localStorage.removeItem('user');
-      localStorage.removeItem('accessToken');
+    } catch (error) {
+      console.error('Profile fetch failed:', error.message);
+      // Only clear tokens if the server explicitly says the token is bad (401)
+      if (error.response?.status === 401) {
+        setUser(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+      }
     } finally {
       setLoading(false);
       setIsRefreshing(false);

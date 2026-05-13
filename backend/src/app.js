@@ -34,7 +34,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://earnitix-app.vercel.app',
-  'https://earnitix-app-93ba.vercel.app'
+  'https://earnitix-app-93ba.vercel.app',
+  'https://earnitix-app.onrender.com'
 ];
 
 app.use(cors({

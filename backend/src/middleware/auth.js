@@ -9,14 +9,25 @@ const auth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log(`[AUTH] 401: No token provided. Path: ${req.path}`);
       return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = verifyAccessToken(token);
+    let decoded;
+    try {
+      decoded = verifyAccessToken(token);
+    } catch (error) {
+      console.log(`[AUTH] 401: Token verification failed for ${token.substring(0, 10)}... Error: ${error.message}`);
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ success: false, message: 'Token expired.', code: 'TOKEN_EXPIRED' });
+      }
+      return res.status(401).json({ success: false, message: 'Invalid token.' });
+    }
 
     const user = await User.findById(decoded.userId).select('-passwordHash -otp -refreshToken');
     if (!user) {
+      console.log(`[AUTH] 401: User not found for ID: ${decoded.userId}`);
       return res.status(401).json({ success: false, message: 'User not found.' });
     }
 
