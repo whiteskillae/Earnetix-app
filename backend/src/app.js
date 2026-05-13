@@ -23,9 +23,9 @@ app.set('trust proxy', true);
 
 // ─── SECURITY ──────────────────────────────────────────
 app.use(helmet({
-  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, // Better for Google OAuth
+  crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Fixed: Prevents Google OAuth popup blocks
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginEmbedderPolicy: false, // Required for many cross-origin scripts/popups
+  crossOriginEmbedderPolicy: false,
 }));
 
 // CORS Configuration
@@ -40,7 +40,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow if origin is in the allowed list, OR if it's a Vercel preview deployment
     if (!origin || allowedOrigins.includes(origin) || /^https:\/\/earnitix-app.*\.vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
