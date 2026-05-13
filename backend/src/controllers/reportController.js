@@ -27,6 +27,7 @@ exports.submitReport = async (req, res) => {
     await report.save();
 
     res.status(201).json({ 
+      success: true,
       message: 'Report submitted successfully. Our team will look into it shortly.',
       data: report 
     });
@@ -40,7 +41,7 @@ exports.getAllReports = async (req, res) => {
     const reports = await Report.find()
       .populate('userId', 'name email mobileNumber country')
       .sort({ createdAt: -1 });
-    res.json({ data: reports });
+    res.json({ success: true, data: reports });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -55,7 +56,7 @@ exports.updateReportStatus = async (req, res) => {
       { new: true }
     );
     if (!report) return res.status(404).json({ message: 'Report not found' });
-    res.json({ message: 'Report updated', data: report });
+    res.json({ success: true, message: 'Report updated', data: report });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

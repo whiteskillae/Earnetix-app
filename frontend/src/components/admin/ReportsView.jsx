@@ -14,8 +14,11 @@ const ReportsView = () => {
   const fetchReports = async () => {
     try {
       const res = await request('get', '/reports/admin/all');
-      setReports(res.data.data);
-    } catch (err) {}
+      // res is the response body: { success: true, data: [...] }
+      setReports(res?.data || []);
+    } catch (err) {
+      setReports([]);
+    }
   };
 
   const handleUpdateStatus = async (id, status) => {
