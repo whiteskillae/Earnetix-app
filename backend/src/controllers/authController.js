@@ -16,10 +16,10 @@ const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
-    // Check IP address for multi-accounting
+    // Check IP address for multi-accounting (only check against 'user' role)
     const ip = req.ip || req.connection.remoteAddress;
     if (ip) {
-      const ipUser = await User.findOne({ registrationIp: ip });
+      const ipUser = await User.findOne({ registrationIp: ip, role: 'user' });
       if (ipUser) {
         logger.warn(`Multi-account attempt from IP: ${ip}`);
         return res.status(403).json({
@@ -29,9 +29,9 @@ const register = async (req, res, next) => {
       }
     }
 
-    // Check device fingerprint for multi-accounting
+    // Check device fingerprint for multi-accounting (only check against 'user' role)
     if (deviceFingerprint) {
-      const deviceUser = await User.findOne({ deviceFingerprint });
+      const deviceUser = await User.findOne({ deviceFingerprint, role: 'user' });
       if (deviceUser) {
         logger.warn(`Multi-account attempt from device: ${deviceFingerprint}`);
         return res.status(403).json({
@@ -165,7 +165,7 @@ const login = async (req, res, next) => {
 
     // Update device fingerprint & Check for multi-accounting
     if (deviceFingerprint) {
-      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id } });
+      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id }, role: 'user' });
       if (otherUser) {
         logger.warn(`Multi-account login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
         return res.status(403).json({ 
@@ -227,10 +227,10 @@ const googleAuth = async (req, res, next) => {
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Check IP address
+      // Check IP address (only check against 'user' role)
       const ip = req.ip || req.connection.remoteAddress;
       if (ip) {
-        const ipUser = await User.findOne({ registrationIp: ip });
+        const ipUser = await User.findOne({ registrationIp: ip, role: 'user' });
         if (ipUser) {
           logger.warn(`Multi-account attempt (Google) from IP: ${ip}`);
           return res.status(403).json({
@@ -240,9 +240,9 @@ const googleAuth = async (req, res, next) => {
         }
       }
 
-      // Check device fingerprint
+      // Check device fingerprint (only check against 'user' role)
       if (deviceFingerprint) {
-        const deviceUser = await User.findOne({ deviceFingerprint });
+        const deviceUser = await User.findOne({ deviceFingerprint, role: 'user' });
         if (deviceUser) {
           logger.warn(`Multi-account attempt (Google) from device: ${deviceFingerprint}`);
           return res.status(403).json({
@@ -274,7 +274,7 @@ const googleAuth = async (req, res, next) => {
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20);
 
     if (deviceFingerprint) {
-      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id } });
+      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id }, role: 'user' });
       if (otherUser) {
         logger.warn(`Multi-account Google login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
         return res.status(403).json({ 
