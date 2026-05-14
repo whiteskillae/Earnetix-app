@@ -353,7 +353,8 @@ const AdminPage = () => {
   if (loading && tab === 'dashboard' && !dashboard) return <Loader text="Synchronizing Admin Systems..." />;
 
   return (
-    <AdminLayout>
+    <>
+      <AdminLayout>
       {tab === 'dashboard' && <AdminDashboard data={dashboard} />}
       
       {tab === 'users' && (
@@ -591,18 +592,19 @@ const AdminPage = () => {
         )}
       </Modal>
 
-    </AdminLayout>
+      </AdminLayout>
 
-    <ConfirmModal 
-      isOpen={confirmModal.open}
-      onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
-      onConfirm={confirmModal.onConfirm}
-      title={confirmModal.title}
-      message={confirmModal.message}
-      type={confirmModal.type}
-      confirmText={confirmModal.confirmText}
-      loading={actionLoading}
-    />
+      <ConfirmModal 
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText={confirmModal.confirmText}
+        loading={actionLoading}
+      />
+    </>
   );
 };
 
