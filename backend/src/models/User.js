@@ -168,8 +168,6 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ deviceFingerprint: 1 });
 userSchema.index({ registrationIp: 1 });
 userSchema.index({ role: 1, points: -1 }); // Index for leaderboard
-userSchema.index({ uid: 1 });
-userSchema.index({ username: 1 });
 
 // Pre-save hook to generate UID
 userSchema.pre('save', async function (next) {
