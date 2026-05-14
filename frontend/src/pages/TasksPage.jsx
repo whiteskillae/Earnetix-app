@@ -125,10 +125,28 @@ const TasksPage = () => {
     setSubmitting(false);
   };
 
-  const filtered = tasks.filter(t =>
-    t.title.toLowerCase().includes(search.toLowerCase()) ||
-    t.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  const filtered = tasks.filter(t => {
+    const term = debouncedSearch.toLowerCase().trim();
+    if (!term) return true;
+    
+    // Partial keyword matching (split search terms by space)
+    const keywords = term.split(/\s+/);
+    
+    return keywords.every(kw => 
+      (t.title && t.title.toLowerCase().includes(kw)) ||
+      (t.description && t.description.toLowerCase().includes(kw)) ||
+      (t.category && t.category.toLowerCase().includes(kw))
+    );
+  });
 
   const getRequirements = (type) => {
     const reqs = [];

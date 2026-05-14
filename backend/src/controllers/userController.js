@@ -10,10 +10,22 @@ const getProfile = async (req, res, next) => {
   }
 };
 
+// Helper to generate UID
+const generateUID = async () => {
+  let isUnique = false;
+  let newUid;
+  while (!isUnique) {
+    newUid = 'E' + Math.floor(10000000 + Math.random() * 90000000); // E + 8 random digits
+    const existing = await User.findOne({ uid: newUid });
+    if (!existing) isUnique = true;
+  }
+  return newUid;
+};
+
 // ─── UPDATE PROFILE ────────────────────────────────────
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, mobileNumber, country, countryCode, qualifications, skills } = req.body;
+    const { name, username, mobileNumber, country, countryCode, qualifications, skills } = req.body;
     const user = await User.findById(req.user._id);
 
     if (name) user.name = name;
@@ -29,8 +41,22 @@ const updateProfile = async (req, res, next) => {
       user.skills = skills;
     }
     
+    // Set username if provided and not already set
+    if (username && !user.username) {
+      const existingUsername = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
+      if (existingUsername && existingUsername._id.toString() !== user._id.toString()) {
+        return res.status(400).json({ success: false, message: 'Username is already taken.' });
+      }
+      user.username = username;
+    }
+
+    // Auto-generate UID if missing
+    if (!user.uid) {
+      user.uid = await generateUID();
+    }
+    
     // Mark profile as complete if required fields are present
-    if (user.mobileNumber && user.country && user.name) {
+    if (user.mobileNumber && user.country && user.name && user.username) {
       user.isProfileComplete = true;
       user.onboardingVersion = 1;
     }
@@ -39,6 +65,10 @@ const updateProfile = async (req, res, next) => {
 
     res.json({ success: true, message: 'Profile updated', data: user });
   } catch (error) {
+    // Handle mongoose duplicate key error specifically for username
+    if (error.code === 11000 && error.keyPattern && error.keyPattern.username) {
+      return res.status(400).json({ success: false, message: 'Username is already taken.' });
+    }
     next(error);
   }
 };
@@ -54,13 +84,19 @@ const getLeaderboard = async (req, res, next) => {
     const topUsers = await User.find({ role: 'user' })
       .sort({ points: -1 })
       .limit(50)
-      .select('name points country createdAt')
+      .select('name username uid avatar points country createdAt')
       .lean();
 
-    // Cache for 10 minutes
-    cache.set('leaderboard', topUsers, 600);
+    // Add rank
+    const rankedUsers = topUsers.map((user, index) => ({
+      ...user,
+      rank: index + 1
+    }));
 
-    res.json({ success: true, data: topUsers });
+    // Cache for a shorter duration (30s) for near real-time feel
+    cache.set('leaderboard', rankedUsers, 30);
+
+    res.json({ success: true, data: rankedUsers });
   } catch (error) {
     next(error);
   }

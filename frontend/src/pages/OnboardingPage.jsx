@@ -17,8 +17,10 @@ const OnboardingPage = () => {
   const [step, setStep] = useState(1); // Step 1: Profile, Step 2: KYC
   const [kycFile, setKycFile] = useState(null);
   const [kycDocType, setKycDocType] = useState('aadhar');
+  const [kycDocNumber, setKycDocNumber] = useState('');
   const [formData, setFormData] = useState({
     name: user?.name || '',
+    username: user?.username || '',
     mobileNumber: '',
     countryCode: '+91',
     country: 'India',
@@ -112,12 +114,14 @@ const OnboardingPage = () => {
   const handleKycSubmit = async (e) => {
     e.preventDefault();
     if (!kycFile) return toast.error('Please upload your identity document');
+    if (!kycDocNumber.trim()) return toast.error('Please enter the document number');
 
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append('document', kycFile);
       formData.append('documentType', kycDocType);
+      formData.append('documentNumber', kycDocNumber);
 
       const res = await request('post', '/kyc/submit', formData);
       if (res.success) {
@@ -164,6 +168,20 @@ const OnboardingPage = () => {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
+              </div>
+
+              <div className="form-group">
+                <label><User size={16} /> Username</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Unique username (max 20 chars)"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() })}
+                  maxLength={20}
+                  required
+                />
+                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0' }}>Only letters, numbers, and underscores allowed.</p>
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
@@ -266,6 +284,19 @@ const OnboardingPage = () => {
                   <option value="passport">Passport</option>
                   <option value="national_id">National ID Card</option>
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label><Shield size={16} /> Document Number</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="e.g. 1234 5678 9012"
+                  value={kycDocNumber}
+                  onChange={(e) => setKycDocNumber(e.target.value.toUpperCase())}
+                  required
+                />
+                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0' }}>Used to prevent duplicate or fraudulent accounts.</p>
               </div>
 
               <div className="form-group">

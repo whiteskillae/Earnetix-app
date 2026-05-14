@@ -42,47 +42,28 @@ const DashboardPage = () => {
 
   return (
     <div className="dashboard-page fade-in">
-      {/* KYC STATUS BANNERS */}
-      {!kycDismissed && kycStatus === 'pending' && (
-        <div className="slide-up" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '20px', padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Clock size={24} color="#f59e0b" />
-            <div>
-              <h4 style={{ margin: 0, color: '#f59e0b', fontSize: '0.9rem' }}>KYC Verification Pending</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>Your identity is being verified. This takes 1-3 working days. You can browse tasks but submissions are restricted.</p>
+      {/* MANDATORY ACTION ALERTS */}
+      {(!user?.username || !user?.isProfileComplete || user?.kycStatus !== 'verified') && (
+        <div className="slide-up" style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '20px', padding: '20px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+            <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '16px' }}>
+              <ShieldAlert size={28} color="#ef4444" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 8px', color: '#ef4444', fontSize: '1.1rem' }}>ACTION REQUIRED: ACCOUNT RESTRICTED</h3>
+              <p style={{ margin: '0 0 16px', fontSize: '0.85rem', color: '#f87171' }}>
+                You cannot submit tasks or access earning features until the following requirements are met:
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#e2e8f0', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {!user?.username && <li><strong>Username setup required.</strong> <Link to="/profile" style={{ color: '#60a5fa' }}>Set up now</Link></li>}
+                {!user?.uid && <li><strong>Create your UID to continue using tasks.</strong> <Link to="/profile" style={{ color: '#60a5fa' }}>Generate UID</Link></li>}
+                {!user?.isProfileComplete && <li><strong>Profile details missing.</strong> <Link to="/profile" style={{ color: '#60a5fa' }}>Complete Profile</Link></li>}
+                {user?.kycStatus === 'none' && <li><strong>Complete KYC verification first.</strong> <Link to="/onboarding" style={{ color: '#60a5fa' }}>Upload Documents</Link></li>}
+                {user?.kycStatus === 'pending' && <li><strong>KYC Verification Pending.</strong> Please wait 1-3 days for approval.</li>}
+                {user?.kycStatus === 'rejected' && <li><strong>KYC Rejected:</strong> {user?.kycRejectionReason}. <Link to="/onboarding" style={{ color: '#60a5fa' }}>Resubmit Documents</Link></li>}
+              </ul>
             </div>
           </div>
-          <button className="btn-icon" onClick={() => setKycDismissed(true)} style={{ color: '#64748b' }}>✕</button>
-        </div>
-      )}
-
-      {!kycDismissed && kycStatus === 'rejected' && (
-        <div className="slide-up" style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '20px', padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ShieldAlert size={24} color="#ef4444" />
-            <div>
-              <h4 style={{ margin: 0, color: '#ef4444', fontSize: '0.9rem' }}>KYC Rejected — Resubmission Required</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>Reason: {user?.kycRejectionReason || 'Document quality insufficient'}</p>
-            </div>
-          </div>
-          <button className="btn btn-sm" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }} onClick={() => navigate('/onboarding')}>
-            Resubmit
-          </button>
-        </div>
-      )}
-
-      {!kycDismissed && kycStatus === 'none' && user?.isProfileComplete && (
-        <div className="slide-up" style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '20px', padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ShieldAlert size={24} color="#3b82f6" />
-            <div>
-              <h4 style={{ margin: 0, color: '#3b82f6', fontSize: '0.9rem' }}>Complete Identity Verification</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>Upload your ID to unlock full access to tasks and withdrawals.</p>
-            </div>
-          </div>
-          <button className="btn btn-sm btn-primary" onClick={() => navigate('/onboarding')}>
-            Verify Now
-          </button>
         </div>
       )}
 

@@ -59,17 +59,21 @@ const AssignmentManagement = () => {
     const hasSelectedSkills = selectedSkills.length > 0;
 
     if (isSearchEmpty && !hasSelectedSkills) {
-      return { skills: allSkills.slice(0, 12), users: [] };
+      return { users: [], skills: [] };
     }
 
-    const filteredSkills = allSkills.filter(s => 
-        s.toLowerCase().includes(searchQuery.toLowerCase())
+    const term = searchQuery.toLowerCase().trim();
+
+    const matchedSkills = hasSelectedSkills ? [] : allSkills.filter(s => 
+        s.toLowerCase().includes(term)
     );
 
-    const filteredUsers = users.filter(user => {
+    const matchedUsers = users.filter(user => {
       const matchesText = isSearchEmpty || 
-                          user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          user.email.toLowerCase().includes(searchQuery.toLowerCase());
+                          (user.name && user.name.toLowerCase().includes(term)) || 
+                          (user.email && user.email.toLowerCase().includes(term)) ||
+                          (user.username && user.username.toLowerCase().includes(term)) ||
+                          (user.uid && user.uid.toLowerCase().includes(term));
       
       const matchesSkills = !hasSelectedSkills || 
                             selectedSkills.some(skill => user.skills?.includes(skill));
@@ -77,7 +81,7 @@ const AssignmentManagement = () => {
       return matchesText && matchesSkills;
     });
 
-    return { skills: filteredSkills, users: filteredUsers };
+    return { skills: matchedSkills, users: matchedUsers };
   }, [users, searchQuery, selectedSkills, allSkills]);
 
   const handleFileChange = (e) => {

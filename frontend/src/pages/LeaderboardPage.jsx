@@ -56,13 +56,18 @@ const LeaderboardPage = () => {
         {topThree[1] && (
           <div className="podium-item second slide-up" style={{ animationDelay: '0.1s' }}>
             <div className="podium-avatar">
-               <div className="user-avatar-wrap" style={{ width: '70px', height: '70px', fontSize: '1.5rem', background: 'linear-gradient(135deg, #94a3b8 0%, #475569 100%)' }}>
-                 {topThree[1].name.charAt(0)}
-               </div>
+               {topThree[1].avatar ? (
+                 <img src={topThree[1].avatar} alt={topThree[1].username || topThree[1].name} style={{ width: '70px', height: '70px', borderRadius: '20px', objectFit: 'cover' }} />
+               ) : (
+                 <div className="user-avatar-wrap" style={{ width: '70px', height: '70px', fontSize: '1.5rem', background: 'linear-gradient(135deg, #94a3b8 0%, #475569 100%)' }}>
+                   {(topThree[1].username || topThree[1].name).charAt(0).toUpperCase()}
+                 </div>
+               )}
                <div className="rank-badge" style={{ background: '#94a3b8' }}>2</div>
             </div>
-            <div className="podium-name">{topThree[1].name}</div>
+            <div className="podium-name" title={topThree[1].uid}>@{topThree[1].username || topThree[1].name.split(' ')[0]}</div>
             <div className="podium-points">{topThree[1].points.toLocaleString()} PTS</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--gray-500)', marginTop: '4px' }}>UID: {topThree[1].uid || 'N/A'}</div>
           </div>
         )}
 
@@ -71,13 +76,18 @@ const LeaderboardPage = () => {
           <div className="podium-item first slide-up">
             <div className="podium-avatar">
                <Crown className="crown-icon" style={{ position: 'absolute', top: '-25px', color: '#f59e0b' }} size={32} fill="#f59e0b" />
-               <div className="user-avatar-wrap" style={{ width: '100px', height: '100px', fontSize: '2.5rem', border: '4px solid #f59e0b' }}>
-                 {topThree[0].name.charAt(0)}
-               </div>
+               {topThree[0].avatar ? (
+                 <img src={topThree[0].avatar} alt={topThree[0].username || topThree[0].name} style={{ width: '100px', height: '100px', borderRadius: '28px', border: '4px solid #f59e0b', objectFit: 'cover' }} />
+               ) : (
+                 <div className="user-avatar-wrap" style={{ width: '100px', height: '100px', fontSize: '2.5rem', border: '4px solid #f59e0b' }}>
+                   {(topThree[0].username || topThree[0].name).charAt(0).toUpperCase()}
+                 </div>
+               )}
                <div className="rank-badge">1</div>
             </div>
-            <div className="podium-name" style={{ fontSize: '1.1rem' }}>{topThree[0].name}</div>
+            <div className="podium-name" style={{ fontSize: '1.1rem' }} title={topThree[0].uid}>@{topThree[0].username || topThree[0].name.split(' ')[0]}</div>
             <div className="podium-points" style={{ fontSize: '0.9rem' }}>{topThree[0].points.toLocaleString()} PTS</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--gray-500)', marginTop: '4px' }}>UID: {topThree[0].uid || 'N/A'}</div>
           </div>
         )}
 
@@ -85,13 +95,18 @@ const LeaderboardPage = () => {
         {topThree[2] && (
           <div className="podium-item third slide-up" style={{ animationDelay: '0.2s' }}>
             <div className="podium-avatar">
-               <div className="user-avatar-wrap" style={{ width: '60px', height: '60px', fontSize: '1.2rem', background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' }}>
-                 {topThree[2].name.charAt(0)}
-               </div>
+               {topThree[2].avatar ? (
+                 <img src={topThree[2].avatar} alt={topThree[2].username || topThree[2].name} style={{ width: '60px', height: '60px', borderRadius: '16px', objectFit: 'cover' }} />
+               ) : (
+                 <div className="user-avatar-wrap" style={{ width: '60px', height: '60px', fontSize: '1.2rem', background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' }}>
+                   {(topThree[2].username || topThree[2].name).charAt(0).toUpperCase()}
+                 </div>
+               )}
                <div className="rank-badge" style={{ background: '#b45309' }}>3</div>
             </div>
-            <div className="podium-name">{topThree[2].name}</div>
+            <div className="podium-name" title={topThree[2].uid}>@{topThree[2].username || topThree[2].name.split(' ')[0]}</div>
             <div className="podium-points">{topThree[2].points.toLocaleString()} PTS</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--gray-500)', marginTop: '4px' }}>UID: {topThree[2].uid || 'N/A'}</div>
           </div>
         )}
       </div>
@@ -106,15 +121,19 @@ const LeaderboardPage = () => {
         </div>
 
         <div className="rankings-scroll" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-          {others.map((user, index) => (
+          {others.map((user) => (
             <div key={user._id} className="rank-row">
-              <div className="rank-number">#{index + 4}</div>
-              <div className="user-avatar-wrap" style={{ width: '36px', height: '36px', fontSize: '0.9rem', borderRadius: '10px' }}>
-                {user.name.charAt(0)}
-              </div>
+              <div className="rank-number">#{user.rank}</div>
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.username || user.name} style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover' }} />
+              ) : (
+                <div className="user-avatar-wrap" style={{ width: '36px', height: '36px', fontSize: '0.9rem', borderRadius: '10px' }}>
+                  {(user.username || user.name).charAt(0).toUpperCase()}
+                </div>
+              )}
               <div className="rank-user-info">
-                <span className="rank-username">{user.name}</span>
-                <span className="rank-meta">{user.country || 'Global Citizen'}</span>
+                <span className="rank-username">@{user.username || user.name}</span>
+                <span className="rank-meta">UID: {user.uid || 'N/A'} • {user.country || 'Global'}</span>
               </div>
               <div className="rank-score">
                 {user.points.toLocaleString()} <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)' }}>PTS</span>

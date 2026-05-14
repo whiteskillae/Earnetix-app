@@ -19,9 +19,22 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
 
   const allSkills = categories.flatMap(c => c.skills);
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = debouncedSearch.toLowerCase().trim();
+    const matchesSearch = !term || 
+                          (u.name && u.name.toLowerCase().includes(term)) || 
+                          (u.email && u.email.toLowerCase().includes(term)) ||
+                          (u.username && u.username.toLowerCase().includes(term)) ||
+                          (u.uid && u.uid.toLowerCase().includes(term));
     const matchesSkill = !skillFilter || u.skills?.includes(skillFilter);
     return matchesSearch && matchesSkill;
   });

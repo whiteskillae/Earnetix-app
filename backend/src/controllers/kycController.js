@@ -17,9 +17,19 @@ const submitKyc = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'KYC already submitted and under review' });
     }
 
-    const { documentType } = req.body;
+    const { documentType, documentNumber } = req.body;
     if (!documentType || !['aadhar', 'passport', 'national_id'].includes(documentType)) {
       return res.status(400).json({ success: false, message: 'Valid document type required (aadhar, passport, or national_id)' });
+    }
+
+    if (!documentNumber || documentNumber.trim() === '') {
+      return res.status(400).json({ success: false, message: 'Document number is required to prevent fraud.' });
+    }
+
+    // Unique KYC check
+    const existingDoc = await User.findOne({ kycDocumentNumber: documentNumber });
+    if (existingDoc && existingDoc._id.toString() !== user._id.toString()) {
+      return res.status(409).json({ success: false, message: 'This document number is already registered to another account. Fraud attempt logged.' });
     }
 
     const docFile = req.files?.document?.[0] || req.file;
@@ -42,6 +52,7 @@ const submitKyc = async (req, res, next) => {
     user.kycDocumentUrl = uploadResult.url;
     user.kycDocumentPublicId = uploadResult.publicId;
     user.kycDocumentType = documentType;
+    user.kycDocumentNumber = documentNumber.toUpperCase();
     user.kycRejectionReason = null;
     user.kycSubmittedAt = new Date();
     await user.save();

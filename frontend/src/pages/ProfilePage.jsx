@@ -48,6 +48,7 @@ const ProfilePage = () => {
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
+    username: user?.username || '',
     mobileNumber: user?.mobileNumber || '',
     country: user?.country || 'India',
     countryCode: user?.countryCode || '+91',
@@ -86,7 +87,7 @@ const ProfilePage = () => {
         setIsEditModalOpen(false);
       }
     } catch (err) {
-      toast.error('Update Failed');
+      toast.error(err.response?.data?.message || 'Update Failed');
     } finally {
       setEditLoading(false);
     }
@@ -112,7 +113,11 @@ const ProfilePage = () => {
               {user?.name?.charAt(0).toUpperCase()}
             </div>
             <div className="user-text">
-               <h2 style={{ fontSize: '1.75rem', marginBottom: '8px' }}>{user?.name}</h2>
+               <h2 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>{user?.name}</h2>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                 {user?.username && <span className="tag" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>@{user.username}</span>}
+                 {user?.uid && <span className="tag">UID: {user.uid}</span>}
+               </div>
                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                  <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><Mail size={14} /> {user?.email}</p>
                  <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><MapPin size={14} /> {user?.country}</p>
@@ -230,9 +235,15 @@ const ProfilePage = () => {
                  <button onClick={() => setIsEditModalOpen(false)} className="modal-close"><X size={20} /></button>
               </div>
               <form onSubmit={handleUpdate}>
-                 <div className="form-group">
-                    <label>Assigned Name</label>
-                    <input className="form-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                 <div className="grid-2">
+                   <div className="form-group">
+                      <label>Assigned Name</label>
+                      <input className="form-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+                   </div>
+                   <div className="form-group">
+                      <label>Username</label>
+                      <input className="form-input" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase()})} placeholder="Max 20 chars" maxLength={20} required />
+                   </div>
                  </div>
                  <div className="grid-2">
                     <div className="form-group">

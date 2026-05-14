@@ -24,6 +24,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null, // null for Google auth users
   },
+  username: {
+    type: String,
+    sparse: true,
+    unique: true,
+    minlength: 3,
+    maxlength: 20,
+    match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
+  },
+  uid: {
+    type: String,
+    sparse: true,
+    unique: true,
+    maxlength: 15,
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],
@@ -116,6 +130,11 @@ const userSchema = new mongoose.Schema({
     enum: ['aadhar', 'passport', 'national_id', null],
     default: null,
   },
+  kycDocumentNumber: {
+    type: String,
+    sparse: true,
+    unique: true,
+  },
   kycRejectionReason: { type: String, default: null },
   kycSubmittedAt: { type: Date, default: null },
   kycVerifiedAt: { type: Date, default: null },
@@ -140,6 +159,24 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ deviceFingerprint: 1 });
 userSchema.index({ registrationIp: 1 });
 userSchema.index({ role: 1, points: -1 }); // Index for leaderboard
+userSchema.index({ uid: 1 });
+userSchema.index({ username: 1 });
+
+// Pre-save hook to generate UID
+userSchema.pre('save', async function (next) {
+  if (this.isNew && !this.uid) {
+    let isUnique = false;
+    while (!isUnique) {
+      const newUid = 'E' + Math.floor(10000000 + Math.random() * 90000000);
+      const existing = await mongoose.models.User.findOne({ uid: newUid });
+      if (!existing) {
+        this.uid = newUid;
+        isUnique = true;
+      }
+    }
+  }
+  next();
+});
 
 // Never return sensitive fields in JSON
 userSchema.methods.toJSON = function () {
