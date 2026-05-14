@@ -140,11 +140,25 @@ const ProfilePage = () => {
             </div>
 
             <div className="user-text" style={{ flex: 1, minWidth: '250px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '4px' }}>
                  <h2 style={{ fontSize: '2.2rem', margin: 0 }}>{user?.name}</h2>
-                 {user?.username && <span className="tag" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.9rem', fontWeight: 700 }}>@{user.username}</span>}
+                 {user?.username ? (
+                   <span className="tag" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.9rem', fontWeight: 700 }}>
+                     @{user.username}
+                   </span>
+                 ) : (
+                   <span 
+                     onClick={() => setIsEditModalOpen(true)}
+                     className="tag" 
+                     style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                   >
+                     + Set Username
+                   </span>
+                 )}
                </div>
                
+               <p style={{ color: 'var(--gray-400)', fontSize: '0.9rem', margin: '0 0 16px', fontWeight: 600 }}>UID: <span style={{ color: 'var(--blue-light)' }}>{user?.uid || 'Not Assigned'}</span></p>
+
                <p style={{ color: 'var(--gray-300)', fontSize: '1rem', marginBottom: '16px', lineHeight: '1.6', maxWidth: '600px' }}>
                  {user?.bio || "No mission brief provided. Complete your profile to add a bio."}
                </p>
@@ -152,7 +166,6 @@ const ProfilePage = () => {
                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
                  <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><Mail size={14} /> {user?.email}</p>
                  <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><MapPin size={14} /> {user?.country}</p>
-                 <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><Target size={14} /> UID: {user?.uid}</p>
                </div>
             </div>
 
