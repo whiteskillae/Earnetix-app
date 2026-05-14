@@ -312,8 +312,11 @@ const AdminPage = () => {
               <option value="image">Screenshot Only</option>
               <option value="link">Link/URL Only</option>
               <option value="text">Text Response Only</option>
+              <option value="file">File Upload Only</option>
               <option value="text_link">Text + Link</option>
               <option value="text_image">Text + Screenshot</option>
+              <option value="text_file">Text + File</option>
+              <option value="image_file">Screenshot + File</option>
               <option value="all">Full Evidence (Text+Img+File+Link)</option>
             </select></div>
           </div>

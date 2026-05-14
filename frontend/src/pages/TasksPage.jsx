@@ -12,6 +12,7 @@ const TasksPage = () => {
   const [selected, setSelected] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [textContent, setTextContent] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [otherFile, setOtherFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -40,6 +41,7 @@ const TasksPage = () => {
     setSelected(task);
     setEditingSubId(subId);
     setTextContent('');
+    setLinkUrl('');
     setImageFile(null);
     setOtherFile(null);
     setShowModal(true);
@@ -52,14 +54,8 @@ const TasksPage = () => {
       const formData = new FormData();
       formData.append('taskId', selected._id);
       
-      // Smart routing of text/link based on input type
-      if (textContent) {
-        if (selected.inputType === 'link' || (selected.inputType === 'text_link' && !textContent.includes('\n') && textContent.startsWith('http'))) {
-            formData.append('linkUrl', textContent);
-        } else {
-            formData.append('textContent', textContent);
-        }
-      }
+      if (textContent) formData.append('textContent', textContent);
+      if (linkUrl) formData.append('linkUrl', linkUrl);
       
       if (imageFile) formData.append('image', imageFile);
       if (otherFile) formData.append('file', otherFile);
@@ -237,15 +233,29 @@ const TasksPage = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {(selected?.inputType.includes('text') || selected?.inputType.includes('link') || selected?.inputType === 'all') && (
+            {(selected?.inputType.includes('text') || selected?.inputType === 'all') && (
               <div className="form-group">
-                <label>Proof String (Text/URL)</label>
+                <label>Textual Report</label>
                 <textarea 
                   className="form-input" 
-                  placeholder="Paste your submission data here..."
+                  placeholder="Enter detailed report or required text..."
                   rows={4} 
                   value={textContent} 
                   onChange={(e) => setTextContent(e.target.value)} 
+                  required 
+                />
+              </div>
+            )}
+
+            {(selected?.inputType.includes('link') || selected?.inputType === 'all') && (
+              <div className="form-group">
+                <label>Evidence Link (URL)</label>
+                <input 
+                  type="url"
+                  className="form-input" 
+                  placeholder="https://..."
+                  value={linkUrl} 
+                  onChange={(e) => setLinkUrl(e.target.value)} 
                   required 
                 />
               </div>
@@ -258,8 +268,8 @@ const TasksPage = () => {
                   className="file-upload-premium"
                   onClick={() => document.getElementById('image-input').click()}
                   style={{ 
-                    height: '140px', border: '2px dashed var(--glass-border)', 
-                    borderRadius: '24px', display: 'flex', flexDirection: 'column',
+                    height: '120px', border: '2px dashed var(--glass-border)', 
+                    borderRadius: '20px', display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                     transition: 'var(--transition)', background: imageFile ? 'rgba(16, 185, 129, 0.05)' : 'transparent'
                   }}
@@ -268,13 +278,43 @@ const TasksPage = () => {
                     onChange={(e) => setImageFile(e.target.files[0])} required />
                   {imageFile ? (
                     <div style={{ textAlign: 'center' }}>
-                       <CheckCircle size={32} color="var(--green)" />
-                       <p style={{ margin: '8px 0 0', fontWeight: 700 }}>{imageFile.name}</p>
+                       <CheckCircle size={24} color="var(--green)" />
+                       <p style={{ margin: '4px 0 0', fontWeight: 700, fontSize: '0.8rem' }}>{imageFile.name}</p>
                     </div>
                   ) : (
                     <>
-                      <Image size={32} color="var(--gray-600)" />
-                      <p style={{ margin: '12px 0 0', color: 'var(--gray-500)', fontSize: '0.9rem', fontWeight: 600 }}>Click to capture image</p>
+                      <Image size={24} color="var(--gray-600)" />
+                      <p style={{ margin: '8px 0 0', color: 'var(--gray-500)', fontSize: '0.8rem', fontWeight: 600 }}>Capture image</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(selected?.inputType.includes('file') || selected?.inputType === 'all') && (
+              <div className="form-group">
+                <label>Documentary Evidence (File/Archive)</label>
+                <div 
+                  className="file-upload-premium"
+                  onClick={() => document.getElementById('other-file-input').click()}
+                  style={{ 
+                    height: '120px', border: '2px dashed var(--glass-border)', 
+                    borderRadius: '20px', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    transition: 'var(--transition)', background: otherFile ? 'rgba(59, 130, 246, 0.05)' : 'transparent'
+                  }}
+                >
+                  <input id="other-file-input" type="file" style={{ display: 'none' }}
+                    onChange={(e) => setOtherFile(e.target.files[0])} required />
+                  {otherFile ? (
+                    <div style={{ textAlign: 'center' }}>
+                       <CheckCircle size={24} color="var(--blue)" />
+                       <p style={{ margin: '4px 0 0', fontWeight: 700, fontSize: '0.8rem' }}>{otherFile.name}</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload size={24} color="var(--gray-600)" />
+                      <p style={{ margin: '8px 0 0', color: 'var(--gray-500)', fontSize: '0.8rem', fontWeight: 600 }}>Upload file</p>
                     </>
                   )}
                 </div>

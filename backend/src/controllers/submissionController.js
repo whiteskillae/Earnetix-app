@@ -32,14 +32,18 @@ const submitProof = async (req, res, next) => {
     const imageFile = req.files?.image?.[0];
     const otherFile = req.files?.file?.[0];
 
+    // Global allowed extensions
+    const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
+    const allowedFiles = task.allowedExtensions && task.allowedExtensions.length > 0 ? task.allowedExtensions : ['*'];
+
     if (imageFile) {
-      validateFile(imageFile, ['jpg', 'jpeg', 'png', 'webp'], task.maxFileSize);
+      validateFile(imageFile, allowedImages, task.maxFileSize);
       const r = await uploadToCloudinary(imageFile.buffer);
       imageUrl = r.url; imagePublicId = r.publicId; fileHash = r.hash;
     }
 
     if (otherFile) {
-      validateFile(otherFile, task.allowedExtensions, task.maxFileSize);
+      validateFile(otherFile, allowedFiles, task.maxFileSize);
       const r = await uploadToCloudinary(otherFile.buffer);
       fileUrl = r.url; filePublicId = r.publicId; 
       if (!fileHash) fileHash = r.hash;
@@ -55,13 +59,13 @@ const submitProof = async (req, res, next) => {
     const hasFile = !!fileUrl;
     const hasLink = !!linkUrl;
 
-    if (it === 'text' && !hasText) return res.status(400).json({ success: false, message: 'Text response required' });
-    if (it === 'image' && !hasImage) return res.status(400).json({ success: false, message: 'Screenshot required' });
-    if (it === 'file' && !hasFile) return res.status(400).json({ success: false, message: 'File upload required' });
-    if (it === 'link' && !hasLink) return res.status(400).json({ success: false, message: 'Link/URL required' });
-    if (it === 'text_image' && (!hasText || !hasImage)) return res.status(400).json({ success: false, message: 'Both text and screenshot required' });
-    if (it === 'text_link' && (!hasText || !hasLink)) return res.status(400).json({ success: false, message: 'Both text and link required' });
-    if (it === 'all' && (!hasText || !hasImage || !hasFile || !hasLink)) return res.status(400).json({ success: false, message: 'All evidence types required' });
+    // Check requirements based on it (inputType)
+    if (it.includes('text') && !hasText) return res.status(400).json({ success: false, message: 'Text response is required' });
+    if (it.includes('image') && !hasImage) return res.status(400).json({ success: false, message: 'Screenshot/Image is required' });
+    if (it.includes('file') && !hasFile) return res.status(400).json({ success: false, message: 'File upload is required' });
+    if (it.includes('link') && !hasLink && it !== 'text_link') return res.status(400).json({ success: false, message: 'URL/Link is required' });
+    if (it === 'text_link' && (!hasText || !hasLink)) return res.status(400).json({ success: false, message: 'Both text and link are required' });
+    if (it === 'all' && (!hasText || !hasImage || !hasFile || !hasLink)) return res.status(400).json({ success: false, message: 'Full evidence required: Text + Image + File + Link' });
 
     if (fileHash) {
       const dup = await Submission.findOne({ fileHash, status: { $in: ['pending', 'approved'] } });
@@ -112,22 +116,26 @@ const resubmit = async (req, res, next) => {
     
     const imageFile = req.files?.image?.[0];
     const otherFile = req.files?.file?.[0];
+    const { textContent, linkUrl } = req.body;
+
+    const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
+    const allowedFiles = task.allowedExtensions && task.allowedExtensions.length > 0 ? task.allowedExtensions : ['*'];
 
     if (imageFile) {
-      validateFile(imageFile, ['jpg', 'jpeg', 'png', 'webp'], task.maxFileSize);
+      validateFile(imageFile, allowedImages, task.maxFileSize);
       const r = await uploadToCloudinary(imageFile.buffer);
       imageUrl = r.url; imagePublicId = r.publicId; fileHash = r.hash;
     }
 
     if (otherFile) {
-      validateFile(otherFile, task.allowedExtensions, task.maxFileSize);
+      validateFile(otherFile, allowedFiles, task.maxFileSize);
       const r = await uploadToCloudinary(otherFile.buffer);
       fileUrl = r.url; filePublicId = r.publicId; 
       if (!fileHash) fileHash = r.hash;
     }
 
-    const { textContent } = req.body;
     if (textContent) fileHash = fileHash || hashText(textContent);
+    if (linkUrl) fileHash = fileHash || hashText(linkUrl);
 
     if (fileHash) {
       const dup = await Submission.findOne({ _id: { $ne: submission._id }, fileHash, status: { $in: ['pending', 'approved'] } });
