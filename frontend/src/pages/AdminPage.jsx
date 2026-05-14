@@ -212,7 +212,9 @@ const AdminPage = () => {
       const res = await request('patch', `/admin/users/${id}/toggle-block`);
       toast.success(res.message);
       fetchUsers();
-    } catch {}
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Action failed');
+    }
   };
 
   const handleBlockTemp = async (id) => {
@@ -221,7 +223,9 @@ const AdminPage = () => {
       const res = await request('patch', `/admin/users/${id}/block-temporary`, { durationHours: 24 });
       toast.success(res.message);
       fetchUsers();
-    } catch {}
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Block failed');
+    }
   };
 
   const handleAdjustPoints = async (e) => {
@@ -232,7 +236,9 @@ const AdminPage = () => {
       setShowPointsModal(false);
       setPointsForm({ points: 0, reason: '' });
       fetchUsers();
-    } catch {}
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to adjust points');
+    }
   };
 
   if (loading && tab === 'dashboard' && !dashboard) return <Loader text="Synchronizing Admin Systems..." />;

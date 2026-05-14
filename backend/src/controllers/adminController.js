@@ -153,18 +153,32 @@ const getTasksWithStats = async (req, res, next) => {
 const adjustPoints = async (req, res, next) => {
   try {
     const { points, reason } = req.body;
+    
+    const delta = Number(points);
+    if (isNaN(delta)) {
+      return res.status(400).json({ success: false, message: 'Points must be a valid number' });
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Reason is required for audit log' });
+    }
+
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    user.points += Number(points);
+    if (user.points + delta < 0) {
+      return res.status(400).json({ success: false, message: `Insufficient points. User only has ${user.points} points.` });
+    }
+
+    user.points += delta;
     await user.save();
 
     await AdminLog.create({
       adminId: req.user._id, action: 'adjust_points', targetId: user._id,
-      targetType: 'user', details: `Adjusted points by ${points}. Reason: ${reason}`, ip: req.ip,
+      targetType: 'user', details: `Adjusted points by ${delta}. Reason: ${reason}`, ip: req.ip,
     });
 
-    res.json({ success: true, message: `Points adjusted by ${points}`, data: user });
+    res.json({ success: true, message: `Points adjusted by ${delta}`, data: user });
   } catch (error) { next(error); }
 };
 
