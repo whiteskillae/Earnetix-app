@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import { useApi } from '../../hooks/useApi';
+import toast from 'react-hot-toast';
 import Modal from '../common/Modal';
 import ConfirmModal from '../common/ConfirmModal';
 import { Shield, CheckCircle, XCircle, Ban, Eye, Clock, FileText, User, ExternalLink } from 'lucide-react';
