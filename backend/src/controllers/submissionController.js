@@ -17,7 +17,7 @@ const submitProof = async (req, res, next) => {
     const userId = req.user._id;
     const user = req.user;
 
-    if (!user.username || !user.uid || !user.isProfileComplete || user.kycStatus !== 'verified') {
+    if (!user.username || !user.isProfileComplete || user.kycStatus !== 'verified') {
       return res.status(403).json({ success: false, message: 'Profile incomplete or KYC not verified. Please complete your setup in the dashboard.' });
     }
 

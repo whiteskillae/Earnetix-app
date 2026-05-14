@@ -56,7 +56,6 @@ const DashboardPage = () => {
               </p>
               <ul style={{ margin: 0, paddingLeft: '20px', color: '#e2e8f0', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {!user?.username && <li><strong>Username setup required.</strong> <Link to="/profile" style={{ color: '#60a5fa' }}>Set up now</Link></li>}
-                {!user?.uid && <li><strong>Create your UID to continue using tasks.</strong> <Link to="/profile" style={{ color: '#60a5fa' }}>Generate UID</Link></li>}
                 {!user?.isProfileComplete && <li><strong>Profile details missing.</strong> <Link to="/profile" style={{ color: '#60a5fa' }}>Complete Profile</Link></li>}
                 {user?.kycStatus === 'none' && <li><strong>Complete KYC verification first.</strong> <Link to="/onboarding" style={{ color: '#60a5fa' }}>Upload Documents</Link></li>}
                 {user?.kycStatus === 'pending' && <li><strong>KYC Verification Pending.</strong> Please wait 1-3 days for approval.</li>}
