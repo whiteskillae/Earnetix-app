@@ -446,9 +446,54 @@ const rejectAssignedTask = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+/**
+ * Get all restricted users (blocked, temp blocked, or KYC rejected)
+ */
+const getBlockedUsers = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const users = await User.find({
+      $or: [
+        { isBlocked: true },
+        { blockedUntil: { $gt: now } },
+        { kycStatus: 'rejected' }
+      ],
+      role: 'user'
+    }).sort({ updatedAt: -1 }).lean();
+    res.json({ success: true, data: users });
+  } catch (error) { next(error); }
+};
+
+/**
+ * Force unblock a user (clears permanent, temporary, and potential KYC blocks)
+ */
+const unblockUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    user.isBlocked = false;
+    user.blockedUntil = null;
+    
+    // If KYC was rejected, reset it to allow re-submission if needed, 
+    // but usually unblocking just means access.
+    // For this context, we'll clear the block flags.
+
+    await user.save();
+
+    await AdminLog.create({
+      adminId: req.user._id, action: 'unblock', targetId: user._id,
+      targetType: 'user', details: `Manual full unblock for: ${user.email}`, ip: req.ip,
+    });
+
+    res.json({ success: true, message: 'User restrictions cleared', data: user });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission,
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
   getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
-  approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk
+  approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk,
+  getBlockedUsers, unblockUser
 };

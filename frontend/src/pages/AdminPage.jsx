@@ -18,6 +18,7 @@ import AssignmentManagement from '../components/admin/AssignmentManagement';
 import KycReview from '../components/admin/KycReview';
 import WithdrawalManagement from '../components/admin/WithdrawalManagement';
 import GalleryManagement from '../components/admin/GalleryManagement';
+import BlockManagement from '../components/admin/BlockManagement';
 import ConfirmModal from '../components/common/ConfirmModal';
 
 const AdminPage = () => {
@@ -399,6 +400,7 @@ const AdminPage = () => {
       {tab === 'kyc' && <KycReview />}
       {tab === 'withdrawals' && <WithdrawalManagement />}
       {tab === 'gallery' && <GalleryManagement />}
+      {tab === 'blocked' && <BlockManagement />}
 
       {tab === 'announcements' && (
         <div className="glass-panel">

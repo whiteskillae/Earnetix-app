@@ -30,5 +30,8 @@ router.post('/submissions/bulk-approve', approveSubmissionsBulk);
 router.post('/submissions/bulk-reject', rejectSubmissionsBulk);
 router.post('/users/bulk-block', blockUsersBulk);
 
+// Block Management
+router.get('/users/blocked', getBlockedUsers);
+router.post('/users/:id/unblock', unblockUser);
 
 module.exports = router;
