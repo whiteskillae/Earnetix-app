@@ -5,7 +5,7 @@ import {
   Search, Users, Target, Calendar, Award, Send, 
   Trash2, Clock, CheckCircle, AlertCircle, 
   Upload, FileText, X, CheckSquare, Square, RefreshCcw,
-  Zap, ChevronRight, UserPlus, Layers, List
+  Zap, ChevronRight, UserPlus, Layers, List, Plus
 } from 'lucide-react';
 
 const AssignmentManagement = () => {
@@ -52,19 +52,26 @@ const AssignmentManagement = () => {
   const allSkills = useMemo(() => categories.flatMap(cat => cat.skills), [categories]);
 
   const searchResults = useMemo(() => {
-    if (!searchQuery && selectedSkills.length === 0) return { skills: allSkills.slice(0, 8), users: [] };
+    const isSearchEmpty = !searchQuery.trim();
+    const hasSelectedSkills = selectedSkills.length > 0;
+
+    if (isSearchEmpty && !hasSelectedSkills) {
+      return { skills: allSkills.slice(0, 12), users: [] };
+    }
 
     const filteredSkills = allSkills.filter(s => 
         s.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const filteredUsers = users.filter(user => {
-      const matchesQuery = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           user.email.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesSkills = selectedSkills.length === 0 || 
+      const matchesText = isSearchEmpty || 
+                          user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesSkills = !hasSelectedSkills || 
                             selectedSkills.some(skill => user.skills?.includes(skill));
-      return (matchesQuery && (selectedSkills.length > 0 || searchQuery.length > 1)) || 
-             (matchesSkills && selectedSkills.length > 0);
+      
+      return matchesText && matchesSkills;
     });
 
     return { skills: filteredSkills, users: filteredUsers };
