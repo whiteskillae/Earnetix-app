@@ -51,7 +51,16 @@ const TasksPage = () => {
     try {
       const formData = new FormData();
       formData.append('taskId', selected._id);
-      if (textContent) formData.append('textContent', textContent);
+      
+      // Smart routing of text/link based on input type
+      if (textContent) {
+        if (selected.inputType === 'link' || (selected.inputType === 'text_link' && !textContent.includes('\n') && textContent.startsWith('http'))) {
+            formData.append('linkUrl', textContent);
+        } else {
+            formData.append('textContent', textContent);
+        }
+      }
+      
       if (imageFile) formData.append('image', imageFile);
       if (otherFile) formData.append('file', otherFile);
 
