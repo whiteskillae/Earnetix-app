@@ -13,6 +13,8 @@ import UserManagement from '../components/admin/UserManagement';
 import TaskManagement from '../components/admin/TaskManagement';
 import SubmissionReview from '../components/admin/SubmissionReview';
 import ReportsView from '../components/admin/ReportsView';
+import SkillManagement from '../components/admin/SkillManagement';
+import AssignmentManagement from '../components/admin/AssignmentManagement';
 
 const AdminPage = () => {
   const { request } = useApi();
@@ -228,6 +230,8 @@ const AdminPage = () => {
       )}
 
       {tab === 'reports' && <ReportsView />}
+      {tab === 'skills' && <SkillManagement />}
+      {tab === 'assignments' && <AssignmentManagement />}
 
       {tab === 'announcements' && (
         <div className="glass-panel">

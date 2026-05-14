@@ -21,11 +21,18 @@ const updateProfile = async (req, res, next) => {
     if (country) user.country = country;
     if (countryCode) user.countryCode = countryCode;
     if (qualifications) user.qualifications = qualifications;
-    if (skills) user.skills = skills;
+    
+    if (skills) {
+      if (Array.isArray(skills) && skills.length > 3) {
+        return res.status(400).json({ success: false, message: 'You can select a maximum of 3 skills only.' });
+      }
+      user.skills = skills;
+    }
     
     // Mark profile as complete if required fields are present
     if (user.mobileNumber && user.country && user.name) {
       user.isProfileComplete = true;
+      user.onboardingVersion = 1;
     }
 
     await user.save();

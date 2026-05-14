@@ -376,9 +376,16 @@ const completeProfile = async (req, res, next) => {
     if (countryCode) user.countryCode = countryCode;
     if (country) user.country = country;
     if (qualifications) user.qualifications = qualifications;
-    if (skills) user.skills = skills;
+    
+    if (skills) {
+      if (Array.isArray(skills) && skills.length > 3) {
+        return res.status(400).json({ success: false, message: 'You can select a maximum of 3 skills only.' });
+      }
+      user.skills = skills;
+    }
     
     user.isProfileComplete = true;
+    user.onboardingVersion = 1; // Current version
 
     await user.save();
 

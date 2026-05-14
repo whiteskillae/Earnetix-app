@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListTodo, Bell, User, Shield } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Award, User, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const BottomNav = () => {
@@ -7,13 +7,13 @@ const BottomNav = () => {
 
   const navItems = isAdmin ? [
     { to: '/admin?tab=dashboard', label: 'Home', icon: LayoutDashboard },
+    { to: '/admin?tab=assignments', label: 'Missions', icon: Award },
     { to: '/admin?tab=submissions', label: 'Subs', icon: Shield },
-    { to: '/admin?tab=tasks', label: 'Tasks', icon: ListTodo },
     { to: '/admin?tab=users', label: 'Users', icon: User },
   ] : [
     { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
-    { to: '/tasks', label: 'Tasks', icon: ListTodo },
-    { to: '/announcements', label: 'Updates', icon: Bell },
+    { to: '/missions', label: 'Missions', icon: Award },
+    { to: '/tasks', label: 'Campaigns', icon: ListTodo },
     { to: '/profile', label: 'Profile', icon: User },
   ];
 

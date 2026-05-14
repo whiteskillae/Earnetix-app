@@ -11,16 +11,18 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   if (isAdmin) {
     navItems = [
       { to: '/admin?tab=dashboard', label: 'Overview', icon: Shield },
-      { to: '/admin?tab=submissions', label: 'Submissions', icon: Clock },
-      { to: '/admin?tab=tasks', label: 'Tasks Mgmt', icon: ListTodo },
+      { to: '/admin?tab=assignments', label: 'Missions Mgmt', icon: Award },
+      { to: '/admin?tab=tasks', label: 'Campaigns', icon: ListTodo },
+      { to: '/admin?tab=submissions', label: 'Review Center', icon: Clock },
       { to: '/admin?tab=users', label: 'User Directory', icon: Users },
-      { to: '/admin?tab=reports', label: 'Intelligence', icon: Shield },
-      { to: '/admin?tab=announcements', label: 'Announcements', icon: Bell },
+      { to: '/admin?tab=skills', label: 'Expertise', icon: Shield },
+      { to: '/admin?tab=announcements', label: 'Broadcasting', icon: Bell },
     ];
   } else {
     navItems = [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/tasks', label: 'Tasks', icon: ListTodo },
+      { to: '/missions', label: 'Direct Missions', icon: Award },
+      { to: '/tasks', label: 'Campaigns', icon: ListTodo },
       { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },
       { to: '/profile', label: 'Profile', icon: User },

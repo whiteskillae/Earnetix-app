@@ -21,6 +21,7 @@ const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const ReportPage = lazy(() => import('./pages/ReportPage'));
+const MissionsPage = lazy(() => import('./pages/MissionsPage'));
 import { ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -92,6 +93,7 @@ const AppRoutes = () => (
       <Route path="/leaderboard" element={<ProtectedRoute><AppLayout><LeaderboardPage /></AppLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><AppLayout><ReportPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/missions" element={<ProtectedRoute><AppLayout><MissionsPage /></AppLayout></ProtectedRoute>} />
 
       {/* Admin only */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />

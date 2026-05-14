@@ -13,15 +13,34 @@ const OnboardingPage = () => {
   const { request } = useApi();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: user?.name || '',
     mobileNumber: '',
     countryCode: '+91',
-    country: 'India'
+    country: 'India',
+    qualifications: '',
+    skills: []
   });
 
   useEffect(() => {
-    if (user?.isProfileComplete) {
+    const fetchCategories = async () => {
+      try {
+        const res = await request('get', '/skill-categories');
+        if (res.success) setCategories(res.data);
+      } catch (err) {
+        toast.error('Failed to load skill sectors');
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  const skillOptions = categories.flatMap(cat => 
+    cat.skills.map(skill => ({ label: skill, value: skill, category: cat.name }))
+  );
+
+  useEffect(() => {
+    if (user?.isProfileComplete && (user?.onboardingVersion || 0) >= 1) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -52,6 +71,14 @@ const OnboardingPage = () => {
       borderRadius: '12px',
       cursor: 'pointer'
     }),
+    multiValue: (base) => ({
+      ...base,
+      background: 'var(--blue-glow)',
+      borderRadius: '8px',
+      border: '1px solid rgba(59, 130, 246, 0.3)'
+    }),
+    multiValueLabel: (base) => ({ ...base, color: 'var(--blue-light)', fontWeight: 700 }),
+    multiValueRemove: (base) => ({ ...base, color: 'var(--blue-light)', '&:hover': { background: 'rgba(255,255,255,0.1)', color: 'white' } }),
     singleValue: (base) => ({ ...base, color: 'white' }),
     input: (base) => ({ ...base, color: 'white' }),
     placeholder: (base) => ({ ...base, color: 'var(--gray-500)' })
@@ -59,16 +86,19 @@ const OnboardingPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.skills.length === 0) return toast.error('Please select at least one skill');
+    if (formData.skills.length > 3) return toast.error('Maximum 3 skills allowed');
+    
     setLoading(true);
     try {
       const res = await request('post', '/auth/complete-profile', formData);
       if (res.success) {
-        toast.success('Profile completed!');
+        toast.success('Professional Profile Activated!');
         setUser(res.data.user);
         navigate('/dashboard');
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Something went wrong');
+      toast.error(error.response?.data?.message || 'Verification failed');
     } finally {
       setLoading(false);
     }
@@ -83,17 +113,17 @@ const OnboardingPage = () => {
           <div className="onboarding-icon">
             <User size={32} />
           </div>
-          <h1>Complete Your Profile</h1>
-          <p>Just a few more details to get you started with Earnitix</p>
+          <h1>Identity Verification</h1>
+          <p>Complete your professional profile to access assigned missions</p>
         </div>
 
         <form onSubmit={handleSubmit} className="onboarding-form">
           <div className="form-group">
-            <label><User size={16} /> Full Name</label>
+            <label><User size={16} /> Full Legal Name</label>
             <input 
               type="text" 
               className="form-input" 
-              placeholder="Enter your full name"
+              placeholder="As per identification"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
@@ -107,15 +137,14 @@ const OnboardingPage = () => {
                 className="form-input"
                 value={formData.countryCode}
                 readOnly
-                placeholder="+91"
               />
             </div>
             <div className="form-group" style={{ flex: 1 }}>
-              <label><Phone size={16} /> Mobile Number</label>
+              <label><Phone size={16} /> Secure Mobile</label>
               <input 
                 type="tel" 
                 className="form-input" 
-                placeholder="Enter 10 digit number"
+                placeholder="10 digit number"
                 value={formData.mobileNumber}
                 onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
                 required
@@ -124,21 +153,33 @@ const OnboardingPage = () => {
           </div>
 
           <div className="form-group">
-            <label><MapPin size={16} /> Country & Region</label>
+            <label><MapPin size={16} /> Operational Region</label>
             <Select
               options={countries}
               value={countries.find(c => c.value === formData.country)}
               onChange={opt => setFormData({...formData, country: opt.value, countryCode: opt.code})}
               styles={selectStyles}
-              placeholder="Search country..."
             />
           </div>
 
           <div className="form-group">
-            <label><Target size={16} /> Highest Qualification</label>
+            <label><Target size={16} /> Expertise Sector (Max 3)</label>
+            <Select
+              isMulti
+              options={skillOptions}
+              value={formData.skills.map(s => ({ label: s, value: s }))}
+              onChange={opts => setFormData({...formData, skills: opts ? opts.map(o => o.value) : []})}
+              isOptionDisabled={() => formData.skills.length >= 3}
+              styles={selectStyles}
+              placeholder="Search skills (e.g. Coding, Design...)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label><Zap size={16} /> Highest Credential</label>
             <select 
               className="form-input"
-              value={formData.qualifications || ''}
+              value={formData.qualifications}
               onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
               required
             >
@@ -150,18 +191,6 @@ const OnboardingPage = () => {
               <option value="Diploma">Diploma</option>
               <option value="Other">Other</option>
             </select>
-          </div>
-
-          <div className="form-group">
-            <label><Zap size={16} /> Key Skills (comma separated)</label>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="e.g. Design, Coding, Writing"
-              value={formData.skills?.join(', ') || ''}
-              onChange={(e) => setFormData({ ...formData, skills: e.target.value.split(',').map(s => s.trim()) })}
-              required
-            />
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>

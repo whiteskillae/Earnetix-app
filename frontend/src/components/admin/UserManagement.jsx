@@ -1,13 +1,29 @@
-import { Search, Eye, Zap, ShieldAlert, ShieldCheck, Clock, MoreVertical } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Eye, Zap, Clock, Filter, Target } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useApi } from '../../hooks/useApi';
 
 const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onViewDetails }) => {
+  const { request } = useApi();
   const [searchTerm, setSearchTerm] = useState('');
+  const [skillFilter, setSkillFilter] = useState('');
+  const [categories, setCategories] = useState([]);
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const res = await request('get', '/skill-categories');
+      if (res.success) setCategories(res.data);
+    };
+    fetchCategories();
+  }, []);
+
+  const allSkills = categories.flatMap(c => c.skills);
+
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSkill = !skillFilter || u.skills?.includes(skillFilter);
+    return matchesSearch && matchesSkill;
+  });
 
   const isTempBlocked = (user) => {
     return user.blockedUntil && new Date(user.blockedUntil) > new Date();
@@ -15,16 +31,33 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
 
   return (
     <div className="glass-panel">
-      <div className="view-filters">
-        <h3 style={{ margin: 0 }}>User Intelligence Directory</h3>
-        <div className="search-box" style={{ flex: 0.6 }}>
-          <Search size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by name, email or IP..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-          />
+      <div className="view-filters" style={{ flexWrap: 'wrap', gap: '16px' }}>
+        <h3 style={{ margin: 0, minWidth: '200px' }}>User Intelligence Directory</h3>
+        
+        <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '300px' }}>
+          <div className="search-box" style={{ flex: 1 }}>
+            <Search size={18} />
+            <input 
+              type="text" 
+              placeholder="Search by name, email or IP..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+          </div>
+
+          <div className="search-box" style={{ width: '200px', padding: '0 12px' }}>
+            <Target size={18} />
+            <select 
+              value={skillFilter} 
+              onChange={(e) => setSkillFilter(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', cursor: 'pointer' }}
+            >
+              <option value="" style={{ background: '#1a1a2e' }}>All Expertise</option>
+              {allSkills.map(s => (
+                <option key={s} value={s} style={{ background: '#1a1a2e' }}>{s}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

@@ -22,8 +22,19 @@ const getUsers = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const users = await User.find({ role: 'user' }).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit);
-    const total = await User.countDocuments({ role: 'user' });
+    const { skill, query } = req.query;
+
+    const filter = { role: 'user' };
+    if (skill) filter.skills = skill;
+    if (query) {
+      filter.$or = [
+        { name: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } }
+      ];
+    }
+
+    const users = await User.find(filter).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit);
+    const total = await User.countDocuments(filter);
     res.json({ success: true, data: { users, pagination: { page, limit, total, pages: Math.ceil(total / limit) } } });
   } catch (error) { next(error); }
 };

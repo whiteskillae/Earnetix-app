@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = user?.role === 'admin';
-  const isProfileComplete = user?.isProfileComplete;
+  const isProfileComplete = user?.isProfileComplete && (user?.onboardingVersion || 0) >= 1;
 
   return (
     <AuthContext.Provider value={{ 
