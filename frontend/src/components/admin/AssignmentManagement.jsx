@@ -100,14 +100,22 @@ const AssignmentManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (selectedUsers.length === 0) return toast.error('No agents targeted');
+    
+    // Debug Log
+    console.log('Deploying Mission:', { form, selectedUsers, attachmentsCount: attachments.length });
+
+    if (selectedUsers.length === 0) return toast.error('Strategic targeting required: No agents selected');
+    if (!form.title?.trim()) return toast.error('Mission failed: Title is required');
+    if (!form.description?.trim()) return toast.error('Mission failed: Operational briefing required');
+    if (!form.deadline) return toast.error('Mission failed: Completion deadline required');
+    if (!form.rewardPoints || form.rewardPoints <= 0) return toast.error('Mission failed: Valid credit reward required');
     
     const formData = new FormData();
-    formData.append('title', form.title);
-    formData.append('description', form.description);
+    formData.append('title', form.title.trim());
+    formData.append('description', form.description.trim());
     formData.append('priority', form.priority);
     formData.append('deadline', form.deadline);
-    formData.append('rewardPoints', form.rewardPoints);
+    formData.append('rewardPoints', Number(form.rewardPoints));
     formData.append('assignedUsers', JSON.stringify(selectedUsers));
     
     attachments.forEach(file => {
@@ -118,15 +126,19 @@ const AssignmentManagement = () => {
       const res = await request('post', '/assigned-tasks', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      
       if (res.success) {
-        toast.success('Missions Deployed');
+        toast.success('Missions Broadcasted Successfully');
         setForm({ title: '', description: '', priority: 'medium', deadline: '', rewardPoints: 50 });
         setAttachments([]);
         setSelectedUsers([]);
         fetchData();
+      } else {
+        toast.error(res.message || 'Deployment protocol failure');
       }
     } catch (err) {
-      toast.error('Deployment failed');
+      console.error('Deployment Error:', err);
+      toast.error(err.response?.data?.message || 'High-level deployment error: Check console');
     }
   };
 

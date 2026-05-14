@@ -6,55 +6,88 @@ const { checkDailyLimit } = require('../services/taskService');
 // Admin: Create and Assign Task
 const createAndAssignTask = async (req, res, next) => {
   try {
+    console.log('Incoming Deployment Request:', { 
+      body: req.body, 
+      filesCount: req.files?.length || 0 
+    });
+
     const { title, description, priority, deadline, rewardPoints, assignedUsers, requiredSkills } = req.body;
     
-    // Parse assignedUsers if stringified array
-    let finalAssignedUsers = assignedUsers || [];
-    if (typeof finalAssignedUsers === 'string') {
-      try { finalAssignedUsers = JSON.parse(finalAssignedUsers); } catch(e) { finalAssignedUsers = finalAssignedUsers.split(','); }
+    // Strict Validation
+    if (!title || !description || !deadline || !rewardPoints) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required mission parameters: title, description, deadline, and credits are mandatory.' 
+      });
     }
 
-    // Parse requiredSkills if stringified
-    let skills = requiredSkills || [];
-    if (typeof skills === 'string') {
-      try { skills = JSON.parse(skills); } catch(e) { skills = skills.split(','); }
+    // Parse assignedUsers
+    let finalAssignedUsers = [];
+    if (assignedUsers) {
+      try {
+        finalAssignedUsers = typeof assignedUsers === 'string' ? JSON.parse(assignedUsers) : assignedUsers;
+      } catch (e) {
+        finalAssignedUsers = typeof assignedUsers === 'string' ? assignedUsers.split(',') : [];
+      }
     }
 
-    // If requiredSkills is provided and no specific users are assigned, find users by skill
+    // Parse requiredSkills
+    let skills = [];
+    if (requiredSkills) {
+      try {
+        skills = typeof requiredSkills === 'string' ? JSON.parse(requiredSkills) : requiredSkills;
+      } catch (e) {
+        skills = typeof requiredSkills === 'string' ? requiredSkills.split(',') : [];
+      }
+    }
+
     if (skills.length > 0 && finalAssignedUsers.length === 0) {
-      const users = await User.find({
+      const usersBySkill = await User.find({
         skills: { $in: skills },
         role: 'user'
       }).select('_id');
-      finalAssignedUsers = users.map(u => u._id);
+      finalAssignedUsers = usersBySkill.map(u => u._id);
+    }
+
+    if (finalAssignedUsers.length === 0) {
+      return res.status(400).json({ success: false, message: 'Strategic Failure: No agents targeted for this mission.' });
     }
 
     // Handle attachments
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks');
-        attachments.push({ name: file.originalname, url: result.url });
+        try {
+          const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks');
+          attachments.push({ name: file.originalname, url: result.url });
+        } catch (uploadError) {
+          console.error('Cloudinary Upload Error:', uploadError);
+          // Continue with other files or fail if critical? Let's continue.
+        }
       }
     }
 
-    // Create individual tasks for each user for independent status tracking
+    // Create individual tasks
     const tasks = await Promise.all(finalAssignedUsers.map(userId => 
       AssignedTask.create({
-        title,
-        description,
-        priority,
-        deadline,
-        rewardPoints,
-        assignedUsers: [userId], // Each task is for one user
+        title: title.trim(),
+        description: description.trim(),
+        priority: priority || 'medium',
+        deadline: new Date(deadline),
+        rewardPoints: Number(rewardPoints),
+        assignedUsers: [userId],
         requiredSkills: skills,
         attachments,
         createdBy: req.user._id
       })
     ));
 
+    console.log(`Success: Deployed ${tasks.length} missions.`);
     res.status(201).json({ success: true, message: `${tasks.length} individual missions deployed`, data: tasks });
-  } catch (error) { next(error); }
+  } catch (error) { 
+    console.error('Backend Deployment Exception:', error);
+    next(error); 
+  }
 };
 
 // Admin: Get all assigned tasks
@@ -125,5 +158,5 @@ module.exports = {
   createAndAssignTask,
   getAllAssignedTasks,
   getMyAssignedTasks,
-  updateTaskStatus
+  submitAssignedTask
 };
