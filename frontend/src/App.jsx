@@ -8,6 +8,7 @@ import Sidebar from './components/common/Sidebar';
 import BottomNav from './components/common/BottomNav';
 import MobileHeader from './components/common/MobileHeader';
 import Loader from './components/common/Loader';
+import KeepAlive from './components/common/KeepAlive';
 
 // Lazy loaded pages to optimize bundle size
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -110,6 +111,7 @@ const App = () => (
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <BrowserRouter>
       <AuthProvider>
+      <KeepAlive />
       <Toaster
         position="top-right"
         toastOptions={{

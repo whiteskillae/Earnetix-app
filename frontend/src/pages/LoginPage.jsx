@@ -15,7 +15,10 @@ const LoginPage = () => {
   const { loading, request } = useApi();
   const navigate = useNavigate();
 
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  
   const handleGoogleSuccess = async (tokenResponse) => {
+    setIsGoogleLoading(true);
     try {
       const res = await request('post', '/auth/google', {
         credential: tokenResponse.access_token,
@@ -29,12 +32,17 @@ const LoginPage = () => {
       } else {
         navigate(res.data.user.role === 'admin' ? '/admin' : '/dashboard');
       }
-    } catch (err) {}
+    } catch (err) {
+      setIsGoogleLoading(false);
+    }
   };
 
   const googleLogin = useGoogleLogin({
     onSuccess: handleGoogleSuccess,
-    onError: () => toast.error('Google Auth Failed'),
+    onError: () => {
+      toast.error('Google Auth Failed');
+      setIsGoogleLoading(false);
+    },
   });
 
   const handleSubmit = async (e) => {

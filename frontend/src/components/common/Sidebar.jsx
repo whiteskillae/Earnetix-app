@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user, isAdmin, logout } = useAuth();

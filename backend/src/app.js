@@ -25,7 +25,7 @@ app.set('trust proxy', true);
 
 // ─── SECURITY ──────────────────────────────────────────
 app.use(helmet({
-  crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Fixed: Prevents Google OAuth popup blocks
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, // Fixed: Prevents Google OAuth popup blocks
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false,
 }));
@@ -64,8 +64,10 @@ app.use(hpp());
 
 // ─── PARSERS ───────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+
+app.get('/api/health', (req, res) => res.status(200).send('OK'));
 
 // ─── RATE LIMITING ─────────────────────────────────────
 app.use('/api', apiLimiter);

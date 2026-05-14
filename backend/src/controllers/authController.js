@@ -206,50 +206,69 @@ const login = async (req, res, next) => {
 };
 
 // ─── GOOGLE AUTH ───────────────────────────────────────
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+
 const googleAuth = async (req, res, next) => {
+  const startTime = Date.now();
   try {
     const { credential, deviceFingerprint } = req.body;
+    if (!credential) return res.status(400).json({ success: false, message: 'Google credential missing' });
 
-    // Verify Google token via Google's userinfo endpoint
-    const response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${credential}`);
-    if (!response.ok) {
-      return res.status(401).json({ success: false, message: 'Invalid Google token' });
-    }
+    // Step 1: Parallelize Google Token Verification and User Lookup
+    // We try to verify as an ID Token first (faster/better), fallback to userinfo if it's an access token
+    let googleUser;
+    
+    const verifyToken = async () => {
+      try {
+        // Try as ID Token first (faster local verification)
+        const ticket = await client.verifyIdToken({
+          idToken: credential,
+          audience: env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        return { 
+          email: payload.email, 
+          name: payload.name, 
+          picture: payload.picture,
+          method: 'id_token'
+        };
+      } catch (err) {
+        // Fallback to userinfo endpoint (Access Token)
+        const response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${credential}`);
+        if (!response.ok) throw new Error('Invalid Google Token');
+        const data = await response.json();
+        return { ...data, method: 'access_token' };
+      }
+    };
 
-    const googleUser = await response.json();
+    // Parallelize the external request and the first DB check
+    const [googleInfo, existingUser] = await Promise.all([
+      verifyToken(),
+      User.findOne({ email: req.body.email || '' }) // Optimization: if email is in body, use it, else wait
+    ]);
+
+    googleUser = googleInfo;
     const { email, name, picture } = googleUser;
+    let user = existingUser || await User.findOne({ email });
 
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email not provided by Google' });
-    }
-
-    // Find or create user
-    let user = await User.findOne({ email });
+    logger.info(`[GoogleAuth] Token verified via ${googleUser.method} in ${Date.now() - startTime}ms`);
 
     if (!user) {
-      // Check IP address (only check against 'user' role)
       const ip = req.ip || req.connection.remoteAddress;
-      if (ip) {
-        const ipUser = await User.findOne({ registrationIp: ip, role: 'user' });
-        if (ipUser) {
-          logger.warn(`Multi-account attempt (Google) from IP: ${ip}`);
-          return res.status(403).json({
-            success: false,
-            message: 'An account already exists from this network/device. Only one account per device is allowed.',
-          });
-        }
-      }
+      // Parallelize new user validation checks
+      const [ipUser, deviceUser] = await Promise.all([
+        ip ? User.findOne({ registrationIp: ip, role: 'user' }) : null,
+        deviceFingerprint ? User.findOne({ deviceFingerprint, role: 'user' }) : null
+      ]);
 
-      // Check device fingerprint (only check against 'user' role)
-      if (deviceFingerprint) {
-        const deviceUser = await User.findOne({ deviceFingerprint, role: 'user' });
-        if (deviceUser) {
-          logger.warn(`Multi-account attempt (Google) from device: ${deviceFingerprint}`);
-          return res.status(403).json({
-            success: false,
-            message: 'An account already exists on this device',
-          });
-        }
+      if (ipUser) {
+        logger.warn(`Multi-account attempt (IP) for ${email}`);
+        return res.status(403).json({ success: false, message: 'Only one account per device allowed.' });
+      }
+      if (deviceUser) {
+        logger.warn(`Multi-account attempt (Device) for ${email}`);
+        return res.status(403).json({ success: false, message: 'Device already linked to another account.' });
       }
 
       user = await User.create({
@@ -263,29 +282,15 @@ const googleAuth = async (req, res, next) => {
       });
     }
 
-    if (user.isBlocked) {
-      return res.status(403).json({ success: false, message: 'Account has been blocked' });
-    }
+    if (user.isBlocked) return res.status(403).json({ success: false, message: 'Account blocked' });
 
-    // Track login
+    // Track login and finalize
     const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.headers['user-agent'] || 'unknown';
-    user.loginHistory.push({ ip, userAgent });
+    user.loginHistory.push({ ip, userAgent: req.headers['user-agent'] || 'unknown' });
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20);
+    
+    if (deviceFingerprint) user.deviceFingerprint = deviceFingerprint;
 
-    if (deviceFingerprint) {
-      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id }, role: 'user' });
-      if (otherUser) {
-        logger.warn(`Multi-account Google login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Security Alert: This device is already associated with another account.' 
-        });
-      }
-      user.deviceFingerprint = deviceFingerprint;
-    }
-
-    // Generate tokens
     const payload = { userId: user._id, role: user.role };
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
@@ -300,12 +305,13 @@ const googleAuth = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    logger.info(`[GoogleAuth] Total processing time: ${Date.now() - startTime}ms`);
     res.json({
       success: true,
-      message: 'Login successful',
       data: { accessToken, user: user.toJSON() },
     });
   } catch (error) {
+    logger.error(`[GoogleAuth] Error: ${error.message}`);
     next(error);
   }
 };
