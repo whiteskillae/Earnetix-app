@@ -39,7 +39,14 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED' && !originalRequest._retry) {
+    // If we get a 401, try to refresh the token regardless of the specific error code
+    // (This handles cases where the token is missing from localStorage but a refresh cookie exists)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't try to refresh if the request itself was to the refresh endpoint
+      if (originalRequest.url?.includes('auth/refresh')) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
