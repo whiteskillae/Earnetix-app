@@ -12,11 +12,15 @@ const apiLimiter = rateLimit({
 
 // Strict limiter for login/auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: parseInt(env.LOGIN_RATE_LIMIT_MAX), // 5 attempts
-  message: { success: false, message: 'Too many login attempts. Please try again in 15 minutes.' },
+  windowMs: 10 * 60 * 1000, // Reduced to 10 minutes as requested
+  max: 15, // Increased limit for standard users
+  message: { success: false, message: 'Too many attempts. Please try again in 10 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  // Allow admin to have no limit
+  skip: (req) => {
+    return req.body && req.body.email === env.ADMIN_EMAIL;
+  }
 });
 
 module.exports = { apiLimiter, authLimiter };
