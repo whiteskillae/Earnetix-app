@@ -20,7 +20,9 @@ export const useApi = () => {
         message = error.response.data.error;
       }
       
-      toast.error(message);
+      if (error.response?.status !== 401) {
+        toast.error(message);
+      }
       throw error;
     } finally {
       setLoading(false);
