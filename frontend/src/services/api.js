@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Ensure baseURL ends with a slash to prevent path dropping when using relative URLs
+const baseURL = import.meta.env.VITE_API_URL || '/api';
+const normalizedBaseURL = baseURL.endsWith('/') ? baseURL : `${baseURL}/`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: normalizedBaseURL,
   withCredentials: true,
 });
 
@@ -10,7 +14,7 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   
-  // Fix: Ensure leading slashes in URL don't drop the baseURL path (e.g. /api)
+  // Strip leading slash from the URL to ensure it's appended to the baseURL correctly
   if (config.url && config.url.startsWith('/')) {
     config.url = config.url.substring(1);
   }

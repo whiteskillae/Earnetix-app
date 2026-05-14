@@ -10,6 +10,9 @@ const createTaskSchema = z.object({
   maxSubmissionsPerUser: z.coerce.number().int().min(1).max(20).optional(),
 });
 
+
+
+
 const updateTaskSchema = createTaskSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
