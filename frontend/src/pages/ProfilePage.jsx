@@ -57,6 +57,22 @@ const ProfilePage = () => {
     skills: user?.skills?.join(', ') || ''
   });
 
+  // Sync formData with user context when user data is loaded/updated
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        username: user.username || '',
+        bio: user.bio || '',
+        mobileNumber: user.mobileNumber || '',
+        country: user.country || 'India',
+        countryCode: user.countryCode || '+91',
+        qualifications: user.qualifications || '',
+        skills: user.skills?.join(', ') || ''
+      });
+    }
+  }, [user]);
+
   useEffect(() => {
     const fetch = async () => {
       try {

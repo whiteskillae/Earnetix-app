@@ -385,7 +385,7 @@ const logout = async (req, res, next) => {
 // ─── COMPLETE PROFILE ──────────────────────────────────
 const completeProfile = async (req, res, next) => {
   try {
-    const { name, mobileNumber, countryCode, country, qualifications, skills } = req.body;
+    const { name, username, bio, mobileNumber, countryCode, country, qualifications, skills } = req.body;
 
     const user = await User.findById(req.user._id);
     if (!user) {
@@ -393,6 +393,8 @@ const completeProfile = async (req, res, next) => {
     }
 
     if (name) user.name = name;
+    if (username) user.username = username;
+    if (bio !== undefined) user.bio = bio;
     if (mobileNumber) user.mobileNumber = mobileNumber;
     if (countryCode) user.countryCode = countryCode;
     if (country) user.country = country;
@@ -408,12 +410,19 @@ const completeProfile = async (req, res, next) => {
     user.isProfileComplete = true;
     user.onboardingVersion = 1; // Current version
 
+    if (username) {
+      user.markModified('username');
+    }
+
     await user.save();
+    
+    // Return the fresh user object
+    const updatedUser = await User.findById(user._id).select('-passwordHash -otp -refreshToken');
 
     res.json({
       success: true,
       message: 'Profile completed successfully',
-      data: { user: user.toJSON() }
+      data: { user: updatedUser.toJSON() }
     });
   } catch (error) {
     next(error);

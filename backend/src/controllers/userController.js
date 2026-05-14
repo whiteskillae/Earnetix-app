@@ -64,15 +64,22 @@ const updateProfile = async (req, res, next) => {
       user.lastUsernameChange = now;
     }
     
-    // Mark profile as complete if required fields are present
     if (user.mobileNumber && user.country && user.name && user.username) {
       user.isProfileComplete = true;
       user.onboardingVersion = 1;
     }
 
-    await user.save();
+    // Force mark username as modified to ensure save
+    if (username) {
+      user.markModified('username');
+    }
 
-    res.json({ success: true, message: 'Profile updated', data: user });
+    await user.save();
+    
+    // Return the fresh user object
+    const updatedUser = await User.findById(user._id).select('-passwordHash -otp -refreshToken');
+
+    res.json({ success: true, message: 'Profile updated', data: updatedUser });
   } catch (error) {
     // Handle mongoose duplicate key error specifically for username
     if (error.code === 11000 && error.keyPattern && error.keyPattern.username) {
