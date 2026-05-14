@@ -32,11 +32,20 @@ const userSchema = new mongoose.Schema({
     maxlength: 20,
     match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
   },
+  bio: {
+    type: String,
+    maxlength: 200,
+    default: '',
+  },
   uid: {
     type: String,
     sparse: true,
     unique: true,
     maxlength: 15,
+  },
+  lastUsernameChange: {
+    type: Date,
+    default: null,
   },
   role: {
     type: String,

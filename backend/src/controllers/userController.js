@@ -25,10 +25,11 @@ const generateUID = async () => {
 // ─── UPDATE PROFILE ────────────────────────────────────
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, username, mobileNumber, country, countryCode, qualifications, skills } = req.body;
+    const { name, username, bio, mobileNumber, country, countryCode, qualifications, skills } = req.body;
     const user = await User.findById(req.user._id);
 
     if (name) user.name = name;
+    if (bio !== undefined) user.bio = bio;
     if (mobileNumber) user.mobileNumber = mobileNumber;
     if (country) user.country = country;
     if (countryCode) user.countryCode = countryCode;
@@ -41,18 +42,26 @@ const updateProfile = async (req, res, next) => {
       user.skills = skills;
     }
     
-    // Set username if provided and not already set
-    if (username && !user.username) {
+    // Handle Username Update (Limit: Once every 30 days)
+    if (username && username !== user.username) {
+      const now = new Date();
+      const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+      
+      if (user.lastUsernameChange && (now - new Date(user.lastUsernameChange) < thirtyDaysInMs)) {
+        const daysRemaining = Math.ceil((thirtyDaysInMs - (now - new Date(user.lastUsernameChange))) / (24 * 60 * 60 * 1000));
+        return res.status(400).json({ 
+          success: false, 
+          message: `Username can only be changed once every 30 days. Please wait ${daysRemaining} more days.` 
+        });
+      }
+
       const existingUsername = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
       if (existingUsername && existingUsername._id.toString() !== user._id.toString()) {
         return res.status(400).json({ success: false, message: 'Username is already taken.' });
       }
+      
       user.username = username;
-    }
-
-    // Auto-generate UID if missing
-    if (!user.uid) {
-      user.uid = await generateUID();
+      user.lastUsernameChange = now;
     }
     
     // Mark profile as complete if required fields are present

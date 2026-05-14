@@ -49,6 +49,7 @@ const ProfilePage = () => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     username: user?.username || '',
+    bio: user?.bio || '',
     mobileNumber: user?.mobileNumber || '',
     country: user?.country || 'India',
     countryCode: user?.countryCode || '+91',
@@ -99,41 +100,57 @@ const ProfilePage = () => {
     <div className="profile-page fade-in">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <h1>ACCOUNT INTELLIGENCE</h1>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-outline btn-sm" style={{ borderRadius: '14px' }} onClick={() => setIsEditModalOpen(true)}>
-            <Edit3 size={16} /> Edit Profile
-          </button>
-        </div>
       </div>
 
       {/* Profile Header Card */}
-      <div className="profile-header-card glass-panel" style={{ padding: '32px', borderRadius: '32px', border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
-         <div className="user-info-section" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <div className="user-avatar-wrap" style={{ width: '100px', height: '100px', fontSize: '2.5rem', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
-              {user?.name?.charAt(0).toUpperCase()}
+      <div className="profile-header-card glass-panel" style={{ padding: '40px', borderRadius: '32px', border: '1px solid var(--glass-border)', position: 'relative' }}>
+         <div className="user-info-section" style={{ display: 'flex', alignItems: 'flex-start', gap: '32px', flexWrap: 'wrap' }}>
+            <div className="avatar-container" style={{ position: 'relative' }}>
+              <div className="user-avatar-wrap" style={{ width: '120px', height: '120px', fontSize: '3rem', borderRadius: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', background: 'var(--blue-gradient)' }}>
+                {user?.name?.charAt(0).toUpperCase()}
+              </div>
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                style={{ 
+                  position: 'absolute', bottom: '-10px', right: '-10px', 
+                  background: 'var(--blue)', color: 'white', border: 'none', 
+                  borderRadius: '12px', padding: '8px', cursor: 'pointer',
+                  boxShadow: '0 8px 16px rgba(59, 130, 246, 0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                <Edit3 size={18} />
+              </button>
             </div>
-            <div className="user-text">
-               <h2 style={{ fontSize: '1.75rem', marginBottom: '4px' }}>{user?.name}</h2>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                 {user?.username && <span className="tag" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>@{user.username}</span>}
-                 {user?.uid && <span className="tag">UID: {user.uid}</span>}
+
+            <div className="user-text" style={{ flex: 1, minWidth: '250px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                 <h2 style={{ fontSize: '2.2rem', margin: 0 }}>{user?.name}</h2>
+                 {user?.username && <span className="tag" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.9rem', fontWeight: 700 }}>@{user.username}</span>}
                </div>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+               
+               <p style={{ color: 'var(--gray-300)', fontSize: '1rem', marginBottom: '16px', lineHeight: '1.6', maxWidth: '600px' }}>
+                 {user?.bio || "No mission brief provided. Complete your profile to add a bio."}
+               </p>
+
+               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
                  <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><Mail size={14} /> {user?.email}</p>
                  <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><MapPin size={14} /> {user?.country}</p>
+                 <p style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--gray-400)', fontSize: '0.9rem' }}><Target size={14} /> UID: {user?.uid}</p>
                </div>
             </div>
-         </div>
-         <div className="points-display-premium glass-panel" style={{ padding: '24px 32px', borderRadius: '24px', textAlign: 'center', border: '1px solid rgba(251, 191, 36, 0.15)', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
-            <div>
-               <div className="points-val" style={{ color: '#fbbf24', fontSize: '2.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                 <Zap size={32} fill="#fbbf24" strokeWidth={0} /> {user?.points || 0}
-               </div>
-               <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
+
+            <div className="points-display-premium glass-panel" style={{ padding: '24px 32px', borderRadius: '24px', textAlign: 'center', border: '1px solid rgba(251, 191, 36, 0.15)', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', marginLeft: 'auto' }}>
+                <div>
+                   <div className="points-val" style={{ color: '#fbbf24', fontSize: '2.5rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                     <Zap size={32} fill="#fbbf24" strokeWidth={0} /> {user?.points || 0}
+                   </div>
+                   <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
+                </div>
+                <button className="btn btn-primary btn-sm" style={{ width: '100%', borderRadius: '12px' }} onClick={() => toast.success('Withdrawal System Initializing...')}>
+                   <Wallet size={16} /> Withdraw
+                </button>
             </div>
-            <button className="btn btn-primary btn-sm" style={{ width: '100%', borderRadius: '12px' }} onClick={() => toast.success('Withdrawal System Initializing...')}>
-               <Wallet size={16} /> Withdraw
-            </button>
          </div>
       </div>
 
@@ -243,7 +260,20 @@ const ProfilePage = () => {
                    <div className="form-group">
                       <label>Username</label>
                       <input className="form-input" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase()})} placeholder="Max 20 chars" maxLength={20} required />
+                      <p style={{ fontSize: '0.7rem', color: 'var(--gray-500)', marginTop: '4px' }}>Can be changed once every 30 days.</p>
                    </div>
+                 </div>
+                 <div className="form-group">
+                    <label>Bio / Mission Statement</label>
+                    <textarea 
+                      className="form-input" 
+                      style={{ minHeight: '100px', resize: 'vertical' }}
+                      value={formData.bio} 
+                      onChange={e => setFormData({...formData, bio: e.target.value})} 
+                      placeholder="Tell the community about your expertise..."
+                      maxLength={200}
+                    />
+                    <div style={{ textAlign: 'right', fontSize: '0.7rem', color: 'var(--gray-500)' }}>{formData.bio.length}/200</div>
                  </div>
                  <div className="grid-2">
                     <div className="form-group">
@@ -273,7 +303,7 @@ const ProfilePage = () => {
                     <label>Specialist Skills (Comma Delimited)</label>
                     <input className="form-input" value={formData.skills} onChange={e => setFormData({...formData, skills: e.target.value})} placeholder="e.g. Design, Coding" />
                  </div>
-                 <button className="btn-premium btn-primary-new btn-block" style={{ marginTop: '20px' }} disabled={editLoading}>
+                 <button className="btn btn-primary btn-block" style={{ marginTop: '20px', padding: '16px', borderRadius: '16px' }} disabled={editLoading}>
                     {editLoading ? 'SYNCHRONIZING...' : 'EXECUTE UPDATE'}
                  </button>
               </form>
