@@ -190,11 +190,40 @@ const AssignmentManagement = () => {
             {/* Targeted Agents */}
             {!showHistory && (
                 <section className="results-group">
-                    <h4 className="group-label"><Users size={14} /> Matching Agents</h4>
+                    <div className="flex-between" style={{ marginBottom: '20px' }}>
+                        <h4 className="group-label" style={{ margin: 0 }}><Users size={14} /> Matching Units</h4>
+                        {searchResults.users.length > 0 && (
+                            <button className="btn-text-action" onClick={() => {
+                                const allIds = searchResults.users.map(u => u._id);
+                                setSelectedUsers([...new Set([...selectedUsers, ...allIds])]);
+                            }}>
+                                <CheckSquare size={14} /> Select All Results
+                            </button>
+                        )}
+                    </div>
                     <div className="agents-list">
                         {searchResults.users.length === 0 ? (
                             <div className="empty-results">
-                                {searchQuery ? 'No matching agents found in current sector' : 'Enter keywords to discover units'}
+                                {searchQuery ? (
+                                    <>
+                                        <AlertCircle size={32} style={{ opacity: 0.2, marginBottom: '12px' }} />
+                                        <p>No matching agents in this sector</p>
+                                    </>
+                                ) : (
+                                    <div className="registry-discovery">
+                                        <p style={{ opacity: 0.5, marginBottom: '24px' }}>System in standby. Enter credentials or select expertise to discover units.</p>
+                                        <div className="quick-stats">
+                                            <div className="q-stat">
+                                                <span className="q-val">{users.length}</span>
+                                                <span className="q-lbl">Total Units</span>
+                                            </div>
+                                            <div className="q-stat">
+                                                <span className="q-val">{categories.length}</span>
+                                                <span className="q-lbl">Expertise Hubs</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             searchResults.users.map(user => (
@@ -302,6 +331,8 @@ const AssignmentManagement = () => {
         
         .btn-history { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; color: var(--gray-400); font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
         .btn-history.active { background: var(--blue); color: white; border-color: transparent; }
+        .btn-text-action { background: none; border: none; color: var(--blue-light); font-size: 0.75rem; font-weight: 800; display: flex; align-items: center; gap: 6px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; text-transform: uppercase; }
+        .btn-text-action:hover { opacity: 1; }
 
         .search-section-wrap { margin-bottom: 40px; }
         .main-search-bar { display: flex; align-items: center; padding: 0 32px; height: 80px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
@@ -337,7 +368,12 @@ const AssignmentManagement = () => {
         .agent-info .skills-inline { font-size: 0.75rem; color: var(--gray-500); margin-top: 2px; }
         .agent-stats .points { font-weight: 900; color: var(--green); font-size: 0.9rem; }
         
-        .empty-results { padding: 60px; text-align: center; color: var(--gray-600); font-weight: 600; font-size: 1.1rem; border: 2px dashed rgba(255,255,255,0.05); border-radius: 30px; grid-column: 1 / -1; }
+        .empty-results { padding: 80px 40px; text-align: center; color: var(--gray-600); font-weight: 600; border: 2px dashed rgba(255,255,255,0.05); border-radius: 30px; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; }
+        .registry-discovery { max-width: 400px; }
+        .quick-stats { display: flex; justify-content: center; gap: 40px; margin-top: 20px; }
+        .q-stat { display: flex; flex-direction: column; align-items: center; }
+        .q-val { font-size: 1.5rem; font-weight: 900; color: white; }
+        .q-lbl { font-size: 0.65rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; margin-top: 4px; }
 
         .dispatch-panel { opacity: 0; pointer-events: none; transform: translateX(20px); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .dispatch-panel.visible { opacity: 1; pointer-events: auto; transform: translateX(0); }
