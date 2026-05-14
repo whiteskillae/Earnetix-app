@@ -157,7 +157,7 @@ const ProfilePage = () => {
                  )}
                </div>
                
-               <p style={{ color: 'var(--gray-400)', fontSize: '0.9rem', margin: '0 0 16px', fontWeight: 600 }}>UID: <span style={{ color: 'var(--blue-light)' }}>{user?.uid || 'Not Assigned'}</span></p>
+               <div style={{ marginBottom: '16px' }}></div>
 
                <p style={{ color: 'var(--gray-300)', fontSize: '1rem', marginBottom: '16px', lineHeight: '1.6', maxWidth: '600px' }}>
                  {user?.bio || "No mission brief provided. Complete your profile to add a bio."}
