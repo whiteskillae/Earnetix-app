@@ -1,7 +1,9 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Withdrawal = require('../models/Withdrawal');
 const AdminLog = require('../models/AdminLog');
 const logger = require('../utils/logger');
+const { freezePoints, unfreezePoints, deductPointsForWithdrawal } = require('../services/pointService');
 
 const POINTS_PER_DOLLAR = 100;
 const MIN_WITHDRAWAL_POINTS = 3000; // $30
@@ -26,13 +28,17 @@ const saveBankDetails = async (req, res, next) => {
   }
 };
 
-// ─── USER: REQUEST WITHDRAWAL ─────────────────────────
+// ─── USER: REQUEST WITHDRAWAL (ATOMIC POINT FREEZE) ──
 const requestWithdrawal = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { pointsToConvert } = req.body;
     const points = Number(pointsToConvert);
 
     if (!points || points < MIN_WITHDRAWAL_POINTS) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: `Minimum withdrawal is ${MIN_WITHDRAWAL_POINTS} points ($${MIN_WITHDRAWAL_POINTS / POINTS_PER_DOLLAR})`,
@@ -40,49 +46,54 @@ const requestWithdrawal = async (req, res, next) => {
     }
 
     if (points % POINTS_PER_DOLLAR !== 0) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ success: false, message: 'Points must be a multiple of 100' });
     }
 
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const user = await User.findById(req.user._id).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
     if (user.kycStatus !== 'verified') {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(403).json({ success: false, message: 'KYC verification required before withdrawal' });
     }
 
-    const availablePoints = user.points - user.frozenPoints;
-    if (availablePoints < points) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient available points. You have ${availablePoints} available (${user.frozenPoints} are frozen for pending withdrawals)`,
-      });
+    if (!user.bankDetails?.accountNumber) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Please save your bank details first' });
     }
 
     // Check if user already has a pending/processing withdrawal
-    const existingPending = await Withdrawal.findOne({ userId: user._id, status: { $in: ['pending', 'processing'] } });
+    const existingPending = await Withdrawal.findOne({ userId: user._id, status: { $in: ['pending', 'processing'] } }).session(session);
     if (existingPending) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'You already have a pending withdrawal request. Please wait for it to be processed.',
       });
     }
 
-    if (!user.bankDetails?.accountNumber) {
-      return res.status(400).json({ success: false, message: 'Please save your bank details first' });
-    }
-
     const amountUSD = points / POINTS_PER_DOLLAR;
 
-    // Freeze points
-    user.frozenPoints += points;
-    await user.save();
+    // Atomic freeze — validates available balance atomically
+    await freezePoints(user._id, points, session);
 
-    const withdrawal = await Withdrawal.create({
+    const [withdrawal] = await Withdrawal.create([{
       userId: user._id,
       pointsUsed: points,
       amountUSD,
       bankDetails: user.bankDetails,
-    });
+    }], { session });
+
+    await session.commitTransaction();
 
     logger.info(`Withdrawal requested: ${points} pts ($${amountUSD}) by ${user.email}`);
 
@@ -92,7 +103,13 @@ const requestWithdrawal = async (req, res, next) => {
       data: withdrawal,
     });
   } catch (error) {
+    await session.abortTransaction();
+    if (error.message.includes('Insufficient')) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
@@ -128,101 +145,132 @@ const getAllWithdrawals = async (req, res, next) => {
   }
 };
 
-// ─── ADMIN: COMPLETE WITHDRAWAL (DONE) ────────────────
+// ─── ADMIN: COMPLETE WITHDRAWAL (TRANSACTIONAL) ──────
 const completeWithdrawal = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const withdrawal = await Withdrawal.findById(req.params.id);
-    if (!withdrawal) return res.status(404).json({ success: false, message: 'Withdrawal not found' });
-    if (withdrawal.status === 'completed') return res.status(400).json({ success: false, message: 'Already completed' });
+    const withdrawal = await Withdrawal.findById(req.params.id).session(session);
+    if (!withdrawal) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+    }
+    if (withdrawal.status === 'completed') {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'Already completed' });
+    }
 
-    const user = await User.findById(withdrawal.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    // Securely deduct points
-    user.points -= withdrawal.pointsUsed;
-    user.frozenPoints = Math.max(0, user.frozenPoints - withdrawal.pointsUsed);
-    if (user.points < 0) user.points = 0;
-    await user.save();
+    // Atomic deduction: points AND frozenPoints decremented in one operation
+    await deductPointsForWithdrawal(withdrawal.userId, withdrawal.pointsUsed, session);
 
     withdrawal.status = 'completed';
     withdrawal.processedBy = req.user._id;
     withdrawal.processedAt = new Date();
     withdrawal.adminNote = req.body.note || 'Payment completed';
-    await withdrawal.save();
+    await withdrawal.save({ session });
 
-    await AdminLog.create({
+    await AdminLog.create([{
       adminId: req.user._id, action: 'withdrawal_complete', targetId: withdrawal._id,
-      targetType: 'withdrawal', details: `Completed $${withdrawal.amountUSD} withdrawal for ${user.email}`, ip: req.ip,
-    });
+      targetType: 'withdrawal', details: `Completed $${withdrawal.amountUSD} withdrawal for user ${withdrawal.userId}`, ip: req.ip,
+    }], { session });
 
-    logger.info(`Withdrawal completed: $${withdrawal.amountUSD} for ${user.email}`);
+    await session.commitTransaction();
+
+    const user = await User.findById(withdrawal.userId).select('email');
+    logger.info(`Withdrawal completed: $${withdrawal.amountUSD} for ${user?.email}`);
     res.json({ success: true, message: `Payment of $${withdrawal.amountUSD} marked as completed` });
   } catch (error) {
+    await session.abortTransaction();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
-// ─── ADMIN: REJECT WITHDRAWAL ─────────────────────────
+// ─── ADMIN: REJECT WITHDRAWAL (TRANSACTIONAL UNFREEZE) ─
 const rejectWithdrawal = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { reason } = req.body;
-    const withdrawal = await Withdrawal.findById(req.params.id);
-    if (!withdrawal) return res.status(404).json({ success: false, message: 'Withdrawal not found' });
-    if (withdrawal.status === 'completed') return res.status(400).json({ success: false, message: 'Cannot reject completed withdrawal' });
+    const withdrawal = await Withdrawal.findById(req.params.id).session(session);
+    if (!withdrawal) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+    }
+    if (withdrawal.status === 'completed') {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'Cannot reject completed withdrawal' });
+    }
 
-    const user = await User.findById(withdrawal.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    // Unfreeze points (return to user)
-    user.frozenPoints = Math.max(0, user.frozenPoints - withdrawal.pointsUsed);
-    await user.save();
+    // Atomic unfreeze — return points to user's available balance
+    await unfreezePoints(withdrawal.userId, withdrawal.pointsUsed, session);
 
     withdrawal.status = 'rejected';
     withdrawal.adminNote = reason || 'Rejected by admin';
     withdrawal.processedBy = req.user._id;
     withdrawal.processedAt = new Date();
-    await withdrawal.save();
+    await withdrawal.save({ session });
 
-    await AdminLog.create({
+    await AdminLog.create([{
       adminId: req.user._id, action: 'withdrawal_reject', targetId: withdrawal._id,
-      targetType: 'withdrawal', details: `Rejected $${withdrawal.amountUSD} withdrawal for ${user.email}: ${reason}`, ip: req.ip,
-    });
+      targetType: 'withdrawal', details: `Rejected $${withdrawal.amountUSD} withdrawal for user ${withdrawal.userId}: ${reason}`, ip: req.ip,
+    }], { session });
+
+    await session.commitTransaction();
 
     res.json({ success: true, message: 'Withdrawal rejected and points returned to user' });
   } catch (error) {
+    await session.abortTransaction();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
 // ─── ADMIN: BLOCK USER FROM WITHDRAWAL ────────────────
 const blockWithdrawalUser = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const withdrawal = await Withdrawal.findById(req.params.id);
-    if (!withdrawal) return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+    const withdrawal = await Withdrawal.findById(req.params.id).session(session);
+    if (!withdrawal) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+    }
 
-    const user = await User.findById(withdrawal.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const user = await User.findById(withdrawal.userId).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
     user.isBlocked = true;
     user.refreshToken = null;
+    await user.save({ session });
+
     // Unfreeze points since account is now blocked
-    user.frozenPoints = Math.max(0, user.frozenPoints - withdrawal.pointsUsed);
-    await user.save();
+    await unfreezePoints(user._id, withdrawal.pointsUsed, session);
 
     withdrawal.status = 'rejected';
     withdrawal.adminNote = 'User account blocked';
     withdrawal.processedBy = req.user._id;
     withdrawal.processedAt = new Date();
-    await withdrawal.save();
+    await withdrawal.save({ session });
 
-    await AdminLog.create({
+    await AdminLog.create([{
       adminId: req.user._id, action: 'withdrawal_block_user', targetId: user._id,
       targetType: 'user', details: `Blocked user ${user.email} during withdrawal review`, ip: req.ip,
-    });
+    }], { session });
+
+    await session.commitTransaction();
 
     res.json({ success: true, message: 'User blocked and withdrawal rejected' });
   } catch (error) {
+    await session.abortTransaction();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 

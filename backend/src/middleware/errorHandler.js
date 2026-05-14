@@ -30,6 +30,22 @@ const errorHandler = (err, req, res, next) => {
     return res.status(401).json({ success: false, message: 'Invalid token' });
   }
 
+  // Multer errors (file upload)
+  if (err.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ success: false, message: 'File size too large. Please reduce the file size and upload again.' });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ success: false, message: 'Unexpected file field in upload' });
+    }
+    return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+  }
+
+  // File validation errors (from uploadService.validateFile)
+  if (err.message && (err.message.includes('not allowed') || err.message.includes('File size') || err.message.includes('File type'))) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+
   // Default server error
   const statusCode = err.statusCode || (err.name === 'Error' ? 400 : 500); 
   res.status(statusCode).json({

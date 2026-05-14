@@ -11,7 +11,8 @@ import {
   X,
   Shield,
   Target,
-  Award
+  Award,
+  Image
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -40,6 +41,7 @@ const AdminLayout = ({ children }) => {
     { id: 'withdrawals', label: 'Treasury', icon: <Settings size={20} /> },
     { id: 'reports', label: 'Intelligence', icon: <Shield size={20} /> },
     { id: 'announcements', label: 'Broadcasting', icon: <Megaphone size={20} /> },
+    { id: 'gallery', label: 'Gallery', icon: <Image size={20} /> },
   ];
 
   const handleTabChange = (tabId) => {

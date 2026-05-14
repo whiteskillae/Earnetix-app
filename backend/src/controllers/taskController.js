@@ -133,13 +133,18 @@ const updateTask = async (req, res, next) => {
 };
 
 
-// ─── DELETE TASK (Admin) ──────────────────────────────
+// ─── DELETE TASK (Admin — Soft Delete) ────────────────
+// Soft-deletes the task (isActive=false) so accepted evidence remains archived.
+// Submissions referencing this task will still display correctly.
 const deleteTask = async (req, res, next) => {
   try {
-    const task = await Task.findByIdAndDelete(req.params.id);
+    const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
+
+    task.isActive = false;
+    await task.save();
 
     cache.flush(); // Clear all task caches
 
@@ -148,11 +153,11 @@ const deleteTask = async (req, res, next) => {
       action: 'delete_task',
       targetId: task._id,
       targetType: 'task',
-      details: `Deleted task: ${task.title}`,
+      details: `Archived task: ${task.title}`,
       ip: req.ip,
     });
 
-    res.json({ success: true, message: 'Task deleted' });
+    res.json({ success: true, message: 'Task archived successfully' });
   } catch (error) {
     next(error);
   }

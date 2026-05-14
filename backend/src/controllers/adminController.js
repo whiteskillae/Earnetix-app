@@ -1,12 +1,20 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Submission = require('../models/Submission');
 const Task = require('../models/Task');
 const AssignedTask = require('../models/AssignedTask');
 const AdminLog = require('../models/AdminLog');
-const { awardPoints } = require('../services/pointService');
+const { awardPoints, adjustPointsAtomic } = require('../services/pointService');
+const cache = require('../services/cacheService');
 
 const getDashboard = async (req, res, next) => {
   try {
+    // Check cache first (60-second TTL for dashboard stats)
+    const cached = cache.get('admin_dashboard');
+    if (cached) {
+      return res.json({ success: true, data: cached, fromCache: true });
+    }
+
     const Withdrawal = require('../models/Withdrawal');
     const [totalUsers, totalTasks, totalSubmissions, pendingSubmissions, approvedSubmissions, rejectedSubmissions, pendingKyc, pendingWithdrawals] = await Promise.all([
       User.countDocuments({ role: 'user' }),
@@ -18,7 +26,13 @@ const getDashboard = async (req, res, next) => {
       User.countDocuments({ kycStatus: 'pending' }),
       Withdrawal.countDocuments({ status: 'pending' }),
     ]);
-    res.json({ success: true, data: { totalUsers, totalTasks, totalSubmissions, pendingSubmissions, approvedSubmissions, rejectedSubmissions, pendingKyc, pendingWithdrawals } });
+
+    const data = { totalUsers, totalTasks, totalSubmissions, pendingSubmissions, approvedSubmissions, rejectedSubmissions, pendingKyc, pendingWithdrawals };
+
+    // Cache dashboard stats for 60 seconds
+    cache.set('admin_dashboard', data, 60);
+
+    res.json({ success: true, data });
   } catch (error) { next(error); }
 };
 
@@ -37,8 +51,10 @@ const getUsers = async (req, res, next) => {
       ];
     }
 
-    const users = await User.find(filter).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit);
-    const total = await User.countDocuments(filter);
+    const [users, total] = await Promise.all([
+      User.find(filter).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit).lean(),
+      User.countDocuments(filter),
+    ]);
     res.json({ success: true, data: { users, pagination: { page, limit, total, pages: Math.ceil(total / limit) } } });
   } catch (error) { next(error); }
 };
@@ -49,34 +65,58 @@ const getSubmissions = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 20;
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
-    const submissions = await Submission.find(filter).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit)
-      .populate('userId', 'name email').populate('taskId', 'title rewardPoints');
-    const total = await Submission.countDocuments(filter);
+
+    const [submissions, total] = await Promise.all([
+      Submission.find(filter).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit)
+        .populate('userId', 'name email').populate('taskId', 'title rewardPoints'),
+      Submission.countDocuments(filter),
+    ]);
     res.json({ success: true, data: { submissions, pagination: { page, limit, total, pages: Math.ceil(total / limit) } } });
   } catch (error) { next(error); }
 };
 
+/**
+ * TRANSACTIONAL: Approve submission + award points + log — all-or-nothing.
+ */
 const approveSubmission = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const submission = await Submission.findById(req.params.id).populate('taskId');
-    if (!submission) return res.status(404).json({ success: false, message: 'Submission not found' });
-    if (submission.status !== 'pending') return res.status(400).json({ success: false, message: 'Submission already reviewed' });
+    const submission = await Submission.findById(req.params.id).populate('taskId').session(session);
+    if (!submission) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'Submission not found' });
+    }
+    if (submission.status !== 'pending') {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'Submission already reviewed' });
+    }
 
     submission.status = 'approved';
     submission.reviewedBy = req.user._id;
     submission.reviewedAt = new Date();
     submission.canResubmit = false;
-    await submission.save();
+    await submission.save({ session });
 
-    await awardPoints(submission.userId, submission.taskId.rewardPoints, req.user._id, submission._id);
+    await awardPoints(submission.userId, submission.taskId.rewardPoints, req.user._id, submission._id, session);
 
-    await AdminLog.create({
+    await AdminLog.create([{
       adminId: req.user._id, action: 'approve', targetId: submission._id,
       targetType: 'submission', details: `Approved submission for task: ${submission.taskId.title}`, ip: req.ip,
-    });
+    }], { session });
+
+    await session.commitTransaction();
+
+    // Invalidate dashboard cache after successful approval
+    cache.del('admin_dashboard');
 
     res.json({ success: true, message: 'Submission approved and points awarded' });
-  } catch (error) { next(error); }
+  } catch (error) {
+    await session.abortTransaction();
+    next(error);
+  } finally {
+    session.endSession();
+  }
 };
 
 const rejectSubmission = async (req, res, next) => {
@@ -94,10 +134,17 @@ const rejectSubmission = async (req, res, next) => {
     submission.reviewedAt = new Date();
     await submission.save();
 
+    // Clean up rejected evidence from Cloudinary
+    const { deleteFromCloudinary } = require('../services/uploadService');
+    if (submission.imagePublicId) await deleteFromCloudinary(submission.imagePublicId);
+    if (submission.filePublicId) await deleteFromCloudinary(submission.filePublicId);
+
     await AdminLog.create({
       adminId: req.user._id, action: 'reject', targetId: submission._id,
       targetType: 'submission', details: `Rejected: ${rejectionReason}`, ip: req.ip,
     });
+
+    cache.del('admin_dashboard');
 
     res.json({ success: true, message: 'Submission rejected' });
   } catch (error) { next(error); }
@@ -110,7 +157,27 @@ const toggleBlockUser = async (req, res, next) => {
     if (user.role === 'admin') return res.status(400).json({ success: false, message: 'Cannot block admin' });
 
     user.isBlocked = !user.isBlocked;
+
+    // If blocking, invalidate session
+    if (user.isBlocked) {
+      user.refreshToken = null;
+    }
+
     await user.save();
+
+    // If blocking, clean up pending/rejected evidence from Cloudinary
+    if (user.isBlocked) {
+      const { deleteFromCloudinary } = require('../services/uploadService');
+      const pendingSubmissions = await Submission.find({
+        userId: user._id,
+        status: { $in: ['pending', 'rejected'] },
+        $or: [{ imagePublicId: { $ne: null } }, { filePublicId: { $ne: null } }]
+      });
+      for (const sub of pendingSubmissions) {
+        if (sub.imagePublicId) await deleteFromCloudinary(sub.imagePublicId);
+        if (sub.filePublicId) await deleteFromCloudinary(sub.filePublicId);
+      }
+    }
 
     await AdminLog.create({
       adminId: req.user._id, action: user.isBlocked ? 'block' : 'unblock', targetId: user._id,
@@ -123,7 +190,7 @@ const toggleBlockUser = async (req, res, next) => {
 
 const getTasksWithStats = async (req, res, next) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const tasks = await Task.find().sort({ createdAt: -1 }).lean();
 
     // Single aggregation query instead of one-per-task (O(N) -> O(1))
     const submissionStats = await Submission.aggregate([
@@ -140,7 +207,7 @@ const getTasksWithStats = async (req, res, next) => {
     });
 
     const tasksWithStats = tasks.map(task => ({
-      ...task.toObject(),
+      ...task,
       stats: statsMap[task._id.toString()] || { pending: 0, approved: 0, rejected: 0 },
       totalSubmissions: statsMap[task._id.toString()]?.total || 0,
     }));
@@ -149,11 +216,13 @@ const getTasksWithStats = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-
+/**
+ * ATOMIC: Admin point adjustment using $inc.
+ */
 const adjustPoints = async (req, res, next) => {
   try {
     const { points, reason } = req.body;
-    
+
     const delta = Number(points);
     if (isNaN(delta)) {
       return res.status(400).json({ success: false, message: 'Points must be a valid number' });
@@ -163,23 +232,22 @@ const adjustPoints = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Reason is required for audit log' });
     }
 
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    if (user.points + delta < 0) {
-      return res.status(400).json({ success: false, message: `Insufficient points. User only has ${user.points} points.` });
-    }
-
-    user.points += delta;
-    await user.save();
+    const user = await adjustPointsAtomic(req.params.id, delta);
 
     await AdminLog.create({
       adminId: req.user._id, action: 'adjust_points', targetId: user._id,
       targetType: 'user', details: `Adjusted points by ${delta}. Reason: ${reason}`, ip: req.ip,
     });
 
+    cache.del('admin_dashboard');
+
     res.json({ success: true, message: `Points adjusted by ${delta}`, data: user });
-  } catch (error) { next(error); }
+  } catch (error) {
+    if (error.message.includes('Insufficient') || error.message.includes('not found')) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    next(error);
+  }
 };
 
 const blockUserTemporary = async (req, res, next) => {
@@ -211,27 +279,50 @@ const getPendingAssignedTasks = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+/**
+ * TRANSACTIONAL: Approve assigned task + award points + log.
+ */
 const approveAssignedTask = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const task = await AssignedTask.findById(req.params.id);
-    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
-    if (task.status !== 'under_review') return res.status(400).json({ success: false, message: 'Task not in review state' });
+    const task = await AssignedTask.findById(req.params.id).session(session);
+    if (!task) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+    if (task.status !== 'under_review') {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'Task not in review state' });
+    }
 
     const submission = task.submissions[task.submissions.length - 1];
-    if (!submission) return res.status(400).json({ success: false, message: 'No submission found' });
+    if (!submission) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'No submission found' });
+    }
 
     task.status = 'completed';
-    await task.save();
+    await task.save({ session });
 
-    await awardPoints(submission.userId, task.rewardPoints, req.user._id, task._id);
+    await awardPoints(submission.userId, task.rewardPoints, req.user._id, task._id, session);
 
-    await AdminLog.create({
+    await AdminLog.create([{
       adminId: req.user._id, action: 'approve_assigned', targetId: task._id,
       targetType: 'assigned_task', details: `Approved mission: ${task.title} for user ${submission.userId}`, ip: req.ip,
-    });
+    }], { session });
+
+    await session.commitTransaction();
+
+    cache.del('admin_dashboard');
 
     res.json({ success: true, message: 'Mission approved and points awarded' });
-  } catch (error) { next(error); }
+  } catch (error) {
+    await session.abortTransaction();
+    next(error);
+  } finally {
+    session.endSession();
+  }
 };
 
 const rejectAssignedTask = async (req, res, next) => {
@@ -254,8 +345,8 @@ const rejectAssignedTask = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { 
-  getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, 
+module.exports = {
+  getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission,
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
   getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask
 };

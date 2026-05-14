@@ -1,5 +1,6 @@
 const { verifyAccessToken } = require('../services/tokenService');
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
 /**
  * JWT authentication middleware.
@@ -9,7 +10,6 @@ const auth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log(`[AUTH] 401: No token provided. Path: ${req.path}`);
       return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
     }
 
@@ -18,7 +18,6 @@ const auth = async (req, res, next) => {
     try {
       decoded = verifyAccessToken(token);
     } catch (error) {
-      console.log(`[AUTH] 401: Token verification failed for ${token.substring(0, 10)}... Error: ${error.message}`);
       if (error.name === 'TokenExpiredError') {
         return res.status(401).json({ success: false, message: 'Token expired.', code: 'TOKEN_EXPIRED' });
       }
@@ -27,7 +26,6 @@ const auth = async (req, res, next) => {
 
     const user = await User.findById(decoded.userId).select('-passwordHash -otp -refreshToken');
     if (!user) {
-      console.log(`[AUTH] 401: User not found for ID: ${decoded.userId}`);
       return res.status(401).json({ success: false, message: 'User not found.' });
     }
 

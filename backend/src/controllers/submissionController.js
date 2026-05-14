@@ -1,7 +1,7 @@
 const Submission = require('../models/Submission');
 const Task = require('../models/Task');
 const { validateFile, uploadToCloudinary, deleteFromCloudinary } = require('../services/uploadService');
-const { hashText } = require('../utils/hashFile');
+const { hashFileBuffer, hashText } = require('../utils/hashFile');
 const { checkDailyLimit } = require('../services/taskService');
 
 const submitProof = async (req, res, next) => {
@@ -26,8 +26,6 @@ const submitProof = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Daily limit of 8 tasks reached.' });
     }
 
-    let imageUrl = null, imagePublicId = null, fileUrl = null, filePublicId = null, fileHash = null;
-
     // Handle files
     const imageFile = req.files?.image?.[0];
     const otherFile = req.files?.file?.[0];
@@ -36,30 +34,33 @@ const submitProof = async (req, res, next) => {
     const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
     const allowedFiles = task.allowedExtensions && task.allowedExtensions.length > 0 ? task.allowedExtensions : ['*'];
 
-    if (imageFile) {
-      validateFile(imageFile, allowedImages, task.maxFileSize);
-      const r = await uploadToCloudinary(imageFile.buffer);
-      imageUrl = r.url; imagePublicId = r.publicId; fileHash = r.hash;
-    }
+    // Validate files BEFORE any upload
+    if (imageFile) validateFile(imageFile, allowedImages, task.maxFileSize);
+    if (otherFile) validateFile(otherFile, allowedFiles, task.maxFileSize);
 
-    if (otherFile) {
-      validateFile(otherFile, allowedFiles, task.maxFileSize);
-      const r = await uploadToCloudinary(otherFile.buffer);
-      fileUrl = r.url; filePublicId = r.publicId; 
-      if (!fileHash) fileHash = r.hash;
-    }
-
+    // ─── HASH BEFORE UPLOAD (dedup optimization) ─────────
+    // Compute hashes from buffers locally — no Cloudinary API call yet
+    let fileHash = null;
+    if (imageFile) fileHash = hashFileBuffer(imageFile.buffer);
+    if (otherFile && !fileHash) fileHash = hashFileBuffer(otherFile.buffer);
     if (textContent) fileHash = fileHash || hashText(textContent);
     if (linkUrl) fileHash = fileHash || hashText(linkUrl);
 
-    // Dynamic Validation based on inputType
+    // Check for duplicates BEFORE uploading to Cloudinary
+    if (fileHash) {
+      const dup = await Submission.findOne({ fileHash, status: { $in: ['pending', 'approved'] } });
+      if (dup) {
+        return res.status(409).json({ success: false, message: 'Duplicate submission detected' });
+      }
+    }
+
+    // Dynamic Validation based on inputType (before upload to catch early)
     const it = task.inputType;
     const hasText = !!textContent;
-    const hasImage = !!imageUrl;
-    const hasFile = !!fileUrl;
+    const hasImage = !!imageFile;
+    const hasFile = !!otherFile;
     const hasLink = !!linkUrl;
 
-    // Check requirements based on it (inputType)
     if (it.includes('text') && !hasText) return res.status(400).json({ success: false, message: 'Text response is required' });
     if (it.includes('image') && !hasImage) return res.status(400).json({ success: false, message: 'Screenshot/Image is required' });
     if (it.includes('file') && !hasFile) return res.status(400).json({ success: false, message: 'File upload is required' });
@@ -67,13 +68,17 @@ const submitProof = async (req, res, next) => {
     if (it === 'text_link' && (!hasText || !hasLink)) return res.status(400).json({ success: false, message: 'Both text and link are required' });
     if (it === 'all' && (!hasText || !hasImage || !hasFile || !hasLink)) return res.status(400).json({ success: false, message: 'Full evidence required: Text + Image + File + Link' });
 
-    if (fileHash) {
-      const dup = await Submission.findOne({ fileHash, status: { $in: ['pending', 'approved'] } });
-      if (dup) { 
-        if (imagePublicId) await deleteFromCloudinary(imagePublicId); 
-        if (filePublicId) await deleteFromCloudinary(filePublicId);
-        return res.status(409).json({ success: false, message: 'Duplicate submission' }); 
-      }
+    // ─── NOW UPLOAD (only after all validation + dedup passes) ───
+    let imageUrl = null, imagePublicId = null, fileUrl = null, filePublicId = null;
+
+    if (imageFile) {
+      const r = await uploadToCloudinary(imageFile.buffer);
+      imageUrl = r.url; imagePublicId = r.publicId;
+    }
+
+    if (otherFile) {
+      const r = await uploadToCloudinary(otherFile.buffer);
+      fileUrl = r.url; filePublicId = r.publicId;
     }
 
     const submission = await Submission.create({ 

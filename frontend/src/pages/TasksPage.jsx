@@ -39,6 +39,50 @@ const TasksPage = () => {
     fetchData();
   }, [request]);
 
+  // ─── FRONTEND FILE VALIDATION ─────────────────────────
+  const MAX_IMAGE_SIZE = 15 * 1024 * 1024; // 15MB
+  const MAX_FILE_SIZE = 50 * 1024 * 1024;  // 50MB
+  const BLOCKED_EXTENSIONS = ['exe','bat','cmd','sh','msi','php','py','rb','apk','dll','js','jsx','ts','tsx','com','scr','vbs'];
+  const ALLOWED_IMAGES = ['jpg','jpeg','png','webp','gif','bmp','heic','svg','tiff'];
+
+  const validateFileClient = (file, isImage = false) => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (BLOCKED_EXTENSIONS.includes(ext)) {
+      toast.error(`File type .${ext} is not allowed for security reasons`);
+      return false;
+    }
+    if (isImage && !ALLOWED_IMAGES.includes(ext)) {
+      toast.error(`Image type .${ext} is not supported. Use: ${ALLOWED_IMAGES.join(', ')}`);
+      return false;
+    }
+    const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_FILE_SIZE;
+    if (file.size > maxSize) {
+      toast.error(`File size too large. Maximum allowed: ${Math.round(maxSize / (1024 * 1024))}MB`);
+      return false;
+    }
+    return true;
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file && validateFileClient(file, true)) {
+      setImageFile(file);
+    } else {
+      e.target.value = '';
+      setImageFile(null);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && validateFileClient(file, false)) {
+      setOtherFile(file);
+    } else {
+      e.target.value = '';
+      setOtherFile(null);
+    }
+  };
+
   const openSubmit = (task, subId = null) => {
     setSelected(task);
     setEditingSubId(subId);
@@ -277,7 +321,7 @@ const TasksPage = () => {
                   }}
                 >
                   <input id="image-input" type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={(e) => setImageFile(e.target.files[0])} required />
+                    onChange={handleImageChange} required />
                   {imageFile ? (
                     <div style={{ textAlign: 'center' }}>
                        <CheckCircle size={24} color="var(--green)" />
@@ -307,7 +351,7 @@ const TasksPage = () => {
                   }}
                 >
                   <input id="other-file-input" type="file" style={{ display: 'none' }}
-                    onChange={(e) => setOtherFile(e.target.files[0])} required />
+                    onChange={handleFileChange} required />
                   {otherFile ? (
                     <div style={{ textAlign: 'center' }}>
                        <CheckCircle size={24} color="var(--blue)" />

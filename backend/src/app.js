@@ -21,6 +21,7 @@ const skillCategoryRoutes = require('./routes/skillCategoryRoutes');
 const assignedTaskRoutes = require('./routes/assignedTaskRoutes');
 const kycRoutes = require('./routes/kycRoutes');
 const withdrawalRoutes = require('./routes/withdrawalRoutes');
+const galleryRoutes = require('./routes/galleryRoutes');
 
 const app = express();
 app.set('trust proxy', true);
@@ -69,7 +70,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-app.get('/api/health', (req, res) => res.status(200).send('OK'));
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, message: 'EARNETIX API is running', timestamp: new Date().toISOString() });
+});
 
 // ─── RATE LIMITING ─────────────────────────────────────
 app.use('/api', apiLimiter);
@@ -86,11 +89,7 @@ app.use('/api/skill-categories', skillCategoryRoutes);
 app.use('/api/assigned-tasks', assignedTaskRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'EARNETIX API is running', timestamp: new Date().toISOString() });
-});
+app.use('/api/admin/gallery', galleryRoutes);
 
 // 404
 app.use((req, res) => {
