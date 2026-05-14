@@ -320,11 +320,31 @@ const AssignmentManagement = () => {
                         </label>
                     </div>
 
+                    <div className="dispatch-summary">
+                        <div className="s-item">
+                            <span className="s-label">Target Fleet</span>
+                            <span className="s-val">{selectedUsers.length} Agents</span>
+                        </div>
+                        <div className="s-item">
+                            <span className="s-label">Total Credits</span>
+                            <span className="s-val" style={{ color: 'var(--green)' }}>{selectedUsers.length * form.rewardPoints} CR</span>
+                        </div>
+                    </div>
+
                     <button className="btn-deploy" disabled={apiLoading}>
-                        {apiLoading ? 'BROADCASTING...' : `DEPLOY TO ${selectedUsers.length} AGENTS`}
+                        {apiLoading ? (
+                            <div className="flex-center gap-2">
+                                <RefreshCcw size={18} className="spin" />
+                                <span>INITIALIZING...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <Send size={18} /> INITIALIZE DEPLOYMENT
+                            </>
+                        )}
                     </button>
                     
-                    <button type="button" className="btn-cancel" onClick={() => setSelectedUsers([])}>Cancel Deployment</button>
+                    <button type="button" className="btn-cancel" onClick={() => setSelectedUsers([])}>Abort Operation</button>
                 </form>
             </div>
         </div>
@@ -342,12 +362,12 @@ const AssignmentManagement = () => {
         .btn-text-action:hover { opacity: 1; }
 
         .search-section-wrap { margin-bottom: 40px; }
-        .main-search-bar { display: flex; align-items: center; padding: 0 32px; height: 80px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .main-search-bar { display: flex; align-items: center; padding: 0 32px; height: 80px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); }
         .search-icon { color: var(--blue); margin-right: 24px; }
         .main-search-bar input { flex: 1; background: none; border: none; font-size: 1.4rem; font-weight: 700; color: white; outline: none; }
         .main-search-bar input::placeholder { color: var(--gray-600); }
         
-        .selection-counter { padding: 8px 16px; background: var(--blue-gradient); border-radius: 12px; font-size: 0.85rem; font-weight: 800; color: white; }
+        .selection-counter { padding: 8px 16px; background: var(--blue-gradient); border-radius: 12px; font-size: 0.85rem; font-weight: 800; color: white; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3); }
 
         .active-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; min-height: 32px; }
         .filter-tag { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; font-size: 0.8rem; font-weight: 700; color: var(--blue-light); }
@@ -366,7 +386,7 @@ const AssignmentManagement = () => {
 
         .agents-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px; }
         .agent-row { display: flex; align-items: center; gap: 16px; padding: 20px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; cursor: pointer; transition: all 0.2s; position: relative; }
-        .agent-row:hover { background: rgba(255,255,255,0.04); transform: scale(1.02); }
+        .agent-row:hover { background: rgba(255,255,255,0.04); transform: translateY(-4px); border-color: rgba(255,255,255,0.1); }
         .agent-row.selected { background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.3); }
         
         .agent-avatar { width: 44px; height: 44px; background: var(--blue-gradient); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: white; }
@@ -382,36 +402,44 @@ const AssignmentManagement = () => {
         .q-val { font-size: 1.5rem; font-weight: 900; color: white; }
         .q-lbl { font-size: 0.65rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; margin-top: 4px; }
 
-        .dispatch-panel { opacity: 0; pointer-events: none; transform: translateX(20px); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        .dispatch-panel.visible { opacity: 1; pointer-events: auto; transform: translateX(0); }
-        .dispatch-form-container { position: sticky; top: 24px; padding: 0; overflow: hidden; }
-        .form-header { display: flex; align-items: center; gap: 12px; padding: 20px 24px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 800; font-size: 0.9rem; text-transform: uppercase; color: var(--gray-400); }
-        .zap-icon { color: var(--blue); }
+        .dispatch-panel { opacity: 0; pointer-events: none; transform: scale(0.95); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .dispatch-panel.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+        .dispatch-form-container { position: sticky; top: 24px; padding: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
+        .form-header { display: flex; align-items: center; gap: 12px; padding: 24px; background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent); border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 900; font-size: 0.85rem; text-transform: uppercase; color: white; letter-spacing: 0.05em; }
+        .zap-icon { color: var(--blue); filter: drop-shadow(0 0 8px var(--blue)); }
         
-        .dispatch-form { padding: 24px; display: flex; flexDirection: column; gap: 16px; }
-        .minimal { background: rgba(0,0,0,0.2) !important; border: 1px solid rgba(255,255,255,0.05) !important; border-radius: 12px !important; padding: 14px !important; font-size: 0.9rem !important; }
-        .minimal:focus { border-color: var(--blue) !important; }
+        .dispatch-form { padding: 24px; display: flex; flexDirection: column; gap: 20px; }
+        .minimal { background: rgba(255,255,255,0.02) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px !important; padding: 16px !important; font-size: 0.95rem !important; color: white !important; }
+        .minimal:focus { border-color: var(--blue) !important; background: rgba(255,255,255,0.04) !important; }
         
-        .dispatch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .points-input-wrap { display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; color: var(--green); }
-        .points-input-wrap input { background: none; border: none; font-weight: 900; color: var(--green); outline: none; width: 100%; }
+        .dispatch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .points-input-wrap { display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 14px; color: var(--green); }
+        .points-input-wrap input { background: none; border: none; font-weight: 900; color: var(--green); outline: none; width: 100%; font-size: 1.1rem; }
         
-        .dispatch-upload label { display: flex; align-items: center; gap: 8px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 10px; font-size: 0.75rem; font-weight: 700; color: var(--gray-500); cursor: pointer; }
-        .dispatch-upload label:hover { border-color: var(--blue); color: white; }
+        .dispatch-upload label { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; background: rgba(255,255,255,0.02); border: 2px dashed rgba(255,255,255,0.05); border-radius: 14px; font-size: 0.8rem; font-weight: 700; color: var(--gray-400); cursor: pointer; transition: all 0.2s; }
+        .dispatch-upload label:hover { border-color: var(--blue); color: white; background: rgba(59, 130, 246, 0.05); }
 
-        .btn-deploy { height: 56px; background: var(--blue-gradient); border: none; border-radius: 14px; color: white; font-weight: 900; cursor: pointer; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3); transition: all 0.2s; }
-        .btn-deploy:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4); }
-        .btn-cancel { background: none; border: none; color: var(--gray-600); font-weight: 700; cursor: pointer; font-size: 0.85rem; }
+        .dispatch-summary { padding: 16px; background: rgba(255,255,255,0.02); border-radius: 14px; display: flex; flex-direction: column; gap: 8px; }
+        .s-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 700; }
+        .s-label { color: var(--gray-500); }
+        .s-val { color: white; }
+
+        .btn-deploy { height: 60px; background: var(--blue-gradient); border: none; border-radius: 16px; color: white; font-weight: 900; cursor: pointer; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-size: 1rem; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .btn-deploy:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(59, 130, 246, 0.5); }
+        .btn-deploy:active { transform: scale(0.98); }
+        .btn-cancel { background: none; border: none; color: var(--gray-600); font-weight: 800; cursor: pointer; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s; }
+        .btn-cancel:hover { color: #ef4444; }
 
         .history-list { padding: 0; }
-        .history-item { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .history-item { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s; }
+        .history-item:hover { background: rgba(255,255,255,0.01); }
         .h-info { flex: 1; }
-        .h-title { font-weight: 700; font-size: 0.9rem; }
-        .h-meta { font-size: 0.7rem; color: var(--gray-500); margin-top: 2px; }
-        .h-status { font-size: 0.65rem; font-weight: 900; padding: 4px 8px; border-radius: 4px; }
+        .h-title { font-weight: 700; font-size: 0.95rem; }
+        .h-meta { font-size: 0.75rem; color: var(--gray-500); margin-top: 2px; }
+        .h-status { font-size: 0.65rem; font-weight: 900; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.05em; }
         .h-status.under_review { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
         .h-status.completed { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .h-points { font-weight: 900; color: var(--green); font-size: 0.85rem; }
+        .h-points { font-weight: 900; color: var(--green); font-size: 1rem; }
       `}</style>
     </div>
   );
