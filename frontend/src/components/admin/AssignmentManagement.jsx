@@ -285,38 +285,54 @@ const AssignmentManagement = () => {
                 </div>
                 
                 <form onSubmit={handleSubmit} className="dispatch-form">
-                    <input 
-                        className="form-input minimal" 
-                        placeholder="Mission Title..."
-                        value={form.title} 
-                        onChange={(e) => setForm({ ...form, title: e.target.value })} 
-                    />
-                    <textarea 
-                        className="form-input minimal" 
-                        rows="4" 
-                        placeholder="Operational Briefing..."
-                        value={form.description} 
-                        onChange={(e) => setForm({ ...form, description: e.target.value })} 
-                    />
+                    <div className="form-field-wrap">
+                        <FileText size={18} className="field-icon" />
+                        <input 
+                            className="minimal-input" 
+                            placeholder="Mission Title..."
+                            value={form.title} 
+                            onChange={(e) => setForm({ ...form, title: e.target.value })} 
+                        />
+                    </div>
+
+                    <div className="form-field-wrap">
+                        <List size={18} className="field-icon" style={{ top: '12px' }} />
+                        <textarea 
+                            className="minimal-input" 
+                            rows="3" 
+                            placeholder="Operational Briefing..."
+                            value={form.description} 
+                            onChange={(e) => setForm({ ...form, description: e.target.value })} 
+                        />
+                    </div>
                     
-                    <div className="dispatch-row">
-                        <select className="form-input minimal" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-                            <option value="low">Standard Priority</option>
-                            <option value="medium">Important</option>
-                            <option value="high">Critical</option>
-                        </select>
-                        <input type="date" className="form-input minimal" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+                    <div className="dispatch-grid">
+                        <div className="form-field-wrap">
+                            <Zap size={18} className="field-icon" />
+                            <select className="minimal-input select-custom" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+                                <option value="low">Standard</option>
+                                <option value="medium">Important</option>
+                                <option value="high">Critical</option>
+                            </select>
+                        </div>
+                        <div className="form-field-wrap">
+                            <Calendar size={18} className="field-icon" />
+                            <input type="date" className="minimal-input" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+                        </div>
                     </div>
 
-                    <div className="points-input-wrap">
-                        <Award size={18} />
-                        <input type="number" placeholder="Credits" value={form.rewardPoints} onChange={(e) => setForm({ ...form, rewardPoints: e.target.value })} />
+                    <div className="points-box">
+                        <Award size={24} />
+                        <div style={{ flex: 1 }}>
+                            <div className="s-label" style={{ fontSize: '0.6rem', marginBottom: '2px' }}>Credits Per Unit</div>
+                            <input type="number" value={form.rewardPoints} onChange={(e) => setForm({ ...form, rewardPoints: e.target.value })} />
+                        </div>
                     </div>
 
-                    <div className="dispatch-upload">
+                    <div className="file-upload-zone">
                         <input type="file" multiple onChange={handleFileChange} id="file-dispatch" style={{ display: 'none' }} />
                         <label htmlFor="file-dispatch">
-                            <Upload size={16} /> {attachments.length > 0 ? `${attachments.length} Files Attached` : 'Attach Intel'}
+                            <Upload size={18} /> {attachments.length > 0 ? `${attachments.length} Intel Files Attached` : 'Attach Operational Intel'}
                         </label>
                     </div>
 
@@ -333,18 +349,18 @@ const AssignmentManagement = () => {
 
                     <button className="btn-deploy" disabled={apiLoading}>
                         {apiLoading ? (
-                            <div className="flex-center gap-2">
-                                <RefreshCcw size={18} className="spin" />
-                                <span>INITIALIZING...</span>
-                            </div>
+                            <>
+                                <RefreshCcw size={20} className="spin" />
+                                <span>BROADCASTING...</span>
+                            </>
                         ) : (
                             <>
-                                <Send size={18} /> INITIALIZE DEPLOYMENT
+                                <Target size={20} /> DEPLOY MISSION
                             </>
                         )}
                     </button>
                     
-                    <button type="button" className="btn-cancel" onClick={() => setSelectedUsers([])}>Abort Operation</button>
+                    <button type="button" className="btn-cancel" onClick={() => setSelectedUsers([])}>Abort Deployment</button>
                 </form>
             </div>
         </div>
@@ -402,44 +418,59 @@ const AssignmentManagement = () => {
         .q-val { font-size: 1.5rem; font-weight: 900; color: white; }
         .q-lbl { font-size: 0.65rem; font-weight: 800; color: var(--gray-500); text-transform: uppercase; margin-top: 4px; }
 
-        .dispatch-panel { opacity: 0; pointer-events: none; transform: scale(0.95); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        .dispatch-panel.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
-        .dispatch-form-container { position: sticky; top: 24px; padding: 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
-        .form-header { display: flex; align-items: center; gap: 12px; padding: 24px; background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent); border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 900; font-size: 0.85rem; text-transform: uppercase; color: white; letter-spacing: 0.05em; }
-        .zap-icon { color: var(--blue); filter: drop-shadow(0 0 8px var(--blue)); }
+        .dispatch-panel { opacity: 0; pointer-events: none; transform: translateY(10px) scale(0.98); transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .dispatch-panel.visible { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+        .dispatch-form-container { position: sticky; top: 24px; padding: 0; overflow: hidden; background: rgba(10, 10, 15, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 28px; box-shadow: 0 40px 100px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05); }
         
-        .dispatch-form { padding: 24px; display: flex; flexDirection: column; gap: 20px; }
-        .minimal { background: rgba(255,255,255,0.02) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px !important; padding: 16px !important; font-size: 0.95rem !important; color: white !important; }
-        .minimal:focus { border-color: var(--blue) !important; background: rgba(255,255,255,0.04) !important; }
+        .form-header { display: flex; align-items: center; gap: 14px; padding: 28px; background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent); border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .form-header span { font-size: 0.8rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; color: var(--blue-light); }
         
-        .dispatch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .points-input-wrap { display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 14px; color: var(--green); }
-        .points-input-wrap input { background: none; border: none; font-weight: 900; color: var(--green); outline: none; width: 100%; font-size: 1.1rem; }
+        .dispatch-form { padding: 32px; display: flex; flex-direction: column; gap: 28px; }
         
-        .dispatch-upload label { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; background: rgba(255,255,255,0.02); border: 2px dashed rgba(255,255,255,0.05); border-radius: 14px; font-size: 0.8rem; font-weight: 700; color: var(--gray-400); cursor: pointer; transition: all 0.2s; }
-        .dispatch-upload label:hover { border-color: var(--blue); color: white; background: rgba(59, 130, 246, 0.05); }
+        .form-field-wrap { position: relative; }
+        .form-field-wrap .field-icon { position: absolute; left: 0; top: 14px; color: var(--gray-600); transition: color 0.3s; }
+        
+        .minimal-input { width: 100%; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 12px 12px 12px 32px; font-size: 1rem; color: white; outline: none; transition: all 0.3s; font-weight: 500; }
+        .minimal-input:focus { border-color: var(--blue); }
+        .minimal-input:focus + .field-icon { color: var(--blue); filter: drop-shadow(0 0 5px var(--blue)); }
+        .minimal-input::placeholder { color: var(--gray-700); font-weight: 400; }
+        
+        .dispatch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        
+        .select-custom { appearance: none; cursor: pointer; }
+        
+        .points-box { background: rgba(16, 185, 129, 0.03); border: 1px solid rgba(16, 185, 129, 0.1); border-radius: 16px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; transition: all 0.3s; }
+        .points-box:focus-within { border-color: var(--green); background: rgba(16, 185, 129, 0.06); }
+        .points-box input { background: none; border: none; font-size: 1.4rem; font-weight: 900; color: var(--green); outline: none; width: 100%; }
+        
+        .file-upload-zone { position: relative; }
+        .file-upload-zone label { display: flex; align-items: center; justify-content: center; gap: 12px; height: 54px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 16px; font-size: 0.8rem; font-weight: 700; color: var(--gray-500); cursor: pointer; transition: all 0.2s; }
+        .file-upload-zone label:hover { background: rgba(255,255,255,0.04); border-color: var(--blue); color: white; }
 
-        .dispatch-summary { padding: 16px; background: rgba(255,255,255,0.02); border-radius: 14px; display: flex; flex-direction: column; gap: 8px; }
-        .s-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 700; }
-        .s-label { color: var(--gray-500); }
-        .s-val { color: white; }
+        .dispatch-summary { padding: 20px; background: rgba(255,255,255,0.02); border-radius: 20px; border: 1px solid rgba(255,255,255,0.03); }
+        .s-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .s-item:last-child { margin-bottom: 0; }
+        .s-label { font-size: 0.75rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; }
+        .s-val { font-size: 0.9rem; font-weight: 800; color: white; }
 
-        .btn-deploy { height: 60px; background: var(--blue-gradient); border: none; border-radius: 16px; color: white; font-weight: 900; cursor: pointer; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-size: 1rem; letter-spacing: 0.02em; display: flex; align-items: center; justify-content: center; gap: 12px; }
-        .btn-deploy:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(59, 130, 246, 0.5); }
-        .btn-deploy:active { transform: scale(0.98); }
-        .btn-cancel { background: none; border: none; color: var(--gray-600); font-weight: 800; cursor: pointer; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s; }
+        .btn-deploy { height: 64px; background: var(--blue-gradient); border: none; border-radius: 20px; color: white; font-weight: 900; font-size: 1rem; letter-spacing: 0.05em; cursor: pointer; box-shadow: 0 20px 40px rgba(59, 130, 246, 0.25); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .btn-deploy:hover { transform: translateY(-3px); box-shadow: 0 25px 50px rgba(59, 130, 246, 0.4); }
+        .btn-deploy:active { transform: scale(0.97); }
+        .btn-deploy:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+        .btn-cancel { background: none; border: none; color: var(--gray-600); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: color 0.2s; align-self: center; }
         .btn-cancel:hover { color: #ef4444; }
 
         .history-list { padding: 0; }
-        .history-item { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s; }
+        .history-item { display: flex; align-items: center; gap: 20px; padding: 20px 28px; border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s; }
         .history-item:hover { background: rgba(255,255,255,0.01); }
         .h-info { flex: 1; }
-        .h-title { font-weight: 700; font-size: 0.95rem; }
-        .h-meta { font-size: 0.75rem; color: var(--gray-500); margin-top: 2px; }
-        .h-status { font-size: 0.65rem; font-weight: 900; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.05em; }
+        .h-title { font-weight: 700; font-size: 1rem; color: white; }
+        .h-meta { font-size: 0.75rem; color: var(--gray-500); margin-top: 4px; }
+        .h-status { font-size: 0.7rem; font-weight: 900; padding: 6px 12px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
         .h-status.under_review { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
         .h-status.completed { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .h-points { font-weight: 900; color: var(--green); font-size: 1rem; }
+        .h-points { font-size: 1.1rem; font-weight: 900; color: var(--green); }
       `}</style>
     </div>
   );
