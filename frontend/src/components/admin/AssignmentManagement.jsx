@@ -26,6 +26,11 @@ const AssignmentManagement = () => {
     rewardPoints: 50
   });
 
+  const [submissionConfig, setSubmissionConfig] = useState({
+    inputType: 'file',
+    customFields: []
+  });
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -100,7 +105,7 @@ const AssignmentManagement = () => {
     e.preventDefault();
     
     // Debug Log
-    console.log('Deploying Mission:', { form, selectedUsers, attachmentsCount: attachments.length });
+    console.log('Deploying Mission:', { form, selectedUsers, attachmentsCount: attachments.length, submissionConfig });
 
     if (selectedUsers.length === 0) return toast.error('Strategic targeting required: No agents selected');
     if (!form.title?.trim()) return toast.error('Mission failed: Title is required');
@@ -114,6 +119,7 @@ const AssignmentManagement = () => {
     formData.append('assignedUsers', JSON.stringify(selectedUsers));
     formData.append('deadline', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString());
     formData.append('priority', 'medium');
+    formData.append('submissionConfig', JSON.stringify(submissionConfig));
     
     attachments.forEach(file => {
       formData.append('attachments', file);
@@ -129,6 +135,7 @@ const AssignmentManagement = () => {
         setForm({ title: '', description: '', rewardPoints: 50 });
         setAttachments([]);
         setSelectedUsers([]);
+        setSubmissionConfig({ inputType: 'file', customFields: [] });
         fetchData();
       } else {
         toast.error(res.message || 'Deployment protocol failure');
@@ -313,6 +320,23 @@ const AssignmentManagement = () => {
                             value={form.description} 
                             onChange={(e) => setForm({ ...form, description: e.target.value })} 
                         />
+                    </div>
+
+                    <div className="form-field-wrap">
+                        <CheckSquare size={18} className="field-icon" />
+                        <select 
+                            className="minimal-input select-custom" 
+                            value={submissionConfig.inputType}
+                            onChange={(e) => setSubmissionConfig({ ...submissionConfig, inputType: e.target.value })}
+                        >
+                            <option value="file">Evidence: Single File</option>
+                            <option value="multiple_files">Evidence: Multiple Files</option>
+                            <option value="text">Evidence: Text Report</option>
+                            <option value="image">Evidence: Screenshot/Image</option>
+                            <option value="link">Evidence: URL/Link</option>
+                            <option value="text_file">Evidence: Text + File</option>
+                            <option value="text_image">Evidence: Text + Screenshot</option>
+                        </select>
                     </div>
                     
                     <div className="points-box">

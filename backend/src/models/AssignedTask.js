@@ -41,12 +41,29 @@ const assignedTaskSchema = new mongoose.Schema({
   requiredSkills: [{
     type: String,
   }],
+  submissionConfig: {
+    inputType: {
+      type: String,
+      enum: ['text', 'image', 'file', 'link', 'multiple_files', 'text_image', 'text_file', 'text_link', 'custom'],
+      default: 'file'
+    },
+    customFields: [{
+      label: String,
+      fieldType: { type: String, enum: ['text', 'textarea', 'file', 'image', 'url'] },
+      placeholder: String,
+      required: { type: Boolean, default: true }
+    }],
+    maxFileSize: { type: Number, default: 5 * 1024 * 1024 }, // 5MB default
+    allowedExtensions: { type: [String], default: ['jpg', 'jpeg', 'png', 'pdf', 'zip', 'txt'] }
+  },
   submissions: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     content: String,
     attachments: [String],
+    customData: Map, // Store dynamic field data
     submittedAt: { type: Date, default: Date.now },
   }],
+  rejectionReason: String,
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

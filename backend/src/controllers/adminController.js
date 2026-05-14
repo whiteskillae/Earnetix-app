@@ -225,8 +225,7 @@ const rejectAssignedTask = async (req, res, next) => {
     if (task.status !== 'under_review') return res.status(400).json({ success: false, message: 'Task not in review state' });
 
     task.status = 'rejected';
-    // We don't have rejectionReason field in AssignedTask yet, let's just use status
-    // Or we could add it.
+    task.rejectionReason = rejectionReason;
     await task.save();
 
     await AdminLog.create({
