@@ -2,7 +2,8 @@ const router = require('express').Router();
 const { 
   getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, 
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
-  getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask
+  getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
+  approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk
 } = require('../controllers/adminController');
 const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');
@@ -25,7 +26,6 @@ router.patch('/users/:id/block-temporary', blockUserTemporary);
 router.post('/users/:id/adjust-points', adjustPoints);
 
 // Bulk Actions
-const { approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk } = require('../controllers/adminController');
 router.post('/submissions/bulk-approve', approveSubmissionsBulk);
 router.post('/submissions/bulk-reject', rejectSubmissionsBulk);
 router.post('/users/bulk-block', blockUsersBulk);

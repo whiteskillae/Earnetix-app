@@ -449,5 +449,6 @@ const rejectAssignedTask = async (req, res, next) => {
 module.exports = {
   getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission,
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
-  getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask
+  getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
+  approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk
 };
