@@ -122,8 +122,13 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
                 </td>
                 <td>
                   <div className="user-info-cell">
-                    <span className="user-name">{u.name}</span>
-                    <span className="user-email">{u.email}</span>
+                    <span className="user-name" style={{ color: 'var(--blue-light)', fontWeight: 800, fontSize: '1rem' }}>{u.uid || 'NO UID'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '2px 0' }}>
+                      <span style={{ color: 'white', fontWeight: 700, fontSize: '0.85rem' }}>@{u.username || 'pending'}</span>
+                      <span style={{ opacity: 0.3 }}>|</span>
+                      <span style={{ color: 'var(--gray-400)', fontSize: '0.8rem' }}>{u.name}</span>
+                    </div>
+                    <span className="user-email" style={{ fontSize: '0.75rem', opacity: 0.6 }}>{u.email}</span>
                   </div>
                 </td>
                 <td>

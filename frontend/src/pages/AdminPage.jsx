@@ -531,6 +531,8 @@ const AdminPage = () => {
             <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
                <h5 style={{ color: '#3b82f6', marginBottom: '12px' }}>Identity & Background</h5>
                <div className="grid-2">
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>UID</label><p style={{ color: 'var(--blue-light)', fontWeight: 800 }}>{selectedUser.uid}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Username</label><p style={{ fontWeight: 700 }}>@{selectedUser.username || '—'}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Name</label><p>{selectedUser.name}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Email</label><p>{selectedUser.email}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Mobile</label><p>{selectedUser.countryCode} {selectedUser.mobileNumber}</p></div>
