@@ -5,13 +5,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Zap, ListTodo, Clock, CheckCircle, Trophy, ArrowRight, Wallet, Bell, Target, ShieldAlert } from 'lucide-react';
 
 const DashboardPage = () => {
-  const { user } = useAuth();
+  const { user, kycStatus, isKycVerified } = useAuth();
   const { request } = useApi();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [recentSubs, setRecentSubs] = useState([]);
   const [availableTasks, setAvailableTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [kycDismissed, setKycDismissed] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,12 +38,54 @@ const DashboardPage = () => {
     fetchData();
   }, []);
 
-  // Removed blocking null return to allow layout rendering during data fetch
-  // if (loading && !stats) return null; 
-
+  const availablePoints = (user?.points || 0) - (user?.frozenPoints || 0);
 
   return (
     <div className="dashboard-page fade-in">
+      {/* KYC STATUS BANNERS */}
+      {!kycDismissed && kycStatus === 'pending' && (
+        <div className="slide-up" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '20px', padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Clock size={24} color="#f59e0b" />
+            <div>
+              <h4 style={{ margin: 0, color: '#f59e0b', fontSize: '0.9rem' }}>KYC Verification Pending</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>Your identity is being verified. This takes 1-3 working days. You can browse tasks but submissions are restricted.</p>
+            </div>
+          </div>
+          <button className="btn-icon" onClick={() => setKycDismissed(true)} style={{ color: '#64748b' }}>✕</button>
+        </div>
+      )}
+
+      {!kycDismissed && kycStatus === 'rejected' && (
+        <div className="slide-up" style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '20px', padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ShieldAlert size={24} color="#ef4444" />
+            <div>
+              <h4 style={{ margin: 0, color: '#ef4444', fontSize: '0.9rem' }}>KYC Rejected — Resubmission Required</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>Reason: {user?.kycRejectionReason || 'Document quality insufficient'}</p>
+            </div>
+          </div>
+          <button className="btn btn-sm" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }} onClick={() => navigate('/onboarding')}>
+            Resubmit
+          </button>
+        </div>
+      )}
+
+      {!kycDismissed && kycStatus === 'none' && user?.isProfileComplete && (
+        <div className="slide-up" style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '20px', padding: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ShieldAlert size={24} color="#3b82f6" />
+            <div>
+              <h4 style={{ margin: 0, color: '#3b82f6', fontSize: '0.9rem' }}>Complete Identity Verification</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>Upload your ID to unlock full access to tasks and withdrawals.</p>
+            </div>
+          </div>
+          <button className="btn btn-sm btn-primary" onClick={() => navigate('/onboarding')}>
+            Verify Now
+          </button>
+        </div>
+      )}
+
       {/* Premium Header */}
       <header className="dashboard-header" style={{ marginBottom: '40px' }}>
         <div className="flex-between" style={{ alignItems: 'flex-start' }}>
@@ -65,15 +108,16 @@ const DashboardPage = () => {
                  <Zap size={32} color="white" fill="white" />
               </div>
               <div>
-                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Credit Assets</span>
+                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Available Credits</span>
                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                    <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>{user?.points?.toLocaleString() || 0}</h2>
+                    <h2 style={{ fontSize: '2.5rem', fontWeight: 900, margin: 0 }}>{availablePoints.toLocaleString()}</h2>
                     <span style={{ fontSize: '0.9rem', color: 'var(--green)', fontWeight: 800 }}>PTS</span>
                  </div>
+                 <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>≈ ${(availablePoints / 100).toFixed(2)} USD</span>
               </div>
            </div>
            <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn btn-primary" style={{ padding: '12px 24px', borderRadius: '16px' }} onClick={() => navigate('/profile')}>
+              <button className="btn btn-primary" style={{ padding: '12px 24px', borderRadius: '16px' }} onClick={() => navigate('/withdraw')}>
                  <Wallet size={18} /> WITHDRAW
               </button>
            </div>

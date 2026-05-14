@@ -148,6 +148,7 @@ const resubmit = async (req, res, next) => {
 
     Object.assign(submission, {
       textContent: textContent || submission.textContent,
+      linkUrl: linkUrl || submission.linkUrl,
       imageUrl: imageUrl || submission.imageUrl,
       imagePublicId: imagePublicId || submission.imagePublicId,
       fileUrl: fileUrl || submission.fileUrl,

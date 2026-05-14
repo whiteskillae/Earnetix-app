@@ -19,6 +19,8 @@ const announcementRoutes = require('./routes/announcementRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const skillCategoryRoutes = require('./routes/skillCategoryRoutes');
 const assignedTaskRoutes = require('./routes/assignedTaskRoutes');
+const kycRoutes = require('./routes/kycRoutes');
+const withdrawalRoutes = require('./routes/withdrawalRoutes');
 
 const app = express();
 app.set('trust proxy', true);
@@ -82,6 +84,8 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/skill-categories', skillCategoryRoutes);
 app.use('/api/assigned-tasks', assignedTaskRoutes);
+app.use('/api/kyc', kycRoutes);
+app.use('/api/withdrawals', withdrawalRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

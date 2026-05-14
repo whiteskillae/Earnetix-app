@@ -82,6 +82,17 @@ api.interceptors.response.use(
         isRefreshing = false;
       }
     }
+    // Handle blocked users — force logout on 403
+    if (error.response?.status === 403) {
+      const msg = error.response?.data?.message || '';
+      if (msg.includes('blocked') || msg.includes('Account has been')) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+    }
+
     return Promise.reject(error);
   }
 );

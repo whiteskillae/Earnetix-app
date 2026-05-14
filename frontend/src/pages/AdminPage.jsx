@@ -15,6 +15,8 @@ import SubmissionReview from '../components/admin/SubmissionReview';
 import ReportsView from '../components/admin/ReportsView';
 import SkillManagement from '../components/admin/SkillManagement';
 import AssignmentManagement from '../components/admin/AssignmentManagement';
+import KycReview from '../components/admin/KycReview';
+import WithdrawalManagement from '../components/admin/WithdrawalManagement';
 
 const AdminPage = () => {
   const { request } = useApi();
@@ -274,6 +276,8 @@ const AdminPage = () => {
       {tab === 'reports' && <ReportsView />}
       {tab === 'skills' && <SkillManagement />}
       {tab === 'assignments' && <AssignmentManagement />}
+      {tab === 'kyc' && <KycReview />}
+      {tab === 'withdrawals' && <WithdrawalManagement />}
 
       {tab === 'announcements' && (
         <div className="glass-panel">

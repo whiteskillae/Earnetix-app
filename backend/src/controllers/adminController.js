@@ -7,15 +7,18 @@ const { awardPoints } = require('../services/pointService');
 
 const getDashboard = async (req, res, next) => {
   try {
-    const [totalUsers, totalTasks, totalSubmissions, pendingSubmissions, approvedSubmissions, rejectedSubmissions] = await Promise.all([
+    const Withdrawal = require('../models/Withdrawal');
+    const [totalUsers, totalTasks, totalSubmissions, pendingSubmissions, approvedSubmissions, rejectedSubmissions, pendingKyc, pendingWithdrawals] = await Promise.all([
       User.countDocuments({ role: 'user' }),
       Task.countDocuments(),
       Submission.countDocuments(),
       Submission.countDocuments({ status: 'pending' }),
       Submission.countDocuments({ status: 'approved' }),
       Submission.countDocuments({ status: 'rejected' }),
+      User.countDocuments({ kycStatus: 'pending' }),
+      Withdrawal.countDocuments({ status: 'pending' }),
     ]);
-    res.json({ success: true, data: { totalUsers, totalTasks, totalSubmissions, pendingSubmissions, approvedSubmissions, rejectedSubmissions } });
+    res.json({ success: true, data: { totalUsers, totalTasks, totalSubmissions, pendingSubmissions, approvedSubmissions, rejectedSubmissions, pendingKyc, pendingWithdrawals } });
   } catch (error) { next(error); }
 };
 

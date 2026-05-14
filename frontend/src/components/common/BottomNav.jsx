@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListTodo, Award, User, Shield } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Award, User, Shield, Wallet } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const BottomNav = () => {

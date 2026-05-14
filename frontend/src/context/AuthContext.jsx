@@ -56,6 +56,8 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = user?.role === 'admin';
   const isProfileComplete = user?.isProfileComplete && (user?.onboardingVersion || 0) >= 1;
+  const kycStatus = user?.kycStatus || 'none';
+  const isKycVerified = kycStatus === 'verified';
 
   return (
     <AuthContext.Provider value={{ 
@@ -67,6 +69,8 @@ export const AuthProvider = ({ children }) => {
       logout, 
       isAdmin, 
       isProfileComplete, 
+      kycStatus,
+      isKycVerified,
       fetchProfile 
     }}>
       {children}

@@ -1,4 +1,4 @@
-import { Users, Clock, CheckCircle, XCircle, TrendingUp, Activity } from 'lucide-react';
+import { Users, Clock, CheckCircle, XCircle, TrendingUp, Activity, Shield, DollarSign } from 'lucide-react';
 
 const StatCard = ({ icon, label, value, color, trend, subtext }) => (
   <div className="premium-stat-card">
@@ -55,6 +55,22 @@ const AdminDashboard = ({ data }) => {
           color="#8b5cf6" 
           trend="Steady" 
           subtext="System Traffic" 
+        />
+        <StatCard 
+          icon={<Shield size={24} />} 
+          label="KYC Pending" 
+          value={data.pendingKyc || 0} 
+          color="#06b6d4" 
+          trend={data.pendingKyc > 0 ? 'Action Needed' : 'Clear'} 
+          subtext="Identity Verification" 
+        />
+        <StatCard 
+          icon={<DollarSign size={24} />} 
+          label="Pending Payouts" 
+          value={data.pendingWithdrawals || 0} 
+          color="#ec4899" 
+          trend={data.pendingWithdrawals > 0 ? 'Review' : 'None'} 
+          subtext="Withdrawal Requests" 
         />
       </div>
 

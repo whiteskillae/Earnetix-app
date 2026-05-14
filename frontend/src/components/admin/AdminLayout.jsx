@@ -32,10 +32,12 @@ const AdminLayout = ({ children }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Overview', icon: <LayoutDashboard size={20} /> },
     { id: 'users', label: 'User Directory', icon: <Users size={20} /> },
+    { id: 'kyc', label: 'KYC Review', icon: <Shield size={20} /> },
     { id: 'skills', label: 'Expertise', icon: <Target size={20} /> },
     { id: 'assignments', label: 'Missions', icon: <Award size={20} /> },
     { id: 'tasks', label: 'Campaigns', icon: <ListTodo size={20} /> },
     { id: 'submissions', label: 'Review Center', icon: <CheckSquare size={20} /> },
+    { id: 'withdrawals', label: 'Treasury', icon: <Settings size={20} /> },
     { id: 'reports', label: 'Intelligence', icon: <Shield size={20} /> },
     { id: 'announcements', label: 'Broadcasting', icon: <Megaphone size={20} /> },
   ];

@@ -23,6 +23,7 @@ const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const ReportPage = lazy(() => import('./pages/ReportPage'));
 const MissionsPage = lazy(() => import('./pages/MissionsPage'));
+const WithdrawalPage = lazy(() => import('./pages/WithdrawalPage'));
 import { ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -34,6 +35,11 @@ const ProtectedRoute = ({ children, adminOnly = false, isOnboarding = false }) =
   
   if (!user) {
     if (adminOnly) return <AdminLoginPage />;
+    return <Navigate to="/login" replace />;
+  }
+
+  // Force blocked users to logout
+  if (user.isBlocked) {
     return <Navigate to="/login" replace />;
   }
 
@@ -95,6 +101,7 @@ const AppRoutes = () => (
       <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><AppLayout><ReportPage /></AppLayout></ProtectedRoute>} />
       <Route path="/missions" element={<ProtectedRoute><AppLayout><MissionsPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/withdraw" element={<ProtectedRoute><AppLayout><WithdrawalPage /></AppLayout></ProtectedRoute>} />
 
       {/* Admin only */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />

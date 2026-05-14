@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user, isAdmin, logout } = useAuth();
@@ -11,9 +11,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   if (isAdmin) {
     navItems = [
       { to: '/admin?tab=dashboard', label: 'Overview', icon: Shield },
+      { to: '/admin?tab=kyc', label: 'KYC Review', icon: Shield },
       { to: '/admin?tab=assignments', label: 'Individual Tasks', icon: Award },
       { to: '/admin?tab=tasks', label: 'Campaigns', icon: ListTodo },
       { to: '/admin?tab=submissions', label: 'Review Center', icon: Clock },
+      { to: '/admin?tab=withdrawals', label: 'Treasury', icon: Wallet },
       { to: '/admin?tab=users', label: 'User Directory', icon: Users },
       { to: '/admin?tab=skills', label: 'Expertise', icon: Shield },
       { to: '/admin?tab=announcements', label: 'Broadcasting', icon: Bell },
@@ -23,6 +25,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/missions', label: 'Direct Missions', icon: Award },
       { to: '/tasks', label: 'Campaigns', icon: ListTodo },
+      { to: '/withdraw', label: 'Withdraw', icon: Wallet },
       { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },
       { to: '/profile', label: 'Profile', icon: User },

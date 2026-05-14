@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../hooks/useAuth';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
@@ -7,6 +8,7 @@ import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock, File, Eye, Ta
 
 const TasksPage = () => {
   const { request } = useApi();
+  const { isKycVerified, kycStatus } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -321,9 +323,20 @@ const TasksPage = () => {
               </div>
             )}
 
-            <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '60px', marginTop: '12px' }} disabled={submitting}>
-              {submitting ? 'SYNCHRONIZING...' : 'SUBMIT INTEL'}
-            </button>
+
+            {!isKycVerified ? (
+              <div style={{ background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '16px', padding: '16px', textAlign: 'center', marginTop: '12px' }}>
+                <p style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem', margin: '0 0 4px' }}>⚠ KYC Verification Required</p>
+                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0 }}>
+                  {kycStatus === 'pending' ? 'Your identity is being verified (1-3 days).' : 'Complete identity verification to submit evidence.'}
+                </p>
+              </div>
+            ) : (
+              <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '60px', marginTop: '12px' }} disabled={submitting}>
+                {submitting ? 'SYNCHRONIZING...' : 'SUBMIT INTEL'}
+              </button>
+            )}
+
           </div>
         </form>
       </Modal>

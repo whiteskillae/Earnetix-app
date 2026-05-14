@@ -103,6 +103,35 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // ─── KYC FIELDS ──────────────────────────────────────
+  kycStatus: {
+    type: String,
+    enum: ['none', 'pending', 'verified', 'rejected'],
+    default: 'none',
+  },
+  kycDocumentUrl: { type: String, default: null },
+  kycDocumentPublicId: { type: String, default: null },
+  kycDocumentType: {
+    type: String,
+    enum: ['aadhar', 'passport', 'national_id', null],
+    default: null,
+  },
+  kycRejectionReason: { type: String, default: null },
+  kycSubmittedAt: { type: Date, default: null },
+  kycVerifiedAt: { type: Date, default: null },
+  // ─── WITHDRAWAL FIELDS ───────────────────────────────
+  frozenPoints: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  bankDetails: {
+    accountName: { type: String, default: null },
+    accountNumber: { type: String, default: null },
+    ifscCode: { type: String, default: null },
+    bankName: { type: String, default: null },
+    upiId: { type: String, default: null },
+  },
 }, {
   timestamps: true,
 });
