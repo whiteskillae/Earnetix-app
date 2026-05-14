@@ -23,8 +23,6 @@ const AssignmentManagement = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    priority: 'medium',
-    deadline: '',
     rewardPoints: 50
   });
 
@@ -107,16 +105,15 @@ const AssignmentManagement = () => {
     if (selectedUsers.length === 0) return toast.error('Strategic targeting required: No agents selected');
     if (!form.title?.trim()) return toast.error('Mission failed: Title is required');
     if (!form.description?.trim()) return toast.error('Mission failed: Operational briefing required');
-    if (!form.deadline) return toast.error('Mission failed: Completion deadline required');
     if (!form.rewardPoints || form.rewardPoints <= 0) return toast.error('Mission failed: Valid credit reward required');
     
     const formData = new FormData();
     formData.append('title', form.title.trim());
     formData.append('description', form.description.trim());
-    formData.append('priority', form.priority);
-    formData.append('deadline', form.deadline);
     formData.append('rewardPoints', Number(form.rewardPoints));
     formData.append('assignedUsers', JSON.stringify(selectedUsers));
+    formData.append('deadline', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString());
+    formData.append('priority', 'medium');
     
     attachments.forEach(file => {
       formData.append('attachments', file);
@@ -129,7 +126,7 @@ const AssignmentManagement = () => {
       
       if (res.success) {
         toast.success('Missions Broadcasted Successfully');
-        setForm({ title: '', description: '', priority: 'medium', deadline: '', rewardPoints: 50 });
+        setForm({ title: '', description: '', rewardPoints: 50 });
         setAttachments([]);
         setSelectedUsers([]);
         fetchData();
@@ -318,21 +315,6 @@ const AssignmentManagement = () => {
                         />
                     </div>
                     
-                    <div className="dispatch-grid">
-                        <div className="form-field-wrap">
-                            <Zap size={18} className="field-icon" />
-                            <select className="minimal-input select-custom" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
-                                <option value="low">Standard</option>
-                                <option value="medium">Important</option>
-                                <option value="high">Critical</option>
-                            </select>
-                        </div>
-                        <div className="form-field-wrap">
-                            <Calendar size={18} className="field-icon" />
-                            <input type="date" className="minimal-input" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
-                        </div>
-                    </div>
-
                     <div className="points-box">
                         <Award size={24} />
                         <div style={{ flex: 1 }}>

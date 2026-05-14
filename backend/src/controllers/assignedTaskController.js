@@ -11,13 +11,13 @@ const createAndAssignTask = async (req, res, next) => {
       filesCount: req.files?.length || 0 
     });
 
-    const { title, description, priority, deadline, rewardPoints, assignedUsers, requiredSkills } = req.body;
+    const { title, description, rewardPoints, assignedUsers, requiredSkills } = req.body;
     
     // Strict Validation
-    if (!title || !description || !deadline || !rewardPoints) {
+    if (!title || !description || !rewardPoints) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Missing required mission parameters: title, description, deadline, and credits are mandatory.' 
+        message: 'Missing mission parameters: title, description, and credits are mandatory.' 
       });
     }
 
@@ -72,8 +72,8 @@ const createAndAssignTask = async (req, res, next) => {
       AssignedTask.create({
         title: title.trim(),
         description: description.trim(),
-        priority: priority || 'medium',
-        deadline: new Date(deadline),
+        priority: req.body.priority || 'medium',
+        deadline: req.body.deadline ? new Date(req.body.deadline) : undefined, // Model will use its own default if undefined
         rewardPoints: Number(rewardPoints),
         assignedUsers: [userId],
         requiredSkills: skills,

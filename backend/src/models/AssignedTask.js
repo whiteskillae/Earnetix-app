@@ -18,7 +18,7 @@ const assignedTaskSchema = new mongoose.Schema({
   },
   deadline: {
     type: Date,
-    required: [true, 'Deadline is required'],
+    default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default 7 days
   },
   rewardPoints: {
     type: Number,
