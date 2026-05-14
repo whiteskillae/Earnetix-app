@@ -37,7 +37,9 @@ const DashboardPage = () => {
     fetchData();
   }, []);
 
-  if (loading && !stats) return null; // Quick transition
+  // Removed blocking null return to allow layout rendering during data fetch
+  // if (loading && !stats) return null; 
+
 
   return (
     <div className="dashboard-page fade-in">
@@ -122,18 +124,28 @@ const DashboardPage = () => {
               <Link to="/tasks" style={{ color: 'var(--blue-light)', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none' }}>VIEW ALL</Link>
            </div>
            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {availableTasks.map(task => (
-                <div key={task._id} className="premium-card" style={{ padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px' }} onClick={() => navigate('/tasks')}>
-                   <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue-light)' }}>
+              {loading && availableTasks.length === 0 ? (
+                [1, 2, 3].map(i => (
+                  <div key={i} className="premium-card skeleton-pulse" style={{ height: '80px', borderRadius: '18px' }}></div>
+                ))
+              ) : availableTasks.length > 0 ? (
+                availableTasks.map(task => (
+                  <div key={task._id} className="premium-card" style={{ padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px' }} onClick={() => navigate('/tasks')}>
+                    <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue-light)' }}>
                       <ListTodo size={20} />
-                   </div>
-                   <div style={{ flex: 1 }}>
+                    </div>
+                    <div style={{ flex: 1 }}>
                       <h4 style={{ fontSize: '0.9rem', margin: 0 }}>{task.title}</h4>
                       <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)' }}>{task.inputType.toUpperCase()}</p>
-                   </div>
-                   <div style={{ fontWeight: 900, color: 'var(--green)', fontSize: '0.9rem' }}>+{task.rewardPoints}</div>
+                    </div>
+                    <div style={{ fontWeight: 900, color: 'var(--green)', fontSize: '0.9rem' }}>+{task.rewardPoints}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="glass-panel" style={{ padding: '30px', textAlign: 'center', color: 'var(--gray-500)', fontSize: '0.9rem' }}>
+                   No campaigns available in your sector.
                 </div>
-              ))}
+              )}
            </div>
         </section>
       </div>

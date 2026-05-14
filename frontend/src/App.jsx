@@ -28,7 +28,7 @@ import { Link } from 'react-router-dom';
 // Protected route wrapper
 const ProtectedRoute = ({ children, adminOnly = false, isOnboarding = false }) => {
   const { user, loading, isAdmin, isRefreshing, isProfileComplete } = useAuth();
-  if (loading || isRefreshing) return <Loader text="Verifying access..." />;
+  if (loading) return <Loader text="Verifying access..." />;
   
   if (!user) {
     if (adminOnly) return <AdminLoginPage />;

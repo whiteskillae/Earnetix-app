@@ -88,7 +88,9 @@ const TasksPage = () => {
     return reqs;
   };
 
-  if (loading && tasks.length === 0) return null; // Quick transition
+  // Removed blocking null return to allow layout rendering
+  // if (loading && tasks.length === 0) return null; 
+
 
   return (
     <div className="tasks-view fade-in">
@@ -130,58 +132,70 @@ const TasksPage = () => {
       </div>
 
       <div className="grid-3" style={{ gap: '24px' }}>
-        {filtered.map((task) => {
-          const userSub = mySubs.find(s => s.taskId?._id === task._id);
-          const isApproved = userSub?.status === 'approved';
-          const isPending = userSub?.status === 'pending';
-          const isRejected = userSub?.status === 'rejected';
-          const canResubmit = isRejected && userSub?.submissionCount < 2;
+        {loading && tasks.length === 0 ? (
+          [1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="premium-card skeleton-pulse" style={{ height: '280px', borderRadius: '24px' }}></div>
+          ))
+        ) : filtered.length > 0 ? (
+          filtered.map((task) => {
+            const userSub = mySubs.find(s => s.taskId?._id === task._id);
+            const isApproved = userSub?.status === 'approved';
+            const isPending = userSub?.status === 'pending';
+            const isRejected = userSub?.status === 'rejected';
+            const canResubmit = isRejected && userSub?.submissionCount < 2;
 
-          return (
-            <div key={task._id} className="premium-card slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ flex: 1 }}>
-                <div className="flex-between" style={{ marginBottom: '16px' }}>
-                   <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: 'var(--blue)' }}>
-                      <Zap size={20} fill="var(--blue)" strokeWidth={0} />
-                   </div>
-                   <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--green)' }}>
-                      +{task.rewardPoints} <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>PTS</span>
-                   </div>
+            return (
+              <div key={task._id} className="premium-card slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ flex: 1 }}>
+                  <div className="flex-between" style={{ marginBottom: '16px' }}>
+                    <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: 'var(--blue)' }}>
+                        <Zap size={20} fill="var(--blue)" strokeWidth={0} />
+                    </div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--green)' }}>
+                        +{task.rewardPoints} <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>PTS</span>
+                    </div>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', fontWeight: 800 }}>{task.title}</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', lineHeight: 1.6, marginBottom: '20px' }}>{task.description}</p>
+                  
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                    {getRequirements(task.inputType).map(r => (
+                        <span key={r} style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', border: '1px solid var(--glass-border)', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
+                          {r}
+                        </span>
+                    ))}
+                  </div>
                 </div>
 
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', fontWeight: 800 }}>{task.title}</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', lineHeight: 1.6, marginBottom: '20px' }}>{task.description}</p>
-                
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
-                   {getRequirements(task.inputType).map(r => (
-                     <span key={r} style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', border: '1px solid var(--glass-border)', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
-                        {r}
-                     </span>
-                   ))}
-                </div>
+                {isApproved ? (
+                  <div className="status-pill-new status-approved" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
+                    <CheckCircle size={18} /> COMPLETED
+                  </div>
+                ) : isPending ? (
+                  <div className="status-pill-new status-pending" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
+                    <Clock size={18} /> IN REVIEW
+                  </div>
+                ) : (
+                  <button 
+                    className={`btn-premium btn-block ${isRejected ? 'btn-danger' : 'btn-primary-new'}`}
+                    style={{ height: '48px' }}
+                    onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
+                    disabled={isRejected && !canResubmit}
+                  >
+                    <Upload size={18} /> {isRejected ? (canResubmit ? 'RE-LOG EVIDENCE' : 'LOCKED') : 'EXECUTE MISSION'}
+                  </button>
+                )}
               </div>
-
-              {isApproved ? (
-                <div className="status-pill-new status-approved" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
-                  <CheckCircle size={18} /> COMPLETED
-                </div>
-              ) : isPending ? (
-                <div className="status-pill-new status-pending" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
-                  <Clock size={18} /> IN REVIEW
-                </div>
-              ) : (
-                <button 
-                  className={`btn-premium btn-block ${isRejected ? 'btn-danger' : 'btn-primary-new'}`}
-                  style={{ height: '48px' }}
-                  onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
-                  disabled={isRejected && !canResubmit}
-                >
-                  <Upload size={18} /> {isRejected ? (canResubmit ? 'RE-LOG EVIDENCE' : 'LOCKED') : 'EXECUTE MISSION'}
-                </button>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        ) : (
+          <div className="glass-panel" style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: 'var(--gray-500)' }}>
+             <AlertCircle size={48} style={{ margin: '0 auto 20px', opacity: 0.5 }} />
+             <p style={{ fontSize: '1.1rem', fontWeight: 700 }}>No Missions Found</p>
+             <p style={{ fontSize: '0.9rem' }}>Try adjusting your search filters</p>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title={`MISSION DATA: ${selected?.title}`}>
