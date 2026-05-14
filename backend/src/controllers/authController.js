@@ -164,7 +164,7 @@ const login = async (req, res, next) => {
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20); // keep last 20
 
     // Update device fingerprint & Check for multi-accounting
-    if (deviceFingerprint) {
+    if (deviceFingerprint && user.role === 'user') {
       const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id }, role: 'user' });
       if (otherUser) {
         logger.warn(`Multi-account login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
@@ -173,6 +173,8 @@ const login = async (req, res, next) => {
           message: 'Security Alert: This device is already associated with another account. Multi-accounting is prohibited.' 
         });
       }
+      user.deviceFingerprint = deviceFingerprint;
+    } else if (deviceFingerprint) {
       user.deviceFingerprint = deviceFingerprint;
     }
 
@@ -289,7 +291,20 @@ const googleAuth = async (req, res, next) => {
     user.loginHistory.push({ ip, userAgent: req.headers['user-agent'] || 'unknown' });
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20);
     
-    if (deviceFingerprint) user.deviceFingerprint = deviceFingerprint;
+    // Multi-account protection for standard users
+    if (deviceFingerprint) {
+      if (user.role === 'user') {
+        const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id }, role: 'user' });
+        if (otherUser) {
+          logger.warn(`Multi-account Google login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
+          return res.status(403).json({ 
+            success: false, 
+            message: 'Security Alert: This device is already associated with another account.' 
+          });
+        }
+      }
+      user.deviceFingerprint = deviceFingerprint;
+    }
 
     const payload = { userId: user._id, role: user.role };
     const accessToken = generateAccessToken(payload);
