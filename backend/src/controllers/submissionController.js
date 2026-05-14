@@ -2,6 +2,7 @@ const Submission = require('../models/Submission');
 const Task = require('../models/Task');
 const { validateFile, uploadToCloudinary, deleteFromCloudinary } = require('../services/uploadService');
 const { hashText } = require('../utils/hashFile');
+const { checkDailyLimit } = require('../services/taskService');
 
 const submitProof = async (req, res, next) => {
   try {
@@ -20,18 +21,8 @@ const submitProof = async (req, res, next) => {
     const existingCount = await Submission.countDocuments({ userId, taskId, status: { $in: ['pending', 'approved'] } });
     if (existingCount >= task.maxSubmissionsPerUser) return res.status(400).json({ success: false, message: 'Submission limit reached for this task' });
 
-    // Daily Limit Check
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const dailyTasks = await Submission.distinct('taskId', {
-      userId,
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
-    });
-
-    if (dailyTasks.length >= 8 && !dailyTasks.map(id => id.toString()).includes(taskId.toString())) {
+    const limitReached = await checkDailyLimit(userId);
+    if (limitReached) {
       return res.status(400).json({ success: false, message: 'Daily limit of 8 tasks reached.' });
     }
 

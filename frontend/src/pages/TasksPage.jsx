@@ -104,16 +104,16 @@ const TasksPage = () => {
         
         <div className="progress-container-new glass-panel" style={{ padding: '16px 24px', borderRadius: '24px', minWidth: '240px' }}>
           <div className="flex-between" style={{ marginBottom: '8px' }}>
-             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)' }}>DAILY QUOTA</span>
-             <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--green)' }}>
-                {mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/10
-             </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)' }}>DAILY QUOTA</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--green)' }}>
+                 {mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/8
+              </span>
           </div>
           <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
              <div style={{ 
                 height: '100%', 
                 background: 'var(--green-gradient)', 
-                width: `${Math.min((mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length / 10) * 100, 100)}%`,
+                width: `${Math.min((mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length / 8) * 100, 100)}%`,
                 transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
              }}></div>
           </div>
@@ -159,13 +159,29 @@ const TasksPage = () => {
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '12px', fontWeight: 800 }}>{task.title}</h3>
                   <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', lineHeight: 1.6, marginBottom: '20px' }}>{task.description}</p>
                   
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
                     {getRequirements(task.inputType).map(r => (
                         <span key={r} style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', border: '1px solid var(--glass-border)', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
                           {r}
                         </span>
                     ))}
                   </div>
+
+                  {task.attachments?.length > 0 && (
+                    <div className="attachments-section" style={{ marginBottom: '20px' }}>
+                        <p style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, marginBottom: '8px' }}>BRIEFING MATERIALS:</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {task.attachments.map((att, idx) => (
+                                <a key={idx} href={att.url} target="_blank" rel="noreferrer" className="attachment-link" style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--blue-light)',
+                                    background: 'rgba(59, 130, 246, 0.05)', padding: '6px 12px', borderRadius: '8px'
+                                }}>
+                                    <File size={14} /> {att.name || 'View Attachment'}
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                  )}
                 </div>
 
                 {isApproved ? (

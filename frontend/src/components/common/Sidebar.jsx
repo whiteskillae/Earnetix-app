@@ -11,7 +11,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   if (isAdmin) {
     navItems = [
       { to: '/admin?tab=dashboard', label: 'Overview', icon: Shield },
-      { to: '/admin?tab=assignments', label: 'Missions Mgmt', icon: Award },
+      { to: '/admin?tab=assignments', label: 'Individual Tasks', icon: Award },
       { to: '/admin?tab=tasks', label: 'Campaigns', icon: ListTodo },
       { to: '/admin?tab=submissions', label: 'Review Center', icon: Clock },
       { to: '/admin?tab=users', label: 'User Directory', icon: Users },

@@ -1,6 +1,7 @@
 const Task = require('../models/Task');
 const AdminLog = require('../models/AdminLog');
 const cache = require('../services/cacheService');
+const { uploadToCloudinary } = require('../services/uploadService');
 
 // ─── GET ALL ACTIVE TASKS (User) ───────────────────────
 const getTasks = async (req, res, next) => {
@@ -54,53 +55,83 @@ const getTaskById = async (req, res, next) => {
 // ─── CREATE TASK (Admin) ──────────────────────────────
 const createTask = async (req, res, next) => {
   try {
-    const task = await Task.create({ ...req.body, createdBy: req.user._id });
+    const attachments = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks');
+        attachments.push({ name: file.originalname, url: result.url });
+      }
+    }
+
+    // Handle stringified arrays if from form-data
+    let allowedExtensions = req.body.allowedExtensions;
+    if (typeof allowedExtensions === 'string') {
+      try { allowedExtensions = JSON.parse(allowedExtensions); } catch(e) { allowedExtensions = allowedExtensions.split(','); }
+    }
+
+    const task = await Task.create({ 
+      ...req.body, 
+      allowedExtensions: allowedExtensions || ['jpg', 'jpeg', 'png', 'webp'],
+      attachments, 
+      createdBy: req.user._id 
+    });
+    
     cache.flush(); // Clear all task caches
 
     // Log admin action
     await AdminLog.create({
-      adminId: req.user._id,
-      action: 'create_task',
-      targetId: task._id,
-      targetType: 'task',
-      details: `Created task: ${task.title}`,
+      adminId: req.user._id, action: 'create_task', targetId: task._id,
+      targetType: 'task', details: `Created task: ${task.title} with ${attachments.length} attachments`,
       ip: req.ip,
     });
 
     res.status(201).json({ success: true, message: 'Task created', data: task });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 };
 
 // ─── UPDATE TASK (Admin) ──────────────────────────────
 const updateTask = async (req, res, next) => {
   try {
-    const task = await Task.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+    
+    // Handle new attachments
+    if (req.files && req.files.length > 0) {
+      const newAttachments = [];
+      for (const file of req.files) {
+        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks');
+        newAttachments.push({ name: file.originalname, url: result.url });
+      }
+      
+      // If we want to append or replace? Let's append by default if field exists
+      const existingTask = await Task.findById(req.params.id);
+      if (existingTask) {
+        updateData.attachments = [...(existingTask.attachments || []), ...newAttachments];
+      }
+    }
+
+    // Handle stringified arrays
+    if (typeof updateData.allowedExtensions === 'string') {
+      try { updateData.allowedExtensions = JSON.parse(updateData.allowedExtensions); } catch(e) { updateData.allowedExtensions = updateData.allowedExtensions.split(','); }
+    }
+
+    const task = await Task.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     });
 
-    if (!task) {
-      return res.status(404).json({ success: false, message: 'Task not found' });
-    }
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
     cache.flush(); // Clear all task caches
 
     await AdminLog.create({
-      adminId: req.user._id,
-      action: 'edit_task',
-      targetId: task._id,
-      targetType: 'task',
-      details: `Updated task: ${task.title}`,
-      ip: req.ip,
+      adminId: req.user._id, action: 'edit_task', targetId: task._id,
+      targetType: 'task', details: `Updated task: ${task.title}`, ip: req.ip,
     });
 
     res.json({ success: true, message: 'Task updated', data: task });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 };
+
 
 // ─── DELETE TASK (Admin) ──────────────────────────────
 const deleteTask = async (req, res, next) => {

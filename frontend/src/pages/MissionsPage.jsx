@@ -3,7 +3,7 @@ import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Award, Clock, CheckCircle, AlertCircle, Send, FileText, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { Award, Clock, CheckCircle, AlertCircle, Send, FileText, Link as LinkIcon, Trash2, File, Upload, X } from 'lucide-react';
 
 const MissionsPage = () => {
   const { request } = useApi();
@@ -12,6 +12,8 @@ const MissionsPage = () => {
   const [selected, setSelected] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [submission, setSubmission] = useState('');
+  const [submissionFiles, setSubmissionFiles] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchMissions();
@@ -42,11 +44,40 @@ const MissionsPage = () => {
     }
   };
 
+  const handleSubmitMission = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('submissionContent', submission);
+      submissionFiles.forEach(file => {
+        formData.append('files', file);
+      });
+
+      const res = await request('post', `/assigned-tasks/${selected._id}/submit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.success) {
+        toast.success('Mission submitted for review');
+        setShowModal(false);
+        setSubmission('');
+        setSubmissionFiles([]);
+        fetchMissions();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Submission failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) return <Loader text="Syncing direct assignments..." />;
 
   const getStatusInfo = (status) => {
     switch (status) {
       case 'completed': return { color: '#10b981', label: 'COMPLETED', icon: <CheckCircle size={16} /> };
+      case 'under_review': return { color: '#f59e0b', label: 'UNDER REVIEW', icon: <Clock size={16} /> };
       case 'rejected': return { color: '#ef4444', label: 'REJECTED', icon: <AlertCircle size={16} /> };
       case 'accepted': return { color: '#3b82f6', label: 'ACCEPTED', icon: <Clock size={16} /> };
       case 'in_progress': return { color: '#8b5cf6', label: 'IN PROGRESS', icon: <Clock size={16} /> };
@@ -93,7 +124,23 @@ const MissionsPage = () => {
                   </div>
                 </div>
                 
-                <p style={{ color: 'var(--gray-400)', fontSize: '0.9rem', marginBottom: '24px', lineHeight: 1.6 }}>{m.description}</p>
+                <p style={{ color: 'var(--gray-400)', fontSize: '0.9rem', marginBottom: '20px', lineHeight: 1.6 }}>{m.description}</p>
+                
+                {m.attachments?.length > 0 && (
+                  <div className="mission-briefing" style={{ marginBottom: '24px' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, marginBottom: '8px' }}>BRIEFING MATERIALS:</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {m.attachments.map((att, idx) => (
+                        <a key={idx} href={att.url} target="_blank" rel="noreferrer" className="glass-panel" style={{ 
+                          display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderRadius: '12px',
+                          fontSize: '0.85rem', color: 'var(--blue-light)', textDecoration: 'none'
+                        }}>
+                          <File size={16} /> {att.name || 'View Briefing File'}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex-gap">
                   {m.status === 'pending' && (
@@ -106,6 +153,11 @@ const MissionsPage = () => {
                     <button className="btn btn-primary btn-block" onClick={() => { setSelected(m); setShowModal(true); }}>
                       Submit Evidence & Complete
                     </button>
+                  )}
+                  {m.status === 'under_review' && (
+                    <div className="glass-panel" style={{ width: '100%', padding: '12px', textAlign: 'center', borderColor: 'var(--warning)', background: 'rgba(245, 158, 11, 0.05)' }}>
+                       <span style={{ color: 'var(--warning)', fontWeight: 800 }}>WAITING FOR CLEARANCE</span>
+                    </div>
                   )}
                   {m.status === 'completed' && (
                     <div className="glass-panel" style={{ width: '100%', padding: '12px', textAlign: 'center', borderColor: 'var(--green-glow)', background: 'rgba(16, 185, 129, 0.05)' }}>
@@ -121,7 +173,7 @@ const MissionsPage = () => {
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Mission Completion Report">
         {selected && (
-          <form onSubmit={(e) => { e.preventDefault(); handleUpdateStatus(selected._id, 'completed', submission); }}>
+          <form onSubmit={handleSubmitMission}>
              <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', marginBottom: '20px' }}>
                Provide the required evidence for <strong>{selected.title}</strong> to claim your {selected.rewardPoints} points.
              </p>
@@ -136,8 +188,41 @@ const MissionsPage = () => {
                   required
                 />
              </div>
-             <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '16px' }}>
-                <Send size={18} /> Finalize Submission
+
+             <div className="form-group">
+                <label>Evidence Files (Screenshots, Reports, etc.)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <input 
+                        type="file" 
+                        id="mission-files" 
+                        multiple 
+                        style={{ display: 'none' }}
+                        onChange={(e) => setSubmissionFiles([...submissionFiles, ...Array.from(e.target.files)])}
+                    />
+                    <label htmlFor="mission-files" className="glass-panel" style={{ 
+                        padding: '16px', textAlign: 'center', cursor: 'pointer', border: '2px dashed rgba(255,255,255,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
+                    }}>
+                        <Upload size={18} /> Add Evidence Files
+                    </label>
+
+                    {submissionFiles.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {submissionFiles.map((f, i) => (
+                                <div key={i} className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', fontSize: '0.8rem' }}>
+                                    <FileText size={14} /> <span style={{ flex: 1 }}>{f.name}</span>
+                                    <button type="button" onClick={() => setSubmissionFiles(submissionFiles.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+             </div>
+
+             <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '16px' }} disabled={submitting}>
+                <Send size={18} /> {submitting ? 'DEPLOYING INTEL...' : 'Finalize Submission'}
              </button>
           </form>
         )}

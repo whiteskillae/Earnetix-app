@@ -1,10 +1,23 @@
 import { CheckCircle, XCircle, Eye, Search, Filter } from 'lucide-react';
 import { useState } from 'react';
 
-const SubmissionReview = ({ submissions, filter, setFilter, onApprove, onReject, onPreview }) => {
+const SubmissionReview = ({ submissions, filter, setFilter, subType, setSubType, onApprove, onReject, onPreview }) => {
   return (
     <div className="glass-panel">
-      <div className="view-filters">
+      <div className="view-filters" style={{ flexWrap: 'wrap', gap: '20px' }}>
+        <div className="filter-group">
+          {['public', 'individual'].map(t => (
+            <button 
+              key={t} 
+              className={subType === t ? 'active' : ''} 
+              style={{ padding: '8px 20px' }}
+              onClick={() => setSubType(t)}
+            >
+              {t === 'public' ? 'Public Campaigns' : 'Individual Missions'}
+            </button>
+          ))}
+        </div>
+
         <div className="filter-group">
           {['pending', 'approved', 'rejected'].map(f => (
             <button 
@@ -15,10 +28,6 @@ const SubmissionReview = ({ submissions, filter, setFilter, onApprove, onReject,
               {f.toUpperCase()}
             </button>
           ))}
-        </div>
-        <div className="search-box" style={{ flex: 0.4 }}>
-          <Search size={18} />
-          <input type="text" placeholder="Filter submissions..." />
         </div>
       </div>
 

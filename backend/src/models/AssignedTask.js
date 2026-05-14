@@ -31,7 +31,7 @@ const assignedTaskSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'in_progress', 'completed', 'rejected', 'overdue'],
+    enum: ['pending', 'accepted', 'in_progress', 'under_review', 'completed', 'rejected', 'overdue'],
     default: 'pending',
   },
   assignedUsers: [{

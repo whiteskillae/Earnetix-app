@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Submission = require('../models/Submission');
 const Task = require('../models/Task');
+const AssignedTask = require('../models/AssignedTask');
 const AdminLog = require('../models/AdminLog');
 const { awardPoints } = require('../services/pointService');
 
@@ -184,4 +185,61 @@ const blockUserTemporary = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary };
+const getPendingAssignedTasks = async (req, res, next) => {
+  try {
+    const tasks = await AssignedTask.find({ status: 'under_review' })
+      .populate('assignedUsers', 'name email')
+      .sort({ updatedAt: -1 });
+    res.json({ success: true, data: tasks });
+  } catch (error) { next(error); }
+};
+
+const approveAssignedTask = async (req, res, next) => {
+  try {
+    const task = await AssignedTask.findById(req.params.id);
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+    if (task.status !== 'under_review') return res.status(400).json({ success: false, message: 'Task not in review state' });
+
+    const submission = task.submissions[task.submissions.length - 1];
+    if (!submission) return res.status(400).json({ success: false, message: 'No submission found' });
+
+    task.status = 'completed';
+    await task.save();
+
+    await awardPoints(submission.userId, task.rewardPoints, req.user._id, task._id);
+
+    await AdminLog.create({
+      adminId: req.user._id, action: 'approve_assigned', targetId: task._id,
+      targetType: 'assigned_task', details: `Approved mission: ${task.title} for user ${submission.userId}`, ip: req.ip,
+    });
+
+    res.json({ success: true, message: 'Mission approved and points awarded' });
+  } catch (error) { next(error); }
+};
+
+const rejectAssignedTask = async (req, res, next) => {
+  try {
+    const { rejectionReason } = req.body;
+    const task = await AssignedTask.findById(req.params.id);
+    if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
+    if (task.status !== 'under_review') return res.status(400).json({ success: false, message: 'Task not in review state' });
+
+    task.status = 'rejected';
+    // We don't have rejectionReason field in AssignedTask yet, let's just use status
+    // Or we could add it.
+    await task.save();
+
+    await AdminLog.create({
+      adminId: req.user._id, action: 'reject_assigned', targetId: task._id,
+      targetType: 'assigned_task', details: `Rejected mission: ${task.title}. Reason: ${rejectionReason}`, ip: req.ip,
+    });
+
+    res.json({ success: true, message: 'Mission rejected' });
+  } catch (error) { next(error); }
+};
+
+module.exports = { 
+  getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, 
+  toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
+  getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask
+};

@@ -28,6 +28,7 @@ const AdminPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subFilter, setSubFilter] = useState('pending');
+  const [subType, setSubType] = useState('public'); // 'public' or 'individual'
 
   // Modals state
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -59,8 +60,8 @@ const AdminPage = () => {
     if (tab === 'users') fetchUsers();
     if (tab === 'tasks') fetchTasks();
     if (tab === 'announcements') fetchAnnouncements();
-    if (tab === 'reports') {}; // Handled internally in component but could add fetch logic here if needed
-  }, [tab, subFilter]);
+    if (tab === 'reports') {}; 
+  }, [tab, subFilter, subType]);
 
   const fetchDashboard = async () => {
     try {
@@ -73,9 +74,29 @@ const AdminPage = () => {
   const fetchSubmissions = async () => {
     setLoading(true);
     try {
-      const r = await request('get', `/admin/submissions?status=${subFilter}&limit=100`);
-      setSubmissions(r.data.submissions);
-    } catch {}
+      if (subType === 'public') {
+        const r = await request('get', `/admin/submissions?status=${subFilter}&limit=100`);
+        setSubmissions(r.data.submissions);
+      } else {
+        // Individual missions
+        const endpoint = subFilter === 'pending' ? '/admin/assigned-tasks/pending' : '/assigned-tasks'; 
+        const r = await request('get', endpoint);
+        // Map AssignedTask to Submission-like structure for the table
+        const mapped = r.data.map(m => ({
+          _id: m._id,
+          userId: m.assignedUsers[0],
+          taskId: { title: m.title, rewardPoints: m.rewardPoints },
+          status: m.status === 'under_review' ? 'pending' : m.status,
+          createdAt: m.updatedAt,
+          textContent: m.submissions[m.submissions.length-1]?.content,
+          fileUrl: m.submissions[m.submissions.length-1]?.attachments?.[0], // First attachment
+          isAssigned: true
+        }));
+        setSubmissions(subFilter === 'pending' ? mapped : mapped.filter(m => m.status === subFilter));
+      }
+    } catch (err) {
+      toast.error('Failed to fetch submissions');
+    }
     setLoading(false);
   };
 
@@ -111,45 +132,64 @@ const AdminPage = () => {
 
   const handleApprove = async (id) => {
     try {
-      await request('put', `/admin/submissions/${id}/approve`);
-      toast.success('Submission Approved');
+      const endpoint = subType === 'public' 
+        ? `/admin/submissions/${id}/approve` 
+        : `/admin/assigned-tasks/${id}/approve`;
+      await request('put', endpoint);
+      toast.success('Mission Accomplished & Points Awarded');
       fetchSubmissions();
       fetchDashboard();
-    } catch {}
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Approval failed');
+    }
   };
 
   const handleReject = async (e) => {
     e.preventDefault();
     try {
-      await request('put', `/admin/submissions/${rejectId}/reject`, { rejectionReason: rejectReason });
+      const endpoint = subType === 'public' 
+        ? `/admin/submissions/${rejectId}/reject` 
+        : `/admin/assigned-tasks/${rejectId}/reject`;
+      await request('put', endpoint, { rejectionReason: rejectReason });
       toast.success('Submission Rejected');
       setShowRejectModal(false);
       setRejectReason('');
       fetchSubmissions();
       fetchDashboard();
-    } catch {}
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Rejection failed');
+    }
   };
 
   const handleCreateOrUpdateTask = async (e) => {
     e.preventDefault();
-    const payload = {
-      title: taskForm.title.trim(),
-      description: taskForm.description.trim(),
-      rewardPoints: Math.floor(Number(taskForm.rewardPoints)),
-      inputType: taskForm.inputType
-    };
+    const formData = new FormData();
+    formData.append('title', taskForm.title.trim());
+    formData.append('description', taskForm.description.trim());
+    formData.append('rewardPoints', Math.floor(Number(taskForm.rewardPoints)));
+    formData.append('inputType', taskForm.inputType);
     
+    if (taskForm.attachments) {
+      taskForm.attachments.forEach(file => {
+        formData.append('attachments', file);
+      });
+    }
+
     try {
       if (editingTask) {
-        await request('put', `/tasks/${editingTask._id}`, payload);
+        await request('put', `/tasks/${editingTask._id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         toast.success('Task updated');
       } else {
-        await request('post', '/tasks', payload);
+        await request('post', '/tasks', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         toast.success('Task created');
       }
       setShowTaskModal(false);
       setEditingTask(null);
-      setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' });
+      setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image', attachments: [] });
       fetchTasks();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save task');
@@ -223,6 +263,8 @@ const AdminPage = () => {
           submissions={submissions}
           filter={subFilter}
           setFilter={setSubFilter}
+          subType={subType}
+          setSubType={setSubType}
           onApprove={handleApprove}
           onReject={(id) => { setRejectId(id); setShowRejectModal(true); }}
           onPreview={(s) => { setPreviewSub(s); setShowPreview(true); }}
@@ -274,6 +316,15 @@ const AdminPage = () => {
               <option value="text_image">Text + Screenshot</option>
               <option value="all">Full Evidence (Text+Img+File+Link)</option>
             </select></div>
+          </div>
+          <div className="form-group">
+            <label>Campaign Attachments (Visible to everyone)</label>
+            <input 
+              type="file" 
+              multiple 
+              className="form-input" 
+              onChange={(e) => setTaskForm({ ...taskForm, attachments: Array.from(e.target.files) })} 
+            />
           </div>
           <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Update Protocol' : 'Deploy Campaign'}</button>
         </form>
