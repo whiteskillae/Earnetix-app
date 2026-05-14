@@ -163,4 +163,40 @@ const deleteTask = async (req, res, next) => {
   }
 };
 
-module.exports = { getTasks, getTaskById, createTask, updateTask, deleteTask };
+/**
+ * Bulk Decommission Tasks (Soft Delete)
+ */
+const deleteTasksBulk = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: 'IDs required' });
+
+    const results = { success: 0, failed: 0 };
+    for (const id of ids) {
+      try {
+        const task = await Task.findById(id);
+        if (!task || !task.isActive) { results.failed++; continue; }
+        
+        task.isActive = false;
+        await task.save();
+        results.success++;
+      } catch (err) { results.failed++; }
+    }
+
+    cache.flush();
+    
+    await AdminLog.create({
+      adminId: req.user._id,
+      action: 'delete_task',
+      targetId: req.user._id, // generic
+      targetType: 'task',
+      details: `Admin performed bulk archive of ${results.success} tasks`,
+      ip: req.ip,
+    });
+
+    res.json({ success: true, message: `Bulk archive complete. Success: ${results.success}, Failed: ${results.failed}` });
+  } catch (error) { next(error); }
+};
+
+module.exports = { getTasks, getTaskById, createTask, updateTask, deleteTask, deleteTasksBulk };
+

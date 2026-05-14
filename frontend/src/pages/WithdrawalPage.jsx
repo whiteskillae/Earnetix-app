@@ -82,6 +82,23 @@ const WithdrawalPage = () => {
     rejected: { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', label: 'Rejected' },
   };
 
+  if (user?.isBlocked) {
+    return (
+      <div className="withdrawal-page fade-in" style={{ textAlign: 'center', padding: '100px 20px' }}>
+        <div style={{ width: '80px', height: '80px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+          <AlertCircle size={40} color="#ef4444" />
+        </div>
+        <h2 style={{ marginBottom: '12px' }}>Unavailable Service</h2>
+        <p style={{ color: '#94a3b8', maxWidth: '400px', margin: '0 auto 24px' }}>
+          Your withdrawal privilege has been suspended. Please connect with the administration team to resolve any pending account issues.
+        </p>
+        <button className="btn btn-primary" onClick={() => window.location.href = 'mailto:support@earnitix.app'}>
+          Contact Support Team
+        </button>
+      </div>
+    );
+  }
+
   if (!isKycVerified) {
     return (
       <div className="withdrawal-page fade-in" style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -284,9 +301,20 @@ const WithdrawalPage = () => {
                       <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>Note: {w.adminNote}</div>
                     )}
                   </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '6px 14px', borderRadius: '10px', background: st.bg, color: st.color }}>
-                    {st.label}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {w.status === 'rejected' && (
+                      <button 
+                        className="btn btn-sm" 
+                        style={{ fontSize: '0.7rem', padding: '6px 12px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)' }}
+                        onClick={() => setStep(2)}
+                      >
+                        Request Again
+                      </button>
+                    )}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '6px 14px', borderRadius: '10px', background: st.bg, color: st.color }}>
+                      {st.label}
+                    </span>
+                  </div>
                 </div>
               );
             })}

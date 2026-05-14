@@ -1,12 +1,13 @@
-import { Search, Eye, Zap, Clock, Filter, Target } from 'lucide-react';
+import { Search, Eye, Zap, Clock, Filter, Target, CheckSquare, Square, Trash2, Ban } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 
-const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onViewDetails }) => {
+const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onViewDetails, onBulkBlock }) => {
   const { request } = useApi();
   const [searchTerm, setSearchTerm] = useState('');
   const [skillFilter, setSkillFilter] = useState('');
   const [categories, setCategories] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -25,21 +26,35 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
     return matchesSearch && matchesSkill;
   });
 
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    if (selectedIds.length === filteredUsers.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredUsers.map(u => u._id));
+    }
+  };
+
   const isTempBlocked = (user) => {
     return user.blockedUntil && new Date(user.blockedUntil) > new Date();
   };
 
   return (
     <div className="glass-panel">
-      <div className="view-filters" style={{ flexWrap: 'wrap', gap: '16px' }}>
-        <h3 style={{ margin: 0, minWidth: '200px' }}>User Intelligence Directory</h3>
+      <div className="view-filters" style={{ flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+        <h3 style={{ margin: 0, minWidth: '200px' }}>User Directory</h3>
         
         <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '300px' }}>
           <div className="search-box" style={{ flex: 1 }}>
             <Search size={18} />
             <input 
               type="text" 
-              placeholder="Search by name, email or IP..." 
+              placeholder="Search agents..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
             />
@@ -59,12 +74,23 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
             </select>
           </div>
         </div>
+
+        {selectedIds.length > 0 && (
+          <button className="btn btn-danger" onClick={() => onBulkBlock(selectedIds)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
+            <Ban size={14} /> Bulk Ban ({selectedIds.length})
+          </button>
+        )}
       </div>
 
       <div className="table-wrapper" style={{ border: 'none', background: 'transparent' }}>
         <table className="admin-table">
           <thead>
             <tr>
+              <th style={{ width: '40px' }}>
+                <button onClick={selectAll} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
+                  {selectedIds.length === filteredUsers.length && filteredUsers.length > 0 ? <CheckSquare size={18} color="var(--blue)" /> : <Square size={18} />}
+                </button>
+              </th>
               <th>Identity</th>
               <th>Wallet</th>
               <th>Status</th>
@@ -75,7 +101,12 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
           </thead>
           <tbody>
             {filteredUsers.map(u => (
-              <tr key={u._id} className="fade-in">
+              <tr key={u._id} className="fade-in" style={{ background: selectedIds.includes(u._id) ? 'rgba(59, 130, 246, 0.05)' : 'transparent' }}>
+                <td>
+                  <button onClick={() => toggleSelect(u._id)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
+                    {selectedIds.includes(u._id) ? <CheckSquare size={18} color="var(--blue)" /> : <Square size={18} />}
+                  </button>
+                </td>
                 <td>
                   <div className="user-info-cell">
                     <span className="user-name">{u.name}</span>

@@ -134,4 +134,54 @@ const deleteGalleryItem = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getGalleryItems, deleteGalleryItem };
+/**
+ * Admin Gallery: Bulk Delete specific files from multiple submissions.
+ */
+const deleteGalleryItemsBulk = async (req, res, next) => {
+  try {
+    const { items } = req.body; // Array of { submissionId, fileField }
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Array of items to delete is required' });
+    }
+
+    const results = { success: 0, failed: 0 };
+
+    for (const item of items) {
+      try {
+        const { submissionId, fileField } = item;
+        const submission = await Submission.findById(submissionId);
+        if (!submission) { results.failed++; continue; }
+
+        const publicIdField = fileField === 'image' ? 'imagePublicId' : 'filePublicId';
+        const urlField = fileField === 'image' ? 'imageUrl' : 'fileUrl';
+        const publicId = submission[publicIdField];
+
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
+          submission[publicIdField] = null;
+          submission[urlField] = null;
+          await submission.save();
+          results.success++;
+        } else {
+          results.failed++;
+        }
+      } catch (err) {
+        results.failed++;
+      }
+    }
+
+    await AdminLog.create({
+      adminId: req.user._id,
+      action: 'delete_task',
+      targetId: req.user._id, // generic target for bulk
+      targetType: 'submission',
+      details: `Admin performed bulk delete of ${results.success} gallery items`,
+      ip: req.ip,
+    });
+
+    res.json({ success: true, message: `Bulk delete complete. Success: ${results.success}, Failed: ${results.failed}`, results });
+  } catch (error) { next(error); }
+};
+
+module.exports = { getGalleryItems, deleteGalleryItem, deleteGalleryItemsBulk };
+

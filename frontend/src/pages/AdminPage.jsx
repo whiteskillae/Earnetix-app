@@ -18,6 +18,7 @@ import AssignmentManagement from '../components/admin/AssignmentManagement';
 import KycReview from '../components/admin/KycReview';
 import WithdrawalManagement from '../components/admin/WithdrawalManagement';
 import GalleryManagement from '../components/admin/GalleryManagement';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 const AdminPage = () => {
   const { request } = useApi();
@@ -53,6 +54,10 @@ const AdminPage = () => {
 
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [pointsForm, setPointsForm] = useState({ points: 0, reason: '' });
+
+  // Common Confirm Modal
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null, type: 'danger' });
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboard();
@@ -149,12 +154,22 @@ const AdminPage = () => {
 
   const handleReject = async (e) => {
     e.preventDefault();
+    if (!rejectId) return;
+    
+    setActionLoading(true);
     try {
-      const endpoint = subType === 'public' 
-        ? `/admin/submissions/${rejectId}/reject` 
-        : `/admin/assigned-tasks/${rejectId}/reject`;
-      await request('put', endpoint, { rejectionReason: rejectReason });
-      toast.success('Submission Rejected');
+      const isBulk = Array.isArray(rejectId);
+      const endpoint = isBulk 
+        ? (subType === 'public' ? '/admin/submissions/bulk-reject' : null) // individual bulk not implemented yet in backend
+        : (subType === 'public' ? `/admin/submissions/${rejectId}/reject` : `/admin/assigned-tasks/${rejectId}/reject`);
+
+      if (!endpoint) { toast.error('Bulk rejection not supported for individual missions'); return; }
+
+      const payload = isBulk ? { ids: rejectId, reason: rejectReason } : { rejectionReason: rejectReason };
+      const method = isBulk ? 'post' : 'put';
+
+      await request(method, endpoint, payload);
+      toast.success(isBulk ? 'Bulk Rejection Complete' : 'Submission Rejected');
       setShowRejectModal(false);
       setRejectReason('');
       fetchSubmissions();
@@ -162,6 +177,77 @@ const AdminPage = () => {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Rejection failed');
     }
+    setActionLoading(false);
+  };
+
+  const handleBulkApproveSubmissions = async (ids) => {
+    setConfirmModal({
+      open: true,
+      title: `Bulk Approval: ${ids.length} Submissions`,
+      message: `You are about to approve ${ids.length} proof-of-work logs and award credits to all contributing agents. Proceed with mass verification?`,
+      type: 'primary',
+      confirmText: 'Verify All',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const endpoint = subType === 'public' ? '/admin/submissions/bulk-approve' : null;
+          if (!endpoint) { toast.error('Bulk approval not supported for individual missions'); return; }
+          
+          await request('post', endpoint, { ids });
+          toast.success('Mass Verification Successful');
+          fetchSubmissions();
+          fetchDashboard();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {
+          toast.error('Bulk approval failed');
+        }
+        setActionLoading(false);
+      }
+    });
+  };
+
+  const handleBulkBlockUsers = async (ids) => {
+    setConfirmModal({
+      open: true,
+      title: `Strategic Purge: ${ids.length} Agents`,
+      message: `Are you sure you want to permanently blacklist these ${ids.length} accounts? Their access will be revoked and their pending assets purged.`,
+      type: 'danger',
+      confirmText: 'Execute Purge',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await request('post', '/admin/users/bulk-block', { ids });
+          toast.success('Agent Purge Complete');
+          fetchUsers();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {
+          toast.error('Bulk purge failed');
+        }
+        setActionLoading(false);
+      }
+    });
+  };
+
+  const handleBulkArchiveTasks = async (ids) => {
+    setConfirmModal({
+      open: true,
+      title: `Bulk Decommission: ${ids.length} Campaigns`,
+      message: `Are you sure you want to decommission ${ids.length} active campaigns? This will prevent any further intel acquisition for these sectors.`,
+      type: 'danger',
+      confirmText: 'Archive Campaigns',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await request('post', '/tasks/bulk-archive', { ids });
+          toast.success('Sectors Archived');
+          fetchTasks();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {
+          toast.error('Bulk archive failed');
+        }
+        setActionLoading(false);
+      }
+    });
   };
 
   const handleCreateOrUpdateTask = async (e) => {
@@ -200,12 +286,23 @@ const AdminPage = () => {
   };
 
   const handleDeleteTask = async (id) => {
-    if (!window.confirm('Delete this task?')) return;
-    try {
-      await request('delete', `/tasks/${id}`);
-      toast.success('Task deleted');
-      fetchTasks();
-    } catch {}
+    setConfirmModal({
+      open: true,
+      title: 'Decommission Campaign',
+      message: 'Are you sure you want to decommission this campaign? Existing submissions will be preserved in the archive, but no new intel can be logged.',
+      type: 'danger',
+      confirmText: 'Decommission',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await request('delete', `/tasks/${id}`);
+          toast.success('Campaign Decommissioned');
+          fetchTasks();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch {}
+        setActionLoading(false);
+      }
+    });
   };
 
   const handleToggleBlock = async (id) => {
@@ -219,14 +316,25 @@ const AdminPage = () => {
   };
 
   const handleBlockTemp = async (id) => {
-    if (!window.confirm('Temporarily block this user for 24 hours?')) return;
-    try {
-      const res = await request('patch', `/admin/users/${id}/block-temporary`, { durationHours: 24 });
-      toast.success(res.message);
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Block failed');
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Temporary Suspension',
+      message: 'Apply a 24-hour mandatory suspension to this agent? They will be locked out of the system during this period.',
+      type: 'danger',
+      confirmText: 'Execute Suspension',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const res = await request('patch', `/admin/users/${id}/block-temporary`, { durationHours: 24 });
+          toast.success(res.message);
+          fetchUsers();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Block failed');
+        }
+        setActionLoading(false);
+      }
+    });
   };
 
   const handleAdjustPoints = async (e) => {
@@ -255,6 +363,7 @@ const AdminPage = () => {
           onBlockTemp={handleBlockTemp}
           onAdjustPoints={(u) => { setSelectedUser(u); setShowPointsModal(true); }}
           onViewDetails={(u) => { setSelectedUser(u); setShowDetailsModal(true); }}
+          onBulkBlock={handleBulkBlockUsers}
         />
       )}
 
@@ -264,6 +373,7 @@ const AdminPage = () => {
           onCreateTask={() => { setEditingTask(null); setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' }); setShowTaskModal(true); }}
           onEditTask={(task) => { setEditingTask(task); setTaskForm({ title: task.title, description: task.description, rewardPoints: task.rewardPoints, inputType: task.inputType }); setShowTaskModal(true); }}
           onDeleteTask={handleDeleteTask}
+          onBulkDelete={handleBulkArchiveTasks}
         />
       )}
 
@@ -277,6 +387,8 @@ const AdminPage = () => {
           onApprove={handleApprove}
           onReject={(id) => { setRejectId(id); setShowRejectModal(true); }}
           onPreview={(s) => { setPreviewSub(s); setShowPreview(true); }}
+          onBulkApprove={handleBulkApproveSubmissions}
+          onBulkReject={(ids) => { setRejectId(ids); setShowRejectModal(true); }}
         />
       )}
 
@@ -298,11 +410,23 @@ const AdminPage = () => {
               <div key={ann._id} className="card" style={{ marginBottom: '16px', background: 'rgba(255,255,255,0.02)' }}>
                 <div className="flex-between">
                   <h4 style={{ color: ann.priority === 'high' ? '#ef4444' : '#fff' }}>{ann.title}</h4>
-                  <button className="btn-icon danger" onClick={async () => {
-                     if (window.confirm('Delete broadcast?')) {
-                       await request('delete', `/announcements/${ann._id}`);
-                       fetchAnnouncements();
-                     }
+                  <button className="btn-icon danger" onClick={() => {
+                    setConfirmModal({
+                      open: true,
+                      title: 'Purge Broadcast',
+                      message: 'Permanently remove this transmission from the system history?',
+                      type: 'danger',
+                      confirmText: 'Purge',
+                      onConfirm: async () => {
+                        setActionLoading(true);
+                        try {
+                          await request('delete', `/announcements/${ann._id}`);
+                          fetchAnnouncements();
+                          setConfirmModal(prev => ({ ...prev, open: false }));
+                        } catch {}
+                        setActionLoading(false);
+                      }
+                    });
                   }}><Trash2 size={16} /></button>
                 </div>
                 <p style={{ margin: '12px 0', color: '#94a3b8' }}>{ann.content}</p>
@@ -468,6 +592,17 @@ const AdminPage = () => {
       </Modal>
 
     </AdminLayout>
+
+    <ConfirmModal 
+      isOpen={confirmModal.open}
+      onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+      onConfirm={confirmModal.onConfirm}
+      title={confirmModal.title}
+      message={confirmModal.message}
+      type={confirmModal.type}
+      confirmText={confirmModal.confirmText}
+      loading={actionLoading}
+    />
   );
 };
 

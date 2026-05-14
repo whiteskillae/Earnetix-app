@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useApi } from '../../hooks/useApi';
-import toast from 'react-hot-toast';
 import Modal from '../common/Modal';
+import ConfirmModal from '../common/ConfirmModal';
 import { Shield, CheckCircle, XCircle, Ban, Eye, Clock, FileText, User, ExternalLink } from 'lucide-react';
 
 const KycReview = () => {
@@ -14,6 +12,9 @@ const KycReview = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectUserId, setRejectUserId] = useState(null);
+
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null, type: 'danger' });
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchKycList();
@@ -29,14 +30,25 @@ const KycReview = () => {
   };
 
   const handleVerify = async (id) => {
-    if (!window.confirm('Verify this user\'s identity?')) return;
-    try {
-      await request('put', `/kyc/admin/${id}/verify`);
-      toast.success('KYC verified successfully');
-      fetchKycList();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Verification failed');
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Authorize Identity',
+      message: 'Are you certain this agent\'s credentials are valid? Granting clearance will unlock full operational capabilities.',
+      type: 'primary',
+      confirmText: 'Grant Clearance',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await request('put', `/kyc/admin/${id}/verify`);
+          toast.success('Clearance Granted');
+          fetchKycList();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Authorization failed');
+        }
+        setActionLoading(false);
+      }
+    });
   };
 
   const handleReject = async (e) => {
@@ -54,14 +66,25 @@ const KycReview = () => {
   };
 
   const handleBlock = async (id) => {
-    if (!window.confirm('⚠ This will permanently BLOCK the user and terminate their session. Continue?')) return;
-    try {
-      await request('put', `/kyc/admin/${id}/block`);
-      toast.success('User blocked and session terminated');
-      fetchKycList();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Block failed');
-    }
+    setConfirmModal({
+      open: true,
+      title: 'Strategic Termination',
+      message: 'Initiate mandatory account termination? All sessions will be severed and access permanently revoked.',
+      type: 'danger',
+      confirmText: 'Terminate Access',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await request('put', `/kyc/admin/${id}/block`);
+          toast.success('Agent Terminated');
+          fetchKycList();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Termination failed');
+        }
+        setActionLoading(false);
+      }
+    });
   };
 
   const statusBadge = (status) => {
@@ -188,6 +211,16 @@ const KycReview = () => {
           </button>
         </form>
       </Modal>
+      <ConfirmModal 
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText={confirmModal.confirmText}
+        loading={actionLoading}
+      />
     </div>
   );
 };

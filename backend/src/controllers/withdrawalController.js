@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Withdrawal = require('../models/Withdrawal');
 const AdminLog = require('../models/AdminLog');
 const logger = require('../utils/logger');
+const Announcement = require('../models/Announcement');
 const { freezePoints, unfreezePoints, deductPointsForWithdrawal } = require('../services/pointService');
 
 const POINTS_PER_DOLLAR = 100;
@@ -215,6 +216,15 @@ const rejectWithdrawal = async (req, res, next) => {
     await AdminLog.create([{
       adminId: req.user._id, action: 'withdrawal_reject', targetId: withdrawal._id,
       targetType: 'withdrawal', details: `Rejected $${withdrawal.amountUSD} withdrawal for user ${withdrawal.userId}: ${reason}`, ip: req.ip,
+    }], { session });
+
+    // Create a targeted announcement for the user
+    await Announcement.create([{
+      title: 'Withdrawal Request Rejected',
+      content: `Your withdrawal request for $${withdrawal.amountUSD} has been rejected. Reason: ${reason || 'Bank details mismatch or verification failed'}. Your points have been returned to your wallet. You can request again after correcting the issues.`,
+      priority: 'high',
+      targetUser: withdrawal.userId,
+      createdBy: req.user._id
     }], { session });
 
     await session.commitTransaction();

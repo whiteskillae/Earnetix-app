@@ -2,7 +2,19 @@ const Announcement = require('../models/Announcement');
 
 const getAnnouncements = async (req, res, next) => {
   try {
-    const filter = req.user.role === 'admin' ? {} : { isActive: true };
+    let filter = { isActive: true };
+    
+    // If not admin, only show global (targetUser: null) OR those targeted at this specific user
+    if (req.user.role !== 'admin') {
+      filter.$or = [
+        { targetUser: null },
+        { targetUser: req.user._id }
+      ];
+    } else {
+      // Admin sees everything
+      filter = {};
+    }
+
     const announcements = await Announcement.find(filter).sort({ createdAt: -1 });
     res.json({ success: true, data: announcements });
   } catch (error) { next(error); }

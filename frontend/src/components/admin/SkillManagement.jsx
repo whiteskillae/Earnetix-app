@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useApi } from '../../hooks/useApi';
 import Modal from '../common/Modal';
+import ConfirmModal from '../common/ConfirmModal';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit, Save, X, Tag } from 'lucide-react';
 
@@ -11,6 +10,9 @@ const SkillManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [form, setForm] = useState({ name: '', skillsString: '' });
+
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null, type: 'danger' });
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -50,12 +52,23 @@ const SkillManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this skill category?')) return;
-    try {
-      await request('delete', `/skill-categories/${id}`);
-      toast.success('Category removed');
-      fetchCategories();
-    } catch (err) {}
+    setConfirmModal({
+      open: true,
+      title: 'Dismantle Infrastructure',
+      message: 'Are you sure you want to dismantle this skill sector? This will remove all associated expertise tags from the global registry.',
+      type: 'danger',
+      confirmText: 'Dismantle Sector',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await request('delete', `/skill-categories/${id}`);
+          toast.success('Sector Dismantled');
+          fetchCategories();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {}
+        setActionLoading(false);
+      }
+    });
   };
 
   if (loading) return <div className="glass-panel" style={{ textAlign: 'center', padding: '40px' }}>Syncing Expert Databases...</div>;
@@ -127,6 +140,16 @@ const SkillManagement = () => {
           </button>
         </form>
       </Modal>
+      <ConfirmModal 
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText={confirmModal.confirmText}
+        loading={actionLoading}
+      />
     </div>
   );
 };

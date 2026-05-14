@@ -190,7 +190,7 @@ const toggleBlockUser = async (req, res, next) => {
 
 const getTasksWithStats = async (req, res, next) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 }).lean();
+    const tasks = await Task.find({ isActive: true }).sort({ createdAt: -1 }).lean();
 
     // Single aggregation query instead of one-per-task (O(N) -> O(1))
     const submissionStats = await Submission.aggregate([
@@ -248,6 +248,107 @@ const adjustPoints = async (req, res, next) => {
     }
     next(error);
   }
+};
+
+/**
+ * Bulk Approve Submissions
+ */
+const approveSubmissionsBulk = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: 'IDs required' });
+
+    const results = { success: 0, failed: 0 };
+    for (const id of ids) {
+      try {
+        const submission = await Submission.findById(id).populate('taskId userId');
+        if (!submission || submission.status !== 'pending') { results.failed++; continue; }
+        
+        // Using existing transactional logic (but without a single big session to avoid locking too much)
+        // Optimization: In a real high-load scenario, we might use a single session but for 10-20 items separate is safer.
+        await approveSubmissionTransactional(submission, req.user._id);
+        results.success++;
+      } catch (err) { results.failed++; }
+    }
+
+    cache.del('admin_dashboard');
+    res.json({ success: true, message: `Bulk approval complete. Success: ${results.success}, Failed: ${results.failed}` });
+  } catch (error) { next(error); }
+};
+
+/**
+ * Bulk Reject Submissions
+ */
+const rejectSubmissionsBulk = async (req, res, next) => {
+  try {
+    const { ids, reason } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: 'IDs required' });
+    if (!reason) return res.status(400).json({ success: false, message: 'Reason required' });
+
+    const results = { success: 0, failed: 0 };
+    const { deleteFromCloudinary } = require('../services/uploadService');
+
+    for (const id of ids) {
+      try {
+        const submission = await Submission.findById(id);
+        if (!submission || submission.status !== 'pending') { results.failed++; continue; }
+
+        submission.status = 'rejected';
+        submission.rejectionReason = reason;
+        submission.canResubmit = submission.submissionCount < 2;
+        submission.reviewedBy = req.user._id;
+        submission.reviewedAt = new Date();
+        await submission.save();
+
+        if (submission.imagePublicId) await deleteFromCloudinary(submission.imagePublicId);
+        if (submission.filePublicId) await deleteFromCloudinary(submission.filePublicId);
+        
+        results.success++;
+      } catch (err) { results.failed++; }
+    }
+
+    cache.del('admin_dashboard');
+    res.json({ success: true, message: `Bulk rejection complete. Success: ${results.success}, Failed: ${results.failed}` });
+  } catch (error) { next(error); }
+};
+
+/**
+ * Bulk Block Users
+ */
+const blockUsersBulk = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ success: false, message: 'IDs required' });
+
+    const results = { success: 0, failed: 0 };
+    const { deleteFromCloudinary } = require('../services/uploadService');
+
+    for (const id of ids) {
+      try {
+        const user = await User.findById(id);
+        if (!user || user.role === 'admin' || user.isBlocked) { results.failed++; continue; }
+
+        user.isBlocked = true;
+        user.refreshToken = null;
+        await user.save();
+
+        // Clean up evidence
+        const pendingSubmissions = await Submission.find({
+          userId: user._id,
+          status: { $in: ['pending', 'rejected'] },
+          $or: [{ imagePublicId: { $ne: null } }, { filePublicId: { $ne: null } }]
+        });
+        for (const sub of pendingSubmissions) {
+          if (sub.imagePublicId) await deleteFromCloudinary(sub.imagePublicId);
+          if (sub.filePublicId) await deleteFromCloudinary(sub.filePublicId);
+        }
+
+        results.success++;
+      } catch (err) { results.failed++; }
+    }
+
+    res.json({ success: true, message: `Bulk blocking complete. Success: ${results.success}, Failed: ${results.failed}` });
+  } catch (error) { next(error); }
 };
 
 const blockUserTemporary = async (req, res, next) => {

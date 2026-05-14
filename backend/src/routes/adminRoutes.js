@@ -24,4 +24,11 @@ router.patch('/users/:id/toggle-block', toggleBlockUser);
 router.patch('/users/:id/block-temporary', blockUserTemporary);
 router.post('/users/:id/adjust-points', adjustPoints);
 
+// Bulk Actions
+const { approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk } = require('../controllers/adminController');
+router.post('/submissions/bulk-approve', approveSubmissionsBulk);
+router.post('/submissions/bulk-reject', rejectSubmissionsBulk);
+router.post('/users/bulk-block', blockUsersBulk);
+
+
 module.exports = router;

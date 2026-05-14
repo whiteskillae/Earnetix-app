@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '../../hooks/useApi';
 import toast from 'react-hot-toast';
-import { Image, Film, FileText, Trash2, Search, Filter, ChevronLeft, ChevronRight, Eye, X, Download, Calendar, User } from 'lucide-react';
+import { 
+  Image, Film, FileText, Trash2, Search, Filter, 
+  ChevronLeft, ChevronRight, Eye, X, Download, 
+  Calendar, User, CheckSquare, Square
+} from 'lucide-react';
+import ConfirmModal from '../common/ConfirmModal';
 
 const GalleryManagement = () => {
   const { request } = useApi();
@@ -11,7 +16,11 @@ const GalleryManagement = () => {
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({ status: '', fileType: '', dateFrom: '', dateTo: '' });
   const [preview, setPreview] = useState(null);
-  const [deleting, setDeleting] = useState(null);
+  
+  // Selection & Actions
+  const [selectedItems, setSelectedItems] = useState([]); // Array of { submissionId, fileField }
+  const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null, type: 'danger' });
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchGallery = useCallback(async () => {
     setLoading(true);
@@ -23,6 +32,7 @@ const GalleryManagement = () => {
       if (res.success) {
         setItems(res.data.items);
         setPagination(res.data.pagination);
+        setSelectedItems([]); // Reset selection on page/filter change
       }
     } catch (err) {
       toast.error('Failed to load gallery');
@@ -32,19 +42,79 @@ const GalleryManagement = () => {
 
   useEffect(() => { fetchGallery(); }, [fetchGallery]);
 
-  const handleDelete = async (submissionId, fileField) => {
-    if (!window.confirm(`Delete this ${fileField} permanently from Cloudinary? This cannot be undone.`)) return;
-    setDeleting(`${submissionId}-${fileField}`);
-    try {
-      const res = await request('delete', `/admin/gallery/${submissionId}/${fileField}`);
-      if (res.success) {
-        toast.success('File deleted successfully');
-        fetchGallery();
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+  const toggleSelect = (submissionId, fileField) => {
+    const key = `${submissionId}-${fileField}`;
+    const isSelected = selectedItems.some(i => `${i.submissionId}-${i.fileField}` === key);
+    
+    if (isSelected) {
+      setSelectedItems(prev => prev.filter(i => `${i.submissionId}-${i.fileField}` !== key));
+    } else {
+      setSelectedItems(prev => [...prev, { submissionId, fileField }]);
     }
-    setDeleting(null);
+  };
+
+  const selectAll = () => {
+    if (selectedItems.length === items.flatMap(i => i.files).length) {
+      setSelectedItems([]);
+    } else {
+      const all = [];
+      items.forEach(item => {
+        item.files.forEach(file => {
+          all.push({ submissionId: item._id, fileField: file.type === 'image' ? 'image' : 'file' });
+        });
+      });
+      setSelectedItems(all);
+    }
+  };
+
+  const handleDeleteSingle = (submissionId, fileField) => {
+    setConfirmModal({
+      open: true,
+      title: 'Delete Intelligence Asset',
+      message: `Are you sure you want to permanently delete this ${fileField} from the secure cloud? This action is irreversible.`,
+      type: 'danger',
+      confirmText: 'Destroy Asset',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const res = await request('delete', `/admin/gallery/${submissionId}/${fileField}`);
+          if (res.success) {
+            toast.success('Asset Destroyed');
+            fetchGallery();
+            setConfirmModal(prev => ({ ...prev, open: false }));
+          }
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Elimination failed');
+        }
+        setActionLoading(false);
+      }
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedItems.length === 0) return;
+    
+    setConfirmModal({
+      open: true,
+      title: `Bulk Deletion: ${selectedItems.length} Assets`,
+      message: `You are about to permanently purge ${selectedItems.length} evidence files from the system. This will impact the audit trail for these missions. Proceed?`,
+      type: 'danger',
+      confirmText: 'Purge Selection',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const res = await request('post', '/admin/gallery/bulk-delete', { items: selectedItems });
+          if (res.success) {
+            toast.success(`Purge Successful: ${res.results.success} items removed`);
+            fetchGallery();
+            setConfirmModal(prev => ({ ...prev, open: false }));
+          }
+        } catch (err) {
+          toast.error('Bulk elimination failed');
+        }
+        setActionLoading(false);
+      }
+    });
   };
 
   const getFileIcon = (type) => {
@@ -67,16 +137,36 @@ const GalleryManagement = () => {
             <Image size={24} color="var(--blue)" /> Gallery Management
           </h2>
           <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', marginTop: '4px' }}>
-            Browse and manage all uploaded evidence across the platform
+            Securely browse and purge intelligence evidence logs
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-          <Filter size={14} /> {pagination.total || 0} files total
+        
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {selectedItems.length > 0 && (
+            <button className="btn btn-danger" onClick={handleBulkDelete} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trash2 size={16} /> Bulk Purge ({selectedItems.length})
+            </button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--gray-500)', background: 'rgba(255,255,255,0.03)', padding: '8px 16px', borderRadius: '12px' }}>
+            <Filter size={14} /> {pagination.total || 0} total logs
+          </div>
         </div>
       </div>
 
       {/* Filters Bar */}
       <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: '16px', marginBottom: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button 
+          onClick={selectAll} 
+          style={{ 
+            background: selectedItems.length > 0 ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+            border: '1px solid var(--glass-border)', color: 'white', padding: '8px 14px', borderRadius: '10px', 
+            fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' 
+          }}
+        >
+          {selectedItems.length === items.flatMap(i => i.files).length && selectedItems.length > 0 ? <CheckSquare size={16} color="var(--blue)" /> : <Square size={16} />}
+          {selectedItems.length > 0 ? `Selected ${selectedItems.length}` : 'Select All'}
+        </button>
+
         <select
           value={filters.status}
           onChange={(e) => { setFilters(f => ({ ...f, status: e.target.value })); setPage(1); }}
@@ -131,49 +221,63 @@ const GalleryManagement = () => {
       ) : items.length === 0 ? (
         <div className="glass-panel" style={{ padding: '60px', textAlign: 'center', borderRadius: '20px' }}>
           <Image size={48} color="var(--gray-600)" style={{ marginBottom: '16px' }} />
-          <p style={{ color: 'var(--gray-500)', fontWeight: 600 }}>No files match your filters</p>
+          <p style={{ color: 'var(--gray-500)', fontWeight: 600 }}>Intelligence grid empty</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
           {items.map((item) => (
-            <div key={item._id} className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden', transition: 'var(--transition)' }}>
+            <div key={item._id} className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden', transition: 'var(--transition)', border: selectedItems.some(i => i.submissionId === item._id) ? '2px solid var(--blue)' : '1px solid var(--glass-border)' }}>
               {/* Preview Area */}
-              {item.files.map((file, idx) => (
-                <div key={idx} style={{ position: 'relative' }}>
-                  {file.type === 'image' ? (
-                    <img src={file.url} alt="Evidence"
-                      style={{ width: '100%', height: '160px', objectFit: 'cover', cursor: 'pointer' }}
-                      onClick={() => setPreview(file)}
-                      loading="lazy"
-                    />
-                  ) : file.type === 'video' ? (
-                    <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)', cursor: 'pointer' }}
-                      onClick={() => setPreview(file)}
+              {item.files.map((file, idx) => {
+                const isSelected = selectedItems.some(i => i.submissionId === item._id && i.fileField === (file.type === 'image' ? 'image' : 'file'));
+                return (
+                  <div key={idx} style={{ position: 'relative' }}>
+                    {/* Checkbox overlay */}
+                    <div 
+                      onClick={() => toggleSelect(item._id, file.type === 'image' ? 'image' : 'file')}
+                      style={{ 
+                        position: 'absolute', top: '10px', left: '10px', zIndex: 5,
+                        width: '24px', height: '24px', borderRadius: '6px', background: isSelected ? 'var(--blue)' : 'rgba(0,0,0,0.5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.2)'
+                      }}
                     >
-                      <Film size={40} color="var(--blue)" />
+                      {isSelected && <CheckSquare size={14} color="white" />}
                     </div>
-                  ) : (
-                    <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)' }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <FileText size={32} color="var(--gray-500)" />
-                        <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '8px', fontWeight: 700 }}>.{file.ext}</p>
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Overlay Actions */}
-                  <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px' }}>
-                    <button onClick={() => setPreview(file)}
-                      style={{ background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'white' }}
-                    ><Eye size={14} /></button>
-                    <button
-                      onClick={() => handleDelete(item._id, file.type === 'image' ? 'image' : 'file')}
-                      disabled={deleting === `${item._id}-${file.type === 'image' ? 'image' : 'file'}`}
-                      style={{ background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'white' }}
-                    ><Trash2 size={14} /></button>
+                    {file.type === 'image' ? (
+                      <img src={file.url} alt="Evidence"
+                        style={{ width: '100%', height: '160px', objectFit: 'cover', cursor: 'pointer' }}
+                        onClick={() => setPreview(file)}
+                        loading="lazy"
+                      />
+                    ) : file.type === 'video' ? (
+                      <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)', cursor: 'pointer' }}
+                        onClick={() => setPreview(file)}
+                      >
+                        <Film size={40} color="var(--blue)" />
+                      </div>
+                    ) : (
+                      <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <FileText size={32} color="var(--gray-500)" />
+                          <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginTop: '8px', fontWeight: 700 }}>.{file.ext}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Overlay Actions */}
+                    <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px' }}>
+                      <button onClick={() => setPreview(file)}
+                        style={{ background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'white' }}
+                      ><Eye size={14} /></button>
+                      <button
+                        onClick={() => handleDeleteSingle(item._id, file.type === 'image' ? 'image' : 'file')}
+                        style={{ background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'white' }}
+                      ><Trash2 size={14} /></button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Meta Info */}
               <div style={{ padding: '12px 14px' }}>
@@ -252,6 +356,18 @@ const GalleryManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal 
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText={confirmModal.confirmText}
+        loading={actionLoading}
+      />
     </div>
   );
 };
