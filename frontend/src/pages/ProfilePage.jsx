@@ -9,7 +9,7 @@ import Select from 'react-select';
 import { countries } from '../utils/countries';
 
 const ProfilePage = () => {
-  const { user, fetchProfile, logout, setUser } = useAuth();
+  const { user, fetchProfile, logout, setUser, isAdmin } = useAuth();
   const { request } = useApi();
   const navigate = useNavigate();
   const [subs, setSubs] = useState([]);
@@ -144,20 +144,25 @@ const ProfilePage = () => {
             <div className="user-text" style={{ flex: 1, minWidth: '250px' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '4px' }}>
                  <h2 style={{ fontSize: '2.2rem', margin: 0 }}>{user?.name}</h2>
-                 {user?.username ? (
-                   <span className="tag" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.9rem', fontWeight: 700 }}>
-                     @{user.username}
-                   </span>
-                 ) : (
-                   <span 
-                     onClick={() => setIsEditModalOpen(true)}
-                     className="tag" 
-                     style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
-                   >
-                     + Set Username
-                   </span>
-                 )}
-               </div>
+                  {user?.username ? (
+                    <span className="tag" style={{ background: 'var(--blue-glow)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.9rem', fontWeight: 700 }}>
+                      @{user.username}
+                    </span>
+                  ) : !isAdmin ? (
+                    <span 
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="tag" 
+                      style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      + Set Username
+                    </span>
+                  ) : null}
+                  {isAdmin && (
+                    <span className="tag" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--blue-light)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '4px 12px', borderRadius: '100px', fontSize: '0.8rem', fontWeight: 700 }}>
+                      SYSTEM ADMINISTRATOR
+                    </span>
+                  )}
+                </div>
                
                <div style={{ marginBottom: '16px' }}></div>
 
@@ -171,17 +176,19 @@ const ProfilePage = () => {
                </div>
             </div>
 
-            <div className="points-display-premium glass-panel" style={{ padding: '24px 32px', borderRadius: '24px', textAlign: 'center', border: '1px solid rgba(251, 191, 36, 0.15)', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', marginLeft: 'auto' }}>
-                <div>
-                   <div className="points-val" style={{ color: '#fbbf24', fontSize: '2.5rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                     <Zap size={32} fill="#fbbf24" strokeWidth={0} /> {user?.points || 0}
-                   </div>
-                   <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
-                </div>
-                <button className="btn btn-primary btn-sm" style={{ width: '100%', borderRadius: '12px' }} onClick={() => navigate('/withdraw')}>
-                   <Wallet size={16} /> Withdraw
-                </button>
-            </div>
+            {!isAdmin && (
+              <div className="points-display-premium glass-panel" style={{ padding: '24px 32px', borderRadius: '24px', textAlign: 'center', border: '1px solid rgba(251, 191, 36, 0.15)', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', marginLeft: 'auto' }}>
+                  <div>
+                     <div className="points-val" style={{ color: '#fbbf24', fontSize: '2.5rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <Zap size={32} fill="#fbbf24" strokeWidth={0} /> {user?.points || 0}
+                     </div>
+                     <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
+                  </div>
+                  <button className="btn btn-primary btn-sm" style={{ width: '100%', borderRadius: '12px' }} onClick={() => navigate('/withdraw')}>
+                     <Wallet size={16} /> Withdraw
+                  </button>
+              </div>
+            )}
          </div>
       </div>
 
@@ -208,71 +215,77 @@ const ProfilePage = () => {
          </div>
 
          <div className="premium-card">
-            <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <TrendingUp size={20} /> OPERATIONAL EFFICIENCY
-            </h3>
-            <div className="stats-mini-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px' }}>
-                  <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900 }}>{subs.length}</span>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>TASKS</span>
-               </div>
-               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                  <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>{subs.filter(s => s.status === 'approved').length}</span>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>SUCCESS</span>
-               </div>
-               <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                  <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900, color: '#f59e0b' }}>{subs.filter(s => s.status === 'pending').length}</span>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>PENDING</span>
+          {!isAdmin && (
+            <div className="premium-card">
+               <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                 <TrendingUp size={20} /> OPERATIONAL EFFICIENCY
+               </h3>
+               <div className="stats-mini-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                  <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px' }}>
+                     <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900 }}>{subs.length}</span>
+                     <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>TASKS</span>
+                  </div>
+                  <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                     <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900, color: 'var(--green)' }}>{subs.filter(s => s.status === 'approved').length}</span>
+                     <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>SUCCESS</span>
+                  </div>
+                  <div className="glass-panel" style={{ padding: '16px', textAlign: 'center', borderRadius: '18px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                     <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900, color: '#f59e0b' }}>{subs.filter(s => s.status === 'pending').length}</span>
+                     <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>PENDING</span>
+                  </div>
                </div>
             </div>
+          )}
          </div>
       </div>
 
       {/* Submissions Section */}
-      <div className="premium-card" style={{ marginTop: '32px' }}>
-        <div className="flex-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-          <h3>MISSION HISTORY</h3>
-          <div className="filter-group">
-            {['all', 'pending', 'approved', 'rejected'].map((f) => (
-              <button key={f} className={filter === f ? 'active' : ''}
-                onClick={() => { setFilter(f); setLoading(true); }}>
-                {f.toUpperCase()}
-              </button>
-            ))}
+      {!isAdmin && (
+        <div className="premium-card" style={{ marginTop: '32px' }}>
+          <div className="flex-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+            <h3>MISSION HISTORY</h3>
+            <div className="filter-group">
+              {['all', 'pending', 'approved', 'rejected'].map((f) => (
+                <button key={f} className={filter === f ? 'active' : ''}
+                  onClick={() => { setFilter(f); setLoading(true); }}>
+                  {f.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+  
+          <div className="table-responsive">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Operation</th>
+                  <th>Yield</th>
+                  <th>Status</th>
+                  <th className="text-right">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subs.map((s) => (
+                  <tr key={s._id}>
+                    <td style={{ fontWeight: 700, color: 'white' }}>{s.taskId?.title || 'Unknown Mission'}</td>
+                    <td style={{ fontWeight: 800, color: 'var(--green)' }}>+{s.taskId?.rewardPoints}</td>
+                    <td>
+                       <span className={`status-pill-new status-${s.status}`}>{s.status}</span>
+                    </td>
+                    <td className="text-right" style={{ fontSize: '0.8rem', opacity: 0.6 }}>{new Date(s.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {subs.length === 0 && (
+              <div style={{ padding: '60px', textAlign: 'center', opacity: 0.4 }}>
+                No operational records for this sector.
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="table-responsive">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Operation</th>
-                <th>Yield</th>
-                <th>Status</th>
-                <th className="text-right">Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subs.map((s) => (
-                <tr key={s._id}>
-                  <td style={{ fontWeight: 700, color: 'white' }}>{s.taskId?.title || 'Unknown Mission'}</td>
-                  <td style={{ fontWeight: 800, color: 'var(--green)' }}>+{s.taskId?.rewardPoints}</td>
-                  <td>
-                     <span className={`status-pill-new status-${s.status}`}>{s.status}</span>
-                  </td>
-                  <td className="text-right" style={{ fontSize: '0.8rem', opacity: 0.6 }}>{new Date(s.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {subs.length === 0 && (
-            <div style={{ padding: '60px', textAlign: 'center', opacity: 0.4 }}>
-              No operational records for this sector.
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Edit Profile Modal */}
       {isEditModalOpen && (
