@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ReCAPTCHA from "react-google-recaptcha";
 import { useApi } from '../hooks/useApi';
@@ -17,6 +17,11 @@ const RegisterPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [captchaToken, setCaptchaToken] = useState(null);
+
+  useEffect(() => {
+    const key = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+    console.log('reCAPTCHA Diagnostic (Reg):', key ? `${key.substring(0, 6)}...` : 'MISSING');
+  }, []);
 
   const handleGoogleSuccess = async (tokenResponse) => {
     try {

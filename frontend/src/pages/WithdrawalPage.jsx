@@ -24,6 +24,11 @@ const WithdrawalPage = () => {
   const [pointsToConvert, setPointsToConvert] = useState(MIN_POINTS);
   const [captchaToken, setCaptchaToken] = useState(null);
 
+  useEffect(() => {
+    const key = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+    console.log('reCAPTCHA Diagnostic (Withdraw):', key ? `${key.substring(0, 6)}...` : 'MISSING');
+  }, []);
+
   const availablePoints = (user?.points || 0) - (user?.frozenPoints || 0);
   const hasBankDetails = user?.bankDetails?.accountNumber;
   const hasPendingWithdrawal = withdrawals.some(w => w.status === 'pending' || w.status === 'processing');
