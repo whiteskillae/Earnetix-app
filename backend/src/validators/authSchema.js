@@ -5,12 +5,14 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address').trim().toLowerCase(),
   password: z.string().min(8, 'Password must be at least 8 characters').max(128),
   deviceFingerprint: z.string().optional(),
+  captchaToken: z.string().optional(),
 });
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address').trim().toLowerCase(),
   password: z.string().min(1, 'Password is required'),
   deviceFingerprint: z.string().optional(),
+  captchaToken: z.string().optional(),
 });
 
 const verifyOtpSchema = z.object({

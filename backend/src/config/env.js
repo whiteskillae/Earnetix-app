@@ -26,6 +26,7 @@ const envSchema = z.object({
   RECAPTCHA_SECRET_KEY: z.string().optional(),
   RECAPTCHA_ENTERPRISE_PROJECT_ID: z.string().optional(),
   RECAPTCHA_ENTERPRISE_SITE_KEY: z.string().optional(),
+  RECAPTCHA_ENTERPRISE_API_KEY: z.string().optional(),
 });
 
 let env;
