@@ -33,8 +33,9 @@ const TasksPage = () => {
         if (subsRes.success) setMySubs(subsRes.data.submissions);
       } catch (err) {
         toast.error('Sector data retrieval failed.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchData();
   }, [request]);

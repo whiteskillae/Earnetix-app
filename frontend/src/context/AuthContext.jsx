@@ -13,21 +13,37 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfile = useCallback(async () => {
     setIsRefreshing(true);
+    
+    // Safety fallback: Ensure loading finishes even if the network request hangs indefinitely
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+      setIsRefreshing(false);
+    }, 8000);
+
     try {
       const token = localStorage.getItem('accessToken');
-      if (!token) { setLoading(false); setIsRefreshing(false); return; }
+      if (!token) { 
+        setLoading(false); 
+        setIsRefreshing(false); 
+        clearTimeout(safetyTimer);
+        return; 
+      }
+
       const { data } = await api.get('/users/profile');
-      setUser(data.data);
-      localStorage.setItem('user', JSON.stringify(data.data));
+      if (data?.data) {
+        setUser(data.data);
+        localStorage.setItem('user', JSON.stringify(data.data));
+      }
     } catch (error) {
       console.error('Profile fetch failed:', error.message);
-      // Only clear tokens if the server explicitly says the token is bad (401)
+      // Clear state on explicit 401 to prevent redirect loops
       if (error.response?.status === 401) {
         setUser(null);
         localStorage.removeItem('user');
         localStorage.removeItem('accessToken');
       }
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
       setIsRefreshing(false);
     }

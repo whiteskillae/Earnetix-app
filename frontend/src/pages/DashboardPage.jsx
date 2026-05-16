@@ -32,8 +32,11 @@ const DashboardPage = () => {
           pending: subs.filter(s => s.status === 'pending').length,
           approved: subs.filter(s => s.status === 'approved').length,
         });
-      } catch {}
-      setLoading(false);
+      } catch (err) {
+        console.error('Dashboard load failed:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, []);

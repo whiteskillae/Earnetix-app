@@ -7,6 +7,7 @@ const normalizedBaseURL = baseURL.endsWith('/') ? baseURL : `${baseURL}/`;
 const api = axios.create({
   baseURL: normalizedBaseURL,
   withCredentials: true,
+  timeout: 15000, // 15s timeout to prevent infinite hangs
 });
 
 // Request interceptor — attach access token
@@ -76,7 +77,11 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        
+        // Prevent redirect loops: only redirect if we're not already on the login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
