@@ -4,6 +4,7 @@ const Withdrawal = require('../models/Withdrawal');
 const AdminLog = require('../models/AdminLog');
 const logger = require('../utils/logger');
 const Announcement = require('../models/Announcement');
+const { verifyCaptcha } = require('./authController');
 const { freezePoints, unfreezePoints, deductPointsForWithdrawal } = require('../services/pointService');
 
 const POINTS_PER_DOLLAR = 100;
@@ -34,7 +35,15 @@ const requestWithdrawal = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { pointsToConvert } = req.body;
+    const { pointsToConvert, captchaToken } = req.body;
+    
+    const isCaptchaValid = await verifyCaptcha(captchaToken);
+    if (!isCaptchaValid) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Security verification failed. Please try again.' });
+    }
+
     const points = Number(pointsToConvert);
 
     if (!points || points < MIN_WITHDRAWAL_POINTS) {

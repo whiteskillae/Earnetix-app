@@ -122,12 +122,15 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '8px 0' }}>
               <ReCAPTCHA
                 sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
                 onChange={(token) => setCaptchaToken(token)}
                 theme="dark"
               />
+              <p style={{ fontSize: '0.65rem', color: 'var(--gray-600)', marginTop: '8px' }}>
+                Require reCAPTCHA v2 Checkbox keys.
+              </p>
             </div>
 
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>

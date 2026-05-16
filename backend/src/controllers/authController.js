@@ -455,4 +455,4 @@ const completeProfile = async (req, res, next) => {
   }
 };
 
-module.exports = { register, verifyOtp, resendOtp, login, googleAuth, refresh, logout, completeProfile };
+module.exports = { register, verifyOtp, resendOtp, login, googleAuth, refresh, logout, completeProfile, verifyCaptcha };

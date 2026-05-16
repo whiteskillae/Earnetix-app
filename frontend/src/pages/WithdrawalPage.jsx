@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
+import ReCAPTCHA from "react-google-recaptcha";
 import toast from 'react-hot-toast';
 import { Wallet, Banknote, ArrowRight, CheckCircle, Clock, AlertCircle, DollarSign, Shield, CreditCard, Building } from 'lucide-react';
 
@@ -21,6 +22,7 @@ const WithdrawalPage = () => {
     upiId: user?.bankDetails?.upiId || '',
   });
   const [pointsToConvert, setPointsToConvert] = useState(MIN_POINTS);
+  const [captchaToken, setCaptchaToken] = useState(null);
 
   const availablePoints = (user?.points || 0) - (user?.frozenPoints || 0);
   const hasBankDetails = user?.bankDetails?.accountNumber;
@@ -58,10 +60,14 @@ const WithdrawalPage = () => {
   const handleWithdraw = async () => {
     if (pointsToConvert < MIN_POINTS) return toast.error(`Minimum ${MIN_POINTS} points required`);
     if (pointsToConvert > availablePoints) return toast.error('Insufficient available points');
+    if (!captchaToken) return toast.error('Please complete the security check');
 
     setLoading(true);
     try {
-      const res = await request('post', '/withdrawals/request', { pointsToConvert });
+      const res = await request('post', '/withdrawals/request', { 
+        pointsToConvert,
+        captchaToken 
+      });
       if (res.success) {
         toast.success('Withdrawal request submitted!');
         await fetchProfile();
@@ -248,15 +254,26 @@ const WithdrawalPage = () => {
                 </p>
               </div>
 
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
+                <ReCAPTCHA
+                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                  onChange={(token) => setCaptchaToken(token)}
+                  theme="dark"
+                />
+                <p style={{ fontSize: '0.65rem', color: 'var(--gray-600)', marginTop: '8px' }}>
+                  Require reCAPTCHA v2 Checkbox keys.
+                </p>
+              </div>
+
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setStep(1)}>
-                  Edit Bank Details
+                   Edit Bank Details
                 </button>
                 <button 
                   className="btn btn-primary" 
                   style={{ flex: 2 }} 
                   onClick={handleWithdraw} 
-                  disabled={loading || pointsToConvert < MIN_POINTS || pointsToConvert > availablePoints}
+                  disabled={loading || pointsToConvert < MIN_POINTS || pointsToConvert > availablePoints || !captchaToken}
                 >
                   {loading ? 'Processing...' : 'Withdraw'} <Wallet size={18} />
                 </button>
