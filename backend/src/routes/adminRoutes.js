@@ -3,7 +3,8 @@ const {
   getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission, 
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
   getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
-  approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk
+  approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk,
+  getBlockedUsers, unblockUser
 } = require('../controllers/adminController');
 const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');

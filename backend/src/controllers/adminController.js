@@ -78,44 +78,48 @@ const getSubmissions = async (req, res, next) => {
 /**
  * TRANSACTIONAL: Approve submission + award points + log — all-or-nothing.
  */
-const approveSubmission = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+const approveSubmissionTransactional = async (submission, adminId, session = null) => {
+  const ownsSession = !session;
+  if (ownsSession) {
+    session = await mongoose.startSession();
+    session.startTransaction();
+  }
+  
   try {
-    const submission = await Submission.findById(req.params.id).populate('taskId').session(session);
-    if (!submission) {
-      await session.abortTransaction();
-      return res.status(404).json({ success: false, message: 'Submission not found' });
-    }
-    if (submission.status !== 'pending') {
-      await session.abortTransaction();
-      return res.status(400).json({ success: false, message: 'Submission already reviewed' });
-    }
-
     submission.status = 'approved';
-    submission.reviewedBy = req.user._id;
+    submission.reviewedBy = adminId;
     submission.reviewedAt = new Date();
     submission.canResubmit = false;
     await submission.save({ session });
 
-    await awardPoints(submission.userId, submission.taskId.rewardPoints, req.user._id, submission._id, session);
+    await awardPoints(submission.userId, submission.taskId.rewardPoints, adminId, submission._id, session);
 
-    await AdminLog.create([{
+    if (ownsSession) await session.commitTransaction();
+  } catch (error) {
+    if (ownsSession) await session.abortTransaction();
+    throw error;
+  } finally {
+    if (ownsSession) session.endSession();
+  }
+};
+
+const approveSubmission = async (req, res, next) => {
+  try {
+    const submission = await Submission.findById(req.params.id).populate('taskId');
+    if (!submission) return res.status(404).json({ success: false, message: 'Submission not found' });
+    if (submission.status !== 'pending') return res.status(400).json({ success: false, message: 'Submission already reviewed' });
+
+    await approveSubmissionTransactional(submission, req.user._id);
+
+    await AdminLog.create({
       adminId: req.user._id, action: 'approve', targetId: submission._id,
       targetType: 'submission', details: `Approved submission for task: ${submission.taskId.title}`, ip: req.ip,
-    }], { session });
+    });
 
-    await session.commitTransaction();
-
-    // Invalidate dashboard cache after successful approval
     cache.del('admin_dashboard');
-
     res.json({ success: true, message: 'Submission approved and points awarded' });
   } catch (error) {
-    await session.abortTransaction();
     next(error);
-  } finally {
-    session.endSession();
   }
 };
 
