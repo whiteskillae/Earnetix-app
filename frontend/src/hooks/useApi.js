@@ -20,6 +20,14 @@ export const useApi = () => {
         message = error.response.data.error;
       }
       
+      // Log detailed error to console for easier debugging (especially for 400 Bad Request validation details)
+      console.error(`[API Error] ${method.toUpperCase()} ${url}:`, {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: message,
+        error: error
+      });
+      
       if (error.response?.status !== 401 || url?.includes('auth/login')) {
         toast.error(message);
       }
