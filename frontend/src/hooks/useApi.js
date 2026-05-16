@@ -20,7 +20,7 @@ export const useApi = () => {
         message = error.response.data.error;
       }
       
-      if (error.response?.status !== 401) {
+      if (error.response?.status !== 401 || url?.includes('auth/login')) {
         toast.error(message);
       }
       throw error;

@@ -43,8 +43,11 @@ api.interceptors.response.use(
     // If we get a 401, try to refresh the token regardless of the specific error code
     // (This handles cases where the token is missing from localStorage but a refresh cookie exists)
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't try to refresh if the request itself was to the refresh endpoint
-      if (originalRequest.url?.includes('auth/refresh')) {
+      // Don't try to refresh if the request itself was to a public authentication endpoint
+      const bypassRefreshUrls = ['auth/refresh', 'auth/login', 'auth/register', 'auth/google'];
+      const shouldBypass = bypassRefreshUrls.some(url => originalRequest.url?.includes(url));
+      
+      if (shouldBypass) {
         return Promise.reject(error);
       }
 
