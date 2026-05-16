@@ -19,6 +19,11 @@ const LoginPage = () => {
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
+  useEffect(() => {
+    const key = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+    console.log('reCAPTCHA Diagnostic:', key ? `${key.substring(0, 6)}...` : 'MISSING');
+  }, []);
+  
   const handleGoogleSuccess = async (tokenResponse) => {
     setIsGoogleLoading(true);
     try {
