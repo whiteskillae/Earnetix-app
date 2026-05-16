@@ -455,4 +455,59 @@ const completeProfile = async (req, res, next) => {
   }
 };
 
-module.exports = { register, verifyOtp, resendOtp, login, googleAuth, refresh, logout, completeProfile, verifyCaptcha };
+// ─── REQUEST PASSWORD CHANGE OTP (LOGGED IN) ────────
+const requestPasswordChangeOTP = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const otp = generateOTP();
+    user.otp = { code: otp.code, expiresAt: otp.expiresAt };
+    await user.save();
+
+    await sendOTP(user.email, otp.code);
+
+    res.json({ success: true, message: 'Security code dispatched to your email' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── UPDATE PASSWORD WITH OTP ────────────────────────
+const updatePasswordWithOTP = async (req, res, next) => {
+  try {
+    const { otp, newPassword } = req.body;
+
+    if (!otp || !newPassword || newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Valid OTP and 8-character password required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Verify OTP
+    if (!user.otp?.code || user.otp.code !== otp || new Date() > user.otp.expiresAt) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired security code' });
+    }
+
+    // Set new password
+    const salt = await bcrypt.genSalt(10);
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    
+    // Clear OTP
+    user.otp = { code: null, expiresAt: null };
+    
+    await user.save();
+
+    logger.info(`Password updated for user: ${user.email}`);
+    res.json({ success: true, message: 'Security configuration updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { 
+  register, verifyOtp, resendOtp, login, googleAuth, 
+  refresh, logout, completeProfile, verifyCaptcha,
+  requestPasswordChangeOTP, updatePasswordWithOTP
+};
