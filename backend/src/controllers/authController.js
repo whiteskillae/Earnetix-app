@@ -4,11 +4,32 @@ const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = requir
 const { generateOTP, sendOTP } = require('../services/otpService');
 const logger = require('../utils/logger');
 const env = require('../config/env');
+const axios = require('axios');
+
+const verifyCaptcha = async (token) => {
+  if (!env.RECAPTCHA_SECRET_KEY) return true; // Skip if not configured
+  if (!token) return false;
+  
+  try {
+    const response = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET_KEY}&response=${token}`
+    );
+    return response.data.success;
+  } catch (error) {
+    logger.error(`reCAPTCHA verification error: ${error.message}`);
+    return false;
+  }
+};
 
 // ─── REGISTER ──────────────────────────────────────────
 const register = async (req, res, next) => {
   try {
-    const { name, email, password, deviceFingerprint } = req.body;
+    const { name, email, password, deviceFingerprint, captchaToken } = req.body;
+
+    const isHuman = await verifyCaptcha(captchaToken);
+    if (!isHuman) {
+      return res.status(400).json({ success: false, message: 'reCAPTCHA verification failed' });
+    }
 
     // Check if email exists
     const existingUser = await User.findOne({ email });
@@ -132,7 +153,12 @@ const resendOtp = async (req, res, next) => {
 // ─── LOGIN ─────────────────────────────────────────────
 const login = async (req, res, next) => {
   try {
-    const { email, password, deviceFingerprint } = req.body;
+    const { email, password, deviceFingerprint, captchaToken } = req.body;
+
+    const isHuman = await verifyCaptcha(captchaToken);
+    if (!isHuman) {
+      return res.status(400).json({ success: false, message: 'reCAPTCHA verification failed' });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {

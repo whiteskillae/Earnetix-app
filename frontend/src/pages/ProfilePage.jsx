@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
+import { useNavigate } from 'react-router-dom';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin, TrendingUp, Wallet } from 'lucide-react';
@@ -10,6 +11,7 @@ import { countries } from '../utils/countries';
 const ProfilePage = () => {
   const { user, fetchProfile, logout, setUser } = useAuth();
   const { request } = useApi();
+  const navigate = useNavigate();
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -176,7 +178,7 @@ const ProfilePage = () => {
                    </div>
                    <span className="points-label" style={{ color: '#fbbf24', opacity: 0.6, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em' }}>TOTAL ASSETS</span>
                 </div>
-                <button className="btn btn-primary btn-sm" style={{ width: '100%', borderRadius: '12px' }} onClick={() => toast.success('Withdrawal System Initializing...')}>
+                <button className="btn btn-primary btn-sm" style={{ width: '100%', borderRadius: '12px' }} onClick={() => navigate('/withdraw')}>
                    <Wallet size={16} /> Withdraw
                 </button>
             </div>

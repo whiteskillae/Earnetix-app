@@ -23,6 +23,7 @@ const envSchema = z.object({
   LOGIN_RATE_LIMIT_MAX: z.string().default('5'),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
+  RECAPTCHA_SECRET_KEY: z.string().optional(),
 });
 
 let env;

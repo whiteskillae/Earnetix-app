@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ReCAPTCHA from "react-google-recaptcha";
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -14,6 +15,7 @@ const LoginPage = () => {
   const { login } = useAuth();
   const { loading, request } = useApi();
   const navigate = useNavigate();
+  const [captchaToken, setCaptchaToken] = useState(null);
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
@@ -48,10 +50,14 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (!captchaToken) {
+        return toast.error('Please complete the security check');
+      }
       const res = await request('post', '/auth/login', { 
         email, 
         password, 
-        deviceFingerprint: getDeviceFingerprint() 
+        deviceFingerprint: getDeviceFingerprint(),
+        captchaToken
       });
       login(res.data.accessToken, res.data.user);
       toast.success('Operational Access Restored');
@@ -114,6 +120,14 @@ const LoginPage = () => {
                   {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
+              <ReCAPTCHA
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                onChange={(token) => setCaptchaToken(token)}
+                theme="dark"
+              />
             </div>
 
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>
