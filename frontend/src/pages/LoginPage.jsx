@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import ReCAPTCHA from "react-google-recaptcha";
+import { executeCaptcha } from '../utils/captcha';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -15,7 +15,6 @@ const LoginPage = () => {
   const { login } = useAuth();
   const { loading, request } = useApi();
   const navigate = useNavigate();
-  const [captchaToken, setCaptchaToken] = useState(null);
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
@@ -55,14 +54,16 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!captchaToken) {
-        return toast.error('Please complete the security check');
+      const token = await executeCaptcha('LOGIN');
+      if (!token) {
+        return toast.error('Security handshake failed. Please refresh.');
       }
+
       const res = await request('post', '/auth/login', { 
         email, 
         password, 
         deviceFingerprint: getDeviceFingerprint(),
-        captchaToken
+        captchaToken: token
       });
       login(res.data.accessToken, res.data.user);
       toast.success('Operational Access Restored');
@@ -127,15 +128,8 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '8px 0' }}>
-              <ReCAPTCHA
-                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                onChange={(token) => setCaptchaToken(token)}
-                theme="dark"
-              />
-              <p style={{ fontSize: '0.65rem', color: 'var(--gray-600)', marginTop: '8px' }}>
-                Require reCAPTCHA v2 Checkbox keys.
-              </p>
+            <div style={{ display: 'none' }}>
+              {/* reCAPTCHA Enterprise is invisible */}
             </div>
 
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>

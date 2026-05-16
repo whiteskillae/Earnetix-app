@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
-import ReCAPTCHA from "react-google-recaptcha";
+import { executeCaptcha } from '../utils/captcha';
 import toast from 'react-hot-toast';
 import { Wallet, Banknote, ArrowRight, CheckCircle, Clock, AlertCircle, DollarSign, Shield, CreditCard, Building } from 'lucide-react';
 
@@ -22,11 +22,10 @@ const WithdrawalPage = () => {
     upiId: user?.bankDetails?.upiId || '',
   });
   const [pointsToConvert, setPointsToConvert] = useState(MIN_POINTS);
-  const [captchaToken, setCaptchaToken] = useState(null);
 
   useEffect(() => {
-    const key = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-    console.log('reCAPTCHA Diagnostic (Withdraw):', key ? `${key.substring(0, 6)}...` : 'MISSING');
+    const key = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+    console.log('reCAPTCHA Enterprise Diagnostic (Withdraw):', key ? 'READY' : 'MISSING');
   }, []);
 
   const availablePoints = (user?.points || 0) - (user?.frozenPoints || 0);
@@ -65,13 +64,18 @@ const WithdrawalPage = () => {
   const handleWithdraw = async () => {
     if (pointsToConvert < MIN_POINTS) return toast.error(`Minimum ${MIN_POINTS} points required`);
     if (pointsToConvert > availablePoints) return toast.error('Insufficient available points');
-    if (!captchaToken) return toast.error('Please complete the security check');
 
     setLoading(true);
     try {
+      const token = await executeCaptcha('WITHDRAWAL');
+      if (!token) {
+        setLoading(false);
+        return toast.error('Security handshake failed. Please refresh.');
+      }
+
       const res = await request('post', '/withdrawals/request', { 
         pointsToConvert,
-        captchaToken 
+        captchaToken: token 
       });
       if (res.success) {
         toast.success('Withdrawal request submitted!');
@@ -259,15 +263,8 @@ const WithdrawalPage = () => {
                 </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
-                <ReCAPTCHA
-                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                  onChange={(token) => setCaptchaToken(token)}
-                  theme="dark"
-                />
-                <p style={{ fontSize: '0.65rem', color: 'var(--gray-600)', marginTop: '8px' }}>
-                  Require reCAPTCHA v2 Checkbox keys.
-                </p>
+              <div style={{ display: 'none' }}>
+                {/* reCAPTCHA Enterprise is invisible */}
               </div>
 
               <div style={{ display: 'flex', gap: '12px' }}>
@@ -278,7 +275,7 @@ const WithdrawalPage = () => {
                   className="btn btn-primary" 
                   style={{ flex: 2 }} 
                   onClick={handleWithdraw} 
-                  disabled={loading || pointsToConvert < MIN_POINTS || pointsToConvert > availablePoints || !captchaToken}
+                  disabled={loading || pointsToConvert < MIN_POINTS || pointsToConvert > availablePoints}
                 >
                   {loading ? 'Processing...' : 'Withdraw'} <Wallet size={18} />
                 </button>

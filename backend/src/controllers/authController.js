@@ -6,7 +6,51 @@ const logger = require('../utils/logger');
 const env = require('../config/env');
 const axios = require('axios');
 
-const verifyCaptcha = async (token) => {
+const { RecaptchaEnterpriseServiceClient } = require('@google-cloud/recaptcha-enterprise');
+
+const verifyCaptcha = async (token, action = 'default') => {
+  // If Enterprise is configured, use it
+  if (env.RECAPTCHA_ENTERPRISE_PROJECT_ID && env.RECAPTCHA_ENTERPRISE_SITE_KEY) {
+    try {
+      const client = new RecaptchaEnterpriseServiceClient();
+      const projectPath = client.projectPath(env.RECAPTCHA_ENTERPRISE_PROJECT_ID);
+
+      const request = {
+        assessment: {
+          event: {
+            token: token,
+            siteKey: env.RECAPTCHA_ENTERPRISE_SITE_KEY,
+          },
+        },
+        parent: projectPath,
+      };
+
+      const [response] = await client.createAssessment(request);
+
+      if (!response.tokenProperties.valid) {
+        logger.error(`reCAPTCHA Enterprise invalid token: ${response.tokenProperties.invalidReason}`);
+        return false;
+      }
+
+      // Check if action matches (if provided)
+      if (action !== 'default' && response.tokenProperties.action !== action) {
+        logger.error(`reCAPTCHA Enterprise action mismatch: expected ${action}, got ${response.tokenProperties.action}`);
+        return false;
+      }
+
+      // Score-based check (0.0 to 1.0, where 1.0 is very likely a human)
+      const score = response.riskAnalysis.score;
+      logger.info(`reCAPTCHA Enterprise Score: ${score} for action: ${response.tokenProperties.action}`);
+      
+      // Threshold: 0.5 or higher is usually safe
+      return score >= 0.5;
+    } catch (error) {
+      logger.error(`reCAPTCHA Enterprise assessment error: ${error.message}`);
+      // Fallback to classic siteverify if enterprise fails due to credentials
+    }
+  }
+
+  // Classic v2 fallback
   if (!env.RECAPTCHA_SECRET_KEY) return true; // Skip if not configured
   if (!token) return false;
   
@@ -14,9 +58,14 @@ const verifyCaptcha = async (token) => {
     const response = await axios.post(
       `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET_KEY}&response=${token}`
     );
+    
+    if (!response.data.success) {
+      logger.error(`reCAPTCHA failure response: ${JSON.stringify(response.data)}`);
+    }
+    
     return response.data.success;
   } catch (error) {
-    logger.error(`reCAPTCHA verification error: ${error.message}`);
+    logger.error(`reCAPTCHA network/API error: ${error.message}`);
     return false;
   }
 };

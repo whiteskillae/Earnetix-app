@@ -24,6 +24,8 @@ const envSchema = z.object({
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   RECAPTCHA_SECRET_KEY: z.string().optional(),
+  RECAPTCHA_ENTERPRISE_PROJECT_ID: z.string().optional(),
+  RECAPTCHA_ENTERPRISE_SITE_KEY: z.string().optional(),
 });
 
 let env;

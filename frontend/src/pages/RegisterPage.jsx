@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import ReCAPTCHA from "react-google-recaptcha";
+import { executeCaptcha } from '../utils/captcha';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -16,11 +16,10 @@ const RegisterPage = () => {
   const { loading, request } = useApi();
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [captchaToken, setCaptchaToken] = useState(null);
 
   useEffect(() => {
-    const key = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-    console.log('reCAPTCHA Diagnostic (Reg):', key ? `${key.substring(0, 6)}...` : 'MISSING');
+    const key = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+    console.log('reCAPTCHA Enterprise Diagnostic:', key ? 'READY' : 'MISSING');
   }, []);
 
   const handleGoogleSuccess = async (tokenResponse) => {
@@ -47,14 +46,16 @@ const RegisterPage = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!captchaToken) {
-      return toast.error('Please complete the security check');
-    }
     try {
+      const token = await executeCaptcha('REGISTER');
+      if (!token) {
+        return toast.error('Security verification failed. Please try again.');
+      }
+
       await request('post', '/auth/register', { 
         ...form, 
         deviceFingerprint: getDeviceFingerprint(),
-        captchaToken
+        captchaToken: token
       });
       toast.success('Verification Code Dispatched');
       setStep('otp');
@@ -145,18 +146,11 @@ const RegisterPage = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '8px 0' }}>
-                  <ReCAPTCHA
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                    onChange={(token) => setCaptchaToken(token)}
-                    theme="dark"
-                  />
-                  <p style={{ fontSize: '0.65rem', color: 'var(--gray-600)', marginTop: '8px' }}>
-                    Require reCAPTCHA v2 Checkbox keys.
-                  </p>
+                <div style={{ display: 'none' }}>
+                  {/* reCAPTCHA Enterprise is invisible */}
                 </div>
 
-              <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>
+                <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>
                 {loading ? 'INITIALIZING...' : 'CREATE ACCOUNT'}
                 {!loading && <ArrowRight size={18} />}
               </button>
