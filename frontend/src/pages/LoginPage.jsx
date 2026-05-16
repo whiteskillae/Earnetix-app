@@ -151,7 +151,7 @@ const LoginPage = () => {
           </button>
 
           <div className="text-center" style={{ marginTop: '32px', fontSize: '0.9rem' }}>
-            <span style={{ color: 'var(--gray-500)' }}>New Operative? </span>
+            <span style={{ color: 'var(--gray-500)' }}>New User? </span>
             <Link to="/register" style={{ color: 'var(--blue-light)', fontWeight: 700, textDecoration: 'none' }}>Create Command Profile</Link>
           </div>
         </div>

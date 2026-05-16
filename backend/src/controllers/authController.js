@@ -196,7 +196,7 @@ const login = async (req, res, next) => {
         logger.warn(`Multi-account login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
         return res.status(403).json({ 
           success: false, 
-          message: 'Security Alert: This device is already associated with another account. Multi-accounting is prohibited.' 
+          message: `Security Alert: This device is already associated with another account (${otherUser.email}). Multi-accounting is prohibited on this platform.` 
         });
       }
       user.deviceFingerprint = deviceFingerprint;
