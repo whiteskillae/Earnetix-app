@@ -254,24 +254,31 @@ const TasksPage = () => {
                   )}
                 </div>
 
-                {isApproved ? (
-                  <div className="status-pill-new status-approved" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
-                    <CheckCircle size={18} /> COMPLETED
-                  </div>
-                ) : isPending ? (
-                  <div className="status-pill-new status-pending" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '0.9rem' }}>
-                    <Clock size={18} /> IN REVIEW
-                  </div>
-                ) : (
+                <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
                   <button 
-                    className={`btn-premium btn-block ${isRejected ? 'btn-danger' : 'btn-primary-new'}`}
-                    style={{ height: '48px' }}
+                    className="btn-premium btn-primary-new"
+                    style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                     onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
-                    disabled={isRejected && !canResubmit}
+                    disabled={isApproved || isPending || (isRejected && !canResubmit)}
                   >
-                    <Upload size={18} /> {isRejected ? (canResubmit ? 'RE-LOG EVIDENCE' : 'LOCKED') : 'EXECUTE MISSION'}
+                    {isApproved ? <CheckCircle size={18} /> : isPending ? <Clock size={18} /> : <Upload size={18} />}
+                    {isApproved ? 'COMPLETED' : isPending ? 'IN REVIEW' : 'DO TASK'}
                   </button>
-                )}
+                  <button 
+                    className="btn-premium"
+                    style={{ 
+                      width: '48px', height: '48px', background: 'rgba(255,255,255,0.05)', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' 
+                    }}
+                    onClick={() => {
+                      setSelected(task);
+                      setShowModal(true);
+                      // Set to read-only view if needed, but for now just opens the same modal
+                    }}
+                  >
+                    <Eye size={18} />
+                  </button>
+                </div>
               </div>
             );
           })

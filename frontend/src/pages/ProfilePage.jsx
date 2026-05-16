@@ -88,9 +88,20 @@ const ProfilePage = () => {
   }, [filter]);
 
   const handleUpdate = async (e) => {
+    const countWords = (str) => {
+      return str.trim().split(/\s+/).filter(word => word.length > 0).length;
+    };
+
     e.preventDefault();
     setEditLoading(true);
     try {
+      if (formData.username.length > 15) {
+        throw new Error('Username cannot exceed 15 characters');
+      }
+      if (countWords(formData.bio) > 50) {
+        throw new Error('Bio cannot exceed 50 words');
+      }
+
       const skillsArray = typeof formData.skills === 'string' 
         ? formData.skills.split(',').map(s => s.trim()).filter(s => s)
         : formData.skills;
@@ -315,9 +326,10 @@ const ProfilePage = () => {
                       value={formData.bio} 
                       onChange={e => setFormData({...formData, bio: e.target.value})} 
                       placeholder="Tell the community about your expertise..."
-                      maxLength={200}
                     />
-                    <div style={{ textAlign: 'right', fontSize: '0.7rem', color: 'var(--gray-500)' }}>{formData.bio.length}/200</div>
+                    <div style={{ textAlign: 'right', fontSize: '0.7rem', color: 'var(--gray-500)' }}>
+                      {formData.bio.trim().split(/\s+/).filter(w => w).length}/50 words
+                    </div>
                  </div>
                  <div className="grid-2">
                     <div className="form-group">

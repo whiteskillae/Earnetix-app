@@ -82,21 +82,21 @@ const requestWithdrawal = async (req, res, next) => {
       });
     }
 
-    // Cooldown check: If recently rejected, wait 10 hours before re-requesting
-    const lastRejected = await Withdrawal.findOne({ userId: user._id, status: 'rejected' })
-      .sort({ processedAt: -1 })
+    // Cooldown check: Wait 24 hours before re-requesting
+    const lastRequest = await Withdrawal.findOne({ userId: user._id })
+      .sort({ createdAt: -1 })
       .session(session);
     
-    if (lastRejected && lastRejected.processedAt) {
-      const cooldownMs = 10 * 60 * 60 * 1000; // 10 hours
-      const timeSinceRejection = Date.now() - new Date(lastRejected.processedAt).getTime();
-      if (timeSinceRejection < cooldownMs) {
+    if (lastRequest) {
+      const cooldownMs = 24 * 60 * 60 * 1000; // 24 hours
+      const timeSinceRequest = Date.now() - new Date(lastRequest.createdAt).getTime();
+      if (timeSinceRequest < cooldownMs) {
         await session.abortTransaction();
         session.endSession();
-        const hoursLeft = Math.ceil((cooldownMs - timeSinceRejection) / (1000 * 60 * 60));
+        const hoursLeft = Math.ceil((cooldownMs - timeSinceRequest) / (1000 * 60 * 60));
         return res.status(400).json({
           success: false,
-          message: `Strategic cooldown active. Please wait ${hoursLeft} hours before re-requesting after a rejection.`,
+          message: `Request limit active. Please wait ${hoursLeft} hours before sending another request.`,
         });
       }
     }
