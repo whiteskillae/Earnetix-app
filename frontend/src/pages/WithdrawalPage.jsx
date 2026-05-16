@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
-import { executeCaptcha } from '../utils/captcha';
 import toast from 'react-hot-toast';
 import { Wallet, Banknote, ArrowRight, CheckCircle, Clock, AlertCircle, DollarSign, Shield, CreditCard, Building } from 'lucide-react';
 
@@ -23,10 +22,7 @@ const WithdrawalPage = () => {
   });
   const [pointsToConvert, setPointsToConvert] = useState(MIN_POINTS);
 
-  useEffect(() => {
-    const key = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
-    console.log('reCAPTCHA Enterprise Diagnostic (Withdraw):', key ? 'READY' : 'MISSING');
-  }, []);
+
 
   const availablePoints = (user?.points || 0) - (user?.frozenPoints || 0);
   const hasBankDetails = user?.bankDetails?.accountNumber;
@@ -67,15 +63,8 @@ const WithdrawalPage = () => {
 
     setLoading(true);
     try {
-      const token = await executeCaptcha('WITHDRAWAL');
-      if (!token) {
-        setLoading(false);
-        return toast.error('Security handshake failed. Please refresh.');
-      }
-
       const res = await request('post', '/withdrawals/request', { 
-        pointsToConvert,
-        captchaToken: token 
+        pointsToConvert
       });
       if (res.success) {
         toast.success('Withdrawal request submitted!');
@@ -263,9 +252,7 @@ const WithdrawalPage = () => {
                 </p>
               </div>
 
-              <div style={{ display: 'none' }}>
-                {/* reCAPTCHA Enterprise is invisible */}
-              </div>
+
 
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setStep(1)}>

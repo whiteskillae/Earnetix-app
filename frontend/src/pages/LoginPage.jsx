@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { executeCaptcha } from '../utils/captcha';
 import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -18,10 +17,7 @@ const LoginPage = () => {
 
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
-  useEffect(() => {
-    const key = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
-    console.log('reCAPTCHA Diagnostic:', key ? `${key.substring(0, 6)}...` : 'MISSING');
-  }, []);
+
   
   const handleGoogleSuccess = async (tokenResponse) => {
     setIsGoogleLoading(true);
@@ -54,16 +50,10 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = await executeCaptcha('LOGIN');
-      if (!token) {
-        return toast.error('Security handshake failed. Please refresh.');
-      }
-
       const res = await request('post', '/auth/login', { 
         email, 
         password, 
-        deviceFingerprint: getDeviceFingerprint(),
-        captchaToken: token
+        deviceFingerprint: getDeviceFingerprint()
       });
       login(res.data.accessToken, res.data.user);
       toast.success('Operational Access Restored');
@@ -128,9 +118,7 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div style={{ display: 'none' }}>
-              {/* reCAPTCHA Enterprise is invisible */}
-            </div>
+
 
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>
               {loading ? 'INITIALIZING...' : 'SIGN IN'}

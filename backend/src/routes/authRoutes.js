@@ -13,7 +13,6 @@ router.post('/google', authLimiter, validate(googleAuthSchema), googleAuth);
 router.post('/refresh', refresh);
 router.post('/logout', auth, logout);
 router.post('/complete-profile', auth, completeProfile);
-router.post('/request-password-otp', auth, requestPasswordChangeOTP);
-router.post('/update-password', auth, updatePasswordWithOTP);
+
 
 module.exports = router;

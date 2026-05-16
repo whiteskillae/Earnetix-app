@@ -16,12 +16,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [passwordStep, setPasswordStep] = useState(1); // 1: Request, 2: Verify & Update
-  const [passwordForm, setPasswordForm] = useState({ otp: '', newPassword: '' });
-  const [showNewPw, setShowNewPw] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
-  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const selectStyles = {
     control: (base) => ({
@@ -128,40 +123,6 @@ const ProfilePage = () => {
     }
   };
 
-  const handleRequestPasswordOTP = async () => {
-    setPasswordLoading(true);
-    try {
-      const res = await request('post', '/auth/request-password-otp');
-      if (res.success) {
-        toast.success('Security code dispatched');
-        setPasswordStep(2);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Request failed');
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
-
-  const handleUpdatePassword = async (e) => {
-    e.preventDefault();
-    setPasswordLoading(true);
-    try {
-      const res = await request('post', '/auth/update-password', passwordForm);
-      if (res.success) {
-        toast.success('Security settings updated');
-        setIsPasswordModalOpen(false);
-        setPasswordStep(1);
-        setPasswordForm({ otp: '', newPassword: '' });
-        await fetchProfile();
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Update failed');
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
-
   if (loading && subs.length === 0) return null; // Quick transition
 
   return (
@@ -265,7 +226,6 @@ const ProfilePage = () => {
          </div>
 
          <div className="premium-card">
-            <div className="premium-card">
                <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                  <TrendingUp size={20} /> OPERATIONAL EFFICIENCY
                </h3>
@@ -282,33 +242,9 @@ const ProfilePage = () => {
                      <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 900, color: '#f59e0b' }}>{subs.filter(s => s.status === 'pending').length}</span>
                      <span style={{ fontSize: '0.65rem', color: 'var(--gray-500)', fontWeight: 700 }}>PENDING</span>
                   </div>
-               </div>
             </div>
 
-          <div className="premium-card" style={{ marginTop: '24px' }}>
-            <h3 style={{ marginBottom: '24px', fontSize: '1.1rem', color: 'var(--blue-light)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Shield size={20} /> SECURITY PROTOCOL
-            </h3>
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '20px', border: '1px solid var(--glass-border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div>
-                  <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Authentication Mode</label>
-                  <p style={{ fontWeight: 700, textTransform: 'capitalize' }}>{user?.authProvider} Login</p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Password Security</label>
-                  <p style={{ fontWeight: 700 }}>{user?.passwordHash ? 'Configured' : 'Unset'}</p>
-                </div>
-              </div>
-              <button 
-                className="btn btn-outline btn-sm btn-block" 
-                style={{ gap: '10px' }}
-                onClick={() => setIsPasswordModalOpen(true)}
-              >
-                <Lock size={14} /> {user?.passwordHash ? 'Change Password' : 'Set Account Password'}
-              </button>
-            </div>
-          </div>
+
          </div>
       </div>
 
@@ -429,86 +365,7 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {/* Password Management Modal */}
-      {isPasswordModalOpen && (
-        <div className="modal-new-overlay">
-           <div className="modal-new-content slide-up" style={{ maxWidth: '400px' }}>
-              <div className="modal-header">
-                 <h2>{user?.passwordHash ? 'CHANGE PASSWORD' : 'SET PASSWORD'}</h2>
-                 <button onClick={() => { setIsPasswordModalOpen(false); setPasswordStep(1); }} className="modal-close"><X size={20} /></button>
-              </div>
-              
-              {passwordStep === 1 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                   <div style={{ width: '64px', height: '64px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                      <Shield size={32} color="var(--blue-light)" />
-                   </div>
-                   <p style={{ color: 'var(--gray-400)', marginBottom: '24px', fontSize: '0.9rem' }}>
-                      We need to verify your identity. A security code will be sent to <strong>{user?.email}</strong>.
-                   </p>
-                   <button 
-                     className="btn btn-primary btn-block" 
-                     onClick={handleRequestPasswordOTP}
-                     disabled={passwordLoading}
-                   >
-                      {passwordLoading ? 'SENDING CODE...' : 'SEND VERIFICATION CODE'}
-                   </button>
-                </div>
-              ) : (
-                <form onSubmit={handleUpdatePassword}>
-                   <div className="form-group" style={{ marginBottom: '20px' }}>
-                      <label>Verification Pulse (Check Email)</label>
-                      <input 
-                        className="form-input" 
-                        placeholder="000000" 
-                        value={passwordForm.otp}
-                        onChange={e => setPasswordForm({...passwordForm, otp: e.target.value.replace(/\D/g, '')})}
-                        maxLength={6}
-                        required 
-                        style={{ textAlign: 'center', fontSize: '1.2rem', letterSpacing: '4px', fontWeight: 800 }}
-                      />
-                   </div>
-                   
-                   <div className="form-group" style={{ marginBottom: '24px' }}>
-                      <label>New Security Key</label>
-                      <div style={{ position: 'relative' }}>
-                        <Lock size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-500)' }} />
-                        <input 
-                          type={showNewPw ? 'text' : 'password'} 
-                          className="form-input"
-                          style={{ paddingLeft: '48px', paddingRight: '48px' }}
-                          placeholder="Min. 8 characters"
-                          value={passwordForm.newPassword}
-                          onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                          minLength={8}
-                          required 
-                        />
-                        <button 
-                          type="button" 
-                          style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--gray-500)', cursor: 'pointer' }} 
-                          onClick={() => setShowNewPw(!showNewPw)}
-                        >
-                          {showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                   </div>
-
-                   <button className="btn btn-primary btn-block" disabled={passwordLoading}>
-                      {passwordLoading ? 'UPDATING...' : 'CONFIRM & SAVE'}
-                   </button>
-                   <button 
-                     type="button" 
-                     className="btn btn-sm btn-outline btn-block" 
-                     style={{ border: 'none', marginTop: '12px' }}
-                     onClick={() => setPasswordStep(1)}
-                   >
-                     Resend Code
-                   </button>
-                </form>
-              )}
-           </div>
-        </div>
-      )}
+      
       <style>{`
         .profile-page { padding-bottom: 100px; }
         .profile-header-card { display: flex; justify-content: space-between; align-items: center; padding: 32px; margin-bottom: 24px; border-radius: 24px; gap: 20px; }

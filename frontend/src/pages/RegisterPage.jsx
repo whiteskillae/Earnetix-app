@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { executeCaptcha } from '../utils/captcha';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -17,10 +16,7 @@ const RegisterPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const key = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
-    console.log('reCAPTCHA Enterprise Diagnostic:', key ? 'READY' : 'MISSING');
-  }, []);
+
 
   const handleGoogleSuccess = async (tokenResponse) => {
     try {
@@ -47,15 +43,9 @@ const RegisterPage = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const token = await executeCaptcha('REGISTER');
-      if (!token) {
-        return toast.error('Security verification failed. Please try again.');
-      }
-
       await request('post', '/auth/register', { 
         ...form, 
-        deviceFingerprint: getDeviceFingerprint(),
-        captchaToken: token
+        deviceFingerprint: getDeviceFingerprint()
       });
       toast.success('Verification Code Dispatched');
       setStep('otp');
@@ -146,9 +136,7 @@ const RegisterPage = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'none' }}>
-                  {/* reCAPTCHA Enterprise is invisible */}
-                </div>
+
 
                 <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>
                 {loading ? 'INITIALIZING...' : 'CREATE ACCOUNT'}

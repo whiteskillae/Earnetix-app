@@ -9,99 +9,13 @@ const axios = require('axios');
 const { RecaptchaEnterpriseServiceClient } = require('@google-cloud/recaptcha-enterprise');
 
 const verifyCaptcha = async (token, action = 'default') => {
-  if (!token) return false;
-
-  // If Enterprise is configured, use it
-  if (env.RECAPTCHA_ENTERPRISE_PROJECT_ID && env.RECAPTCHA_ENTERPRISE_SITE_KEY) {
-    try {
-      // 1. Try REST API if API Key is configured (much easier to set up on Render!)
-      if (process.env.RECAPTCHA_ENTERPRISE_API_KEY) {
-        const apiKey = process.env.RECAPTCHA_ENTERPRISE_API_KEY;
-        const url = `https://recaptchaenterprise.googleapis.com/v1/projects/${env.RECAPTCHA_ENTERPRISE_PROJECT_ID}/assessments?key=${apiKey}`;
-        
-        const response = await axios.post(url, {
-          event: {
-            token: token,
-            siteKey: env.RECAPTCHA_ENTERPRISE_SITE_KEY,
-            expectedAction: action !== 'default' ? action : undefined
-          }
-        });
-
-        const data = response.data;
-        if (!data.tokenProperties || !data.tokenProperties.valid) {
-          logger.error(`reCAPTCHA Enterprise REST invalid token: ${data.tokenProperties?.invalidReason || 'Unknown'}`);
-          return false;
-        }
-
-        const score = data.riskAnalysis?.score;
-        logger.info(`reCAPTCHA Enterprise REST Score: ${score} for action: ${data.tokenProperties.action}`);
-        return score >= 0.5;
-      }
-
-      // 2. Fallback to official SDK if no API key is specified
-      const client = new RecaptchaEnterpriseServiceClient();
-      const projectPath = client.projectPath(env.RECAPTCHA_ENTERPRISE_PROJECT_ID);
-
-      const request = {
-        parent: projectPath,
-        assessment: {
-          event: {
-            token: token,
-            siteKey: env.RECAPTCHA_ENTERPRISE_SITE_KEY,
-          },
-        },
-      };
-
-      const [response] = await client.createAssessment(request);
-
-      if (!response.tokenProperties.valid) {
-        logger.error(`reCAPTCHA Enterprise invalid token: ${response.tokenProperties.invalidReason}`);
-        return false;
-      }
-
-      if (action !== 'default' && response.tokenProperties.action !== action) {
-        logger.error(`reCAPTCHA Enterprise action mismatch: expected ${action}, got ${response.tokenProperties.action}`);
-        return false;
-      }
-
-      const score = response.riskAnalysis.score;
-      logger.info(`reCAPTCHA Enterprise Score: ${score} for action: ${response.tokenProperties.action}`);
-      return score >= 0.5;
-    } catch (error) {
-      logger.error(`reCAPTCHA Enterprise assessment error: ${error.message}`);
-      // Fallback to classic siteverify if enterprise fails
-    }
-  }
-
-  // Classic v2 fallback
-  if (!env.RECAPTCHA_SECRET_KEY) return true; // Skip if not configured
-  if (!token) return false;
-  
-  try {
-    const response = await axios.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${env.RECAPTCHA_SECRET_KEY}&response=${token}`
-    );
-    
-    if (!response.data.success) {
-      logger.error(`reCAPTCHA failure response: ${JSON.stringify(response.data)}`);
-    }
-    
-    return response.data.success;
-  } catch (error) {
-    logger.error(`reCAPTCHA network/API error: ${error.message}`);
-    return false;
-  }
+  return true;
 };
 
 // ─── REGISTER ──────────────────────────────────────────
 const register = async (req, res, next) => {
   try {
-    const { name, email, password, deviceFingerprint, captchaToken } = req.body;
-
-    const isHuman = await verifyCaptcha(captchaToken);
-    if (!isHuman) {
-      return res.status(400).json({ success: false, message: 'reCAPTCHA verification failed' });
-    }
+    const { name, email, password, deviceFingerprint } = req.body;
 
     // Check if email exists
     const existingUser = await User.findOne({ email });
@@ -225,12 +139,7 @@ const resendOtp = async (req, res, next) => {
 // ─── LOGIN ─────────────────────────────────────────────
 const login = async (req, res, next) => {
   try {
-    const { email, password, deviceFingerprint, captchaToken } = req.body;
-
-    const isHuman = await verifyCaptcha(captchaToken);
-    if (!isHuman) {
-      return res.status(400).json({ success: false, message: 'reCAPTCHA verification failed' });
-    }
+    const { email, password, deviceFingerprint } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -527,59 +436,7 @@ const completeProfile = async (req, res, next) => {
   }
 };
 
-// ─── REQUEST PASSWORD CHANGE OTP (LOGGED IN) ────────
-const requestPasswordChangeOTP = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    const otp = generateOTP();
-    user.otp = { code: otp.code, expiresAt: otp.expiresAt };
-    await user.save();
-
-    await sendOTP(user.email, otp.code);
-
-    res.json({ success: true, message: 'Security code dispatched to your email' });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ─── UPDATE PASSWORD WITH OTP ────────────────────────
-const updatePasswordWithOTP = async (req, res, next) => {
-  try {
-    const { otp, newPassword } = req.body;
-
-    if (!otp || !newPassword || newPassword.length < 8) {
-      return res.status(400).json({ success: false, message: 'Valid OTP and 8-character password required' });
-    }
-
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    // Verify OTP
-    if (!user.otp?.code || user.otp.code !== otp || new Date() > user.otp.expiresAt) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired security code' });
-    }
-
-    // Set new password
-    const salt = await bcrypt.genSalt(10);
-    user.passwordHash = await bcrypt.hash(newPassword, salt);
-    
-    // Clear OTP
-    user.otp = { code: null, expiresAt: null };
-    
-    await user.save();
-
-    logger.info(`Password updated for user: ${user.email}`);
-    res.json({ success: true, message: 'Security configuration updated successfully' });
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = { 
   register, verifyOtp, resendOtp, login, googleAuth, 
-  refresh, logout, completeProfile, verifyCaptcha,
-  requestPasswordChangeOTP, updatePasswordWithOTP
+  refresh, logout, completeProfile, verifyCaptcha
 };
