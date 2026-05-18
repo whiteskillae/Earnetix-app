@@ -373,6 +373,9 @@ const AssignmentManagement = () => {
                             <option value="link">Evidence: URL/Link</option>
                             <option value="text_file">Evidence: Text + File</option>
                             <option value="text_image">Evidence: Text + Screenshot</option>
+                            <option value="text_link">Evidence: Text + Link</option>
+                            <option value="image_file">Evidence: Screenshot + File</option>
+                            <option value="all">Evidence: Full Evidence (Text+Img+File+Link)</option>
                         </select>
                     </div>
                     

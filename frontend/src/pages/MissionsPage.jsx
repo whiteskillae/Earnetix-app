@@ -97,10 +97,10 @@ const MissionsPage = () => {
   const getRequirements = (type) => {
     const reqs = [];
     if (!type) return ['EVIDENCE'];
-    if (type.includes('text')) reqs.push('TEXT REPORT');
-    if (type.includes('image')) reqs.push('SCREENSHOT');
-    if (type.includes('link')) reqs.push('URL/LINK');
-    if (type.includes('file')) reqs.push('DATA FILE');
+    if (type.includes('text') || type === 'all') reqs.push('TEXT REPORT');
+    if (type.includes('image') || type === 'all') reqs.push('SCREENSHOT');
+    if (type.includes('link') || type === 'all') reqs.push('URL/LINK');
+    if (type.includes('file') || type === 'all') reqs.push('DATA FILE');
     if (type === 'multiple_files') reqs.push('MULTIPLE FILES');
     return reqs.length > 0 ? reqs : ['EVIDENCE'];
   };
@@ -223,7 +223,7 @@ const MissionsPage = () => {
              </div>
 
              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {(selected.submissionConfig?.inputType.includes('text') || selected.submissionConfig?.inputType === 'custom') && (
+                {(selected.submissionConfig?.inputType.includes('text') || selected.submissionConfig?.inputType === 'all' || selected.submissionConfig?.inputType === 'custom') && (
                   <div className="form-group">
                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gray-500)', marginBottom: '8px', display: 'block' }}>OPERATIONAL REPORT</label>
                     <textarea 
@@ -238,7 +238,7 @@ const MissionsPage = () => {
                   </div>
                 )}
 
-                {(selected.submissionConfig?.inputType.includes('file') || selected.submissionConfig?.inputType.includes('image') || selected.submissionConfig?.inputType === 'multiple_files') && (
+                {(selected.submissionConfig?.inputType.includes('file') || selected.submissionConfig?.inputType.includes('image') || selected.submissionConfig?.inputType === 'multiple_files' || selected.submissionConfig?.inputType === 'all') && (
                   <div className="form-group">
                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gray-500)', marginBottom: '8px', display: 'block' }}>VISUAL/DATA EVIDENCE</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -280,7 +280,7 @@ const MissionsPage = () => {
                   </div>
                 )}
 
-                {selected.submissionConfig?.inputType === 'link' && (
+                {(selected.submissionConfig?.inputType.includes('link') || selected.submissionConfig?.inputType === 'all') && (
                   <div className="form-group">
                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gray-500)', marginBottom: '8px', display: 'block' }}>EXTERNAL LINK/URL</label>
                     <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', padding: '0 20px', borderRadius: '16px' }}>
