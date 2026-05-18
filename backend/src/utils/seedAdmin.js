@@ -58,12 +58,26 @@ const seedAdmin = async () => {
 
     const existingAdmin = await User.findOne({ email: adminEmail });
     if (existingAdmin) {
+      let changed = false;
       if (existingAdmin.role !== 'admin') {
         existingAdmin.role = 'admin';
-        await existingAdmin.save();
+        changed = true;
         logger.info('Updated existing user to admin role.');
+      }
+
+      // Sync password if it has changed in the .env file
+      const isMatch = await bcrypt.compare(adminPassword, existingAdmin.passwordHash);
+      if (!isMatch) {
+        existingAdmin.passwordHash = await bcrypt.hash(adminPassword, 12);
+        existingAdmin.authProvider = 'local'; // Ensure local login is supported
+        changed = true;
+        logger.info('Updated admin password to match .env configuration.');
+      }
+
+      if (changed) {
+        await existingAdmin.save();
       } else {
-        logger.info('Admin user already exists.');
+        logger.info('Admin user already exists and is fully synchronized.');
       }
       return;
     }
