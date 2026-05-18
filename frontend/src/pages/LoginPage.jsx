@@ -32,7 +32,7 @@ const LoginPage = () => {
       if (!res.data.user.isProfileComplete && res.data.user.role !== 'admin') {
         navigate('/onboarding');
       } else {
-        navigate(res.data.user.role === 'admin' ? '/admin' : '/dashboard');
+        navigate('/dashboard');
       }
     } catch (err) {
       setIsGoogleLoading(false);
@@ -61,7 +61,7 @@ const LoginPage = () => {
       if (!res.data.user.isProfileComplete && res.data.user.role !== 'admin') {
         navigate('/onboarding');
       } else {
-        navigate(res.data.user.role === 'admin' ? '/admin' : '/dashboard');
+        navigate('/dashboard');
       }
     } catch {}
   };

@@ -85,6 +85,14 @@ const AppLayout = ({ children }) => {
 
 
 
+const UnifiedDashboard = () => {
+  const { user } = useAuth();
+  if (user && user.role === 'admin') {
+    return <AdminPage />;
+  }
+  return <AppLayout><DashboardPage /></AppLayout>;
+};
+
 const AppRoutes = () => (
   <Suspense fallback={null}>
     <Routes>
@@ -94,7 +102,7 @@ const AppRoutes = () => (
       <Route path="/onboarding" element={<ProtectedRoute isOnboarding><OnboardingPage /></ProtectedRoute>} />
 
       {/* Protected */}
-      <Route path="/dashboard" element={<ProtectedRoute><AppLayout><DashboardPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><UnifiedDashboard /></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><AppLayout><TasksPage /></AppLayout></ProtectedRoute>} />
       <Route path="/announcements" element={<ProtectedRoute><AppLayout><AnnouncementsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><AppLayout><LeaderboardPage /></AppLayout></ProtectedRoute>} />
@@ -103,8 +111,8 @@ const AppRoutes = () => (
       <Route path="/missions" element={<ProtectedRoute><AppLayout><MissionsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/withdraw" element={<ProtectedRoute><AppLayout><WithdrawalPage /></AppLayout></ProtectedRoute>} />
 
-      {/* Admin only */}
-      <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
+      {/* Admin only (redirect to unified dashboard) */}
+      <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
 
       {/* Redirects */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />

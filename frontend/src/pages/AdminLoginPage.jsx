@@ -30,7 +30,7 @@ const AdminLoginPage = () => {
 
       login(res.data.accessToken, res.data.user);
       toast.success('System access granted');
-      navigate('/admin');
+      navigate('/dashboard');
     } catch (err) {}
   };
 

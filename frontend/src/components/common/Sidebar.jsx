@@ -10,15 +10,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   if (isAdmin) {
     navItems = [
-      { to: '/admin?tab=dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/admin?tab=kyc', label: 'KYC Review', icon: BadgeCheck },
-      { to: '/admin?tab=assignments', label: 'Direct Tasks', icon: Award },
-      { to: '/admin?tab=tasks', label: 'Tasks', icon: ListTodo },
-      { to: '/admin?tab=submissions', label: 'Submissions', icon: FileText },
-      { to: '/admin?tab=withdrawals', label: 'Payments', icon: Wallet },
-      { to: '/admin?tab=users', label: 'Users', icon: Users },
-      { to: '/admin?tab=skills', label: 'Skills', icon: Target },
-      { to: '/admin?tab=announcements', label: 'Announcements', icon: Mic },
+      { to: '/dashboard?tab=dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/dashboard?tab=kyc', label: 'KYC Review', icon: BadgeCheck },
+      { to: '/dashboard?tab=assignments', label: 'Direct Tasks', icon: Award },
+      { to: '/dashboard?tab=tasks', label: 'Tasks', icon: ListTodo },
+      { to: '/dashboard?tab=submissions', label: 'Submissions', icon: FileText },
+      { to: '/dashboard?tab=withdrawals', label: 'Payments', icon: Wallet },
+      { to: '/dashboard?tab=users', label: 'Users', icon: Users },
+      { to: '/dashboard?tab=skills', label: 'Skills', icon: Target },
+      { to: '/dashboard?tab=announcements', label: 'Announcements', icon: Mic },
     ];
   } else {
     navItems = [
