@@ -41,13 +41,13 @@ const AdminLoginPage = () => {
           <div className="logo-icon" style={{ margin: '0 auto 24px', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '18px' }}>
             <Shield size={32} color="white" />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '8px' }}>ADMIN SUITE</h1>
-          <p className="subtitle">Secure operational environment</p>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '8px' }}>Admin Login</h1>
+          <p className="subtitle">Secure admin environment</p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Identification</label>
+            <label>Admin Email</label>
             <div className="input-icon-wrap" style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               <input 
@@ -63,7 +63,7 @@ const AdminLoginPage = () => {
           </div>
 
           <div className="form-group">
-            <label>Security Key</label>
+            <label>Password</label>
             <div className="input-icon-wrap" style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               <input 
@@ -86,7 +86,7 @@ const AdminLoginPage = () => {
           </div>
 
           <button type="submit" className="btn btn-primary btn-block btn-lg" style={{ marginTop: '24px' }} disabled={loading}>
-            {loading ? 'Authenticating...' : 'Enter Admin Space'}
+            {loading ? 'Authenticating...' : 'Login as Admin'}
           </button>
         </form>
 

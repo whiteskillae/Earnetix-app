@@ -145,7 +145,7 @@ const AdminPage = () => {
         ? `/admin/submissions/${id}/approve` 
         : `/admin/assigned-tasks/${id}/approve`;
       await request('put', endpoint);
-      toast.success('Mission Accomplished & Points Awarded');
+      toast.success('Submission Approved & Points Awarded');
       fetchSubmissions();
       fetchDashboard();
     } catch (err) {
@@ -185,9 +185,9 @@ const AdminPage = () => {
     setConfirmModal({
       open: true,
       title: `Bulk Approval: ${ids.length} Submissions`,
-      message: `You are about to approve ${ids.length} proof-of-work logs and award credits to all contributing agents. Proceed with mass verification?`,
+      message: `You are about to approve ${ids.length} submissions and award points to all contributing users. Proceed with bulk approval?`,
       type: 'primary',
-      confirmText: 'Verify All',
+      confirmText: 'Approve All',
       onConfirm: async () => {
         setActionLoading(true);
         try {
@@ -195,7 +195,7 @@ const AdminPage = () => {
           if (!endpoint) { toast.error('Bulk approval not supported for individual missions'); return; }
           
           await request('post', endpoint, { ids });
-          toast.success('Mass Verification Successful');
+          toast.success('Bulk Approval Successful');
           fetchSubmissions();
           fetchDashboard();
           setConfirmModal(prev => ({ ...prev, open: false }));
@@ -210,15 +210,15 @@ const AdminPage = () => {
   const handleBulkBlockUsers = async (ids) => {
     setConfirmModal({
       open: true,
-      title: `Strategic Purge: ${ids.length} Agents`,
-      message: `Are you sure you want to permanently blacklist these ${ids.length} accounts? Their access will be revoked and their pending assets purged.`,
+      title: `Block ${ids.length} Users`,
+      message: `Are you sure you want to permanently block these ${ids.length} users? Their access will be revoked and their pending submissions removed.`,
       type: 'danger',
-      confirmText: 'Execute Purge',
+      confirmText: 'Block Users',
       onConfirm: async () => {
         setActionLoading(true);
         try {
           await request('post', '/admin/users/bulk-block', { ids });
-          toast.success('Agent Purge Complete');
+          toast.success('Users Blocked');
           fetchUsers();
           setConfirmModal(prev => ({ ...prev, open: false }));
         } catch (err) {
@@ -232,15 +232,15 @@ const AdminPage = () => {
   const handleBulkArchiveTasks = async (ids) => {
     setConfirmModal({
       open: true,
-      title: `Bulk Decommission: ${ids.length} Campaigns`,
-      message: `Are you sure you want to decommission ${ids.length} active campaigns? This will prevent any further intel acquisition for these sectors.`,
+      title: `Bulk Delete: ${ids.length} Tasks`,
+      message: `Are you sure you want to delete ${ids.length} active tasks? This will prevent any further submissions.`,
       type: 'danger',
-      confirmText: 'Archive Campaigns',
+      confirmText: 'Delete Tasks',
       onConfirm: async () => {
         setActionLoading(true);
         try {
           await request('post', '/tasks/bulk-archive', { ids });
-          toast.success('Sectors Archived');
+          toast.success('Tasks Deleted');
           fetchTasks();
           setConfirmModal(prev => ({ ...prev, open: false }));
         } catch (err) {
@@ -289,15 +289,15 @@ const AdminPage = () => {
   const handleDeleteTask = async (id) => {
     setConfirmModal({
       open: true,
-      title: 'Decommission Campaign',
-      message: 'Are you sure you want to decommission this campaign? Existing submissions will be preserved in the archive, but no new intel can be logged.',
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? Existing submissions will be preserved, but no new submissions can be made.',
       type: 'danger',
-      confirmText: 'Decommission',
+      confirmText: 'Delete',
       onConfirm: async () => {
         setActionLoading(true);
         try {
           await request('delete', `/tasks/${id}`);
-          toast.success('Campaign Decommissioned');
+          toast.success('Task Deleted');
           fetchTasks();
           setConfirmModal(prev => ({ ...prev, open: false }));
         } catch {}
@@ -319,10 +319,10 @@ const AdminPage = () => {
   const handleBlockTemp = async (id) => {
     setConfirmModal({
       open: true,
-      title: 'Temporary Suspension',
-      message: 'Apply a 24-hour mandatory suspension to this agent? They will be locked out of the system during this period.',
+      title: 'Temporary Block',
+      message: 'Apply a 24-hour block to this user? They will be locked out of the system during this period.',
       type: 'danger',
-      confirmText: 'Execute Suspension',
+      confirmText: 'Block 24 Hours',
       onConfirm: async () => {
         setActionLoading(true);
         try {
@@ -336,6 +336,18 @@ const AdminPage = () => {
         setActionLoading(false);
       }
     });
+  };
+
+  const handleDeleteUser = async (id) => {
+    setActionLoading(true);
+    try {
+      await request('delete', `/admin/users/${id}`);
+      toast.success('User permanently deleted');
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete user');
+    }
+    setActionLoading(false);
   };
 
   const handleAdjustPoints = async (e) => {
@@ -366,6 +378,7 @@ const AdminPage = () => {
           onAdjustPoints={(u) => { setSelectedUser(u); setShowPointsModal(true); }}
           onViewDetails={(u) => { setSelectedUser(u); setShowDetailsModal(true); }}
           onBulkBlock={handleBulkBlockUsers}
+          onDeleteUser={handleDeleteUser}
         />
       )}
 
@@ -405,8 +418,8 @@ const AdminPage = () => {
       {tab === 'announcements' && (
         <div className="glass-panel">
           <div className="flex-between" style={{ marginBottom: '24px' }}>
-             <h3 style={{ margin: 0 }}>System Broadcasts</h3>
-             <button className="btn btn-primary" onClick={() => setShowAnnModal(true)}><Bell size={18} /> New Broadcast</button>
+             <h3 style={{ margin: 0 }}>Announcements</h3>
+             <button className="btn btn-primary" onClick={() => setShowAnnModal(true)}><Bell size={18} /> New Announcement</button>
           </div>
           <div className="ann-list">
             {announcements.map(ann => (
@@ -416,10 +429,10 @@ const AdminPage = () => {
                   <button className="btn-icon danger" onClick={() => {
                     setConfirmModal({
                       open: true,
-                      title: 'Purge Broadcast',
-                      message: 'Permanently remove this transmission from the system history?',
+                      title: 'Delete Announcement',
+                      message: 'Permanently remove this announcement from the system history?',
                       type: 'danger',
-                      confirmText: 'Purge',
+                      confirmText: 'Delete',
                       onConfirm: async () => {
                         setActionLoading(true);
                         try {
@@ -441,13 +454,13 @@ const AdminPage = () => {
       )}
 
       {/* MODALS */}
-      <Modal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} title={editingTask ? 'Edit Campaign' : 'Initialize Campaign'}>
+      <Modal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} title={editingTask ? 'Edit Task' : 'Create Task'}>
         <form onSubmit={handleCreateOrUpdateTask}>
-          <div className="form-group"><label>Campaign Title</label><input className="form-input" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} required /></div>
-          <div className="form-group"><label>Operational Guidelines</label><textarea className="form-input" rows="4" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} required /></div>
+          <div className="form-group"><label>Task Title</label><input className="form-input" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} required /></div>
+          <div className="form-group"><label>Task Instructions</label><textarea className="form-input" rows="4" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} required /></div>
           <div className="grid-2">
-            <div className="form-group"><label>Credit Reward</label><input type="number" className="form-input" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
-            <div className="form-group"><label>Evidence Type</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}>
+            <div className="form-group"><label>Points Reward</label><input type="number" className="form-input" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
+            <div className="form-group"><label>Submission Type</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}>
               <option value="image">Screenshot Only</option>
               <option value="link">Link/URL Only</option>
               <option value="text">Text Response Only</option>
@@ -460,7 +473,7 @@ const AdminPage = () => {
             </select></div>
           </div>
           <div className="form-group">
-            <label>Campaign Attachments (Visible to everyone)</label>
+            <label>Task Attachments</label>
             <input 
               type="file" 
               multiple 
@@ -468,18 +481,18 @@ const AdminPage = () => {
               onChange={(e) => setTaskForm({ ...taskForm, attachments: Array.from(e.target.files) })} 
             />
           </div>
-          <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Update Protocol' : 'Deploy Campaign'}</button>
+          <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Update Task' : 'Create Task'}</button>
         </form>
       </Modal>
 
-      <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="Invalidate Submission">
+      <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="Reject Submission">
         <form onSubmit={handleReject}>
-          <div className="form-group"><label>Invalidation Reason</label><textarea className="form-input" placeholder="Detailed feedback for the user..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} required /></div>
-          <button type="submit" className="btn btn-danger btn-block">Confirm Invalidation</button>
+          <div className="form-group"><label>Rejection Reason</label><textarea className="form-input" placeholder="Detailed feedback for the user..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} required /></div>
+          <button type="submit" className="btn btn-danger btn-block">Reject Submission</button>
         </form>
       </Modal>
 
-      <Modal isOpen={showAnnModal} onClose={() => setShowAnnModal(false)} title="Deploy System Broadcast">
+      <Modal isOpen={showAnnModal} onClose={() => setShowAnnModal(false)} title="Create Announcement">
         <form onSubmit={async (e) => {
           e.preventDefault();
           await request('post', '/announcements', annForm);
@@ -487,8 +500,8 @@ const AdminPage = () => {
           setAnnForm({ title: '', content: '', priority: 'medium' });
           fetchAnnouncements();
         }}>
-          <div className="form-group"><label>Notice Title</label><input className="form-input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} required /></div>
-          <div className="form-group"><label>Broadcast Payload</label><textarea className="form-input" rows="4" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} required /></div>
+          <div className="form-group"><label>Announcement Title</label><input className="form-input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} required /></div>
+          <div className="form-group"><label>Announcement Content</label><textarea className="form-input" rows="4" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} required /></div>
           <div className="form-group">
             <label>Priority Tier</label>
             <select className="form-input" value={annForm.priority} onChange={(e) => setAnnForm({ ...annForm, priority: e.target.value })}>
@@ -497,11 +510,11 @@ const AdminPage = () => {
               <option value="high">Critical</option>
             </select>
           </div>
-          <button type="submit" className="btn btn-primary btn-block">Execute Broadcast</button>
+          <button type="submit" className="btn btn-primary btn-block">Send Announcement</button>
         </form>
       </Modal>
 
-      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title="Evidence Verification">
+      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title="Submission Verification">
         {previewSub && (
           <div className="preview-content">
             <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
@@ -527,7 +540,7 @@ const AdminPage = () => {
         )}
       </Modal>
 
-      <Modal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} title="User Intelligence Dossier">
+      <Modal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} title="User Details">
         {selectedUser && (
           <div className="user-details-view">
             <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
@@ -540,7 +553,7 @@ const AdminPage = () => {
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Country</label><p>{selectedUser.country}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Qualification</label><p>{selectedUser.qualifications || '—'}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Skills</label><p>{selectedUser.skills?.join(', ') || '—'}</p></div>
-                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Credits</label><p className="text-success" style={{ fontWeight: 800 }}>{selectedUser.points}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Points</label><p className="text-success" style={{ fontWeight: 800 }}>{selectedUser.points}</p></div>
                  <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>IP Address</label><p><code>{selectedUser.registrationIp || 'Unknown'}</code></p></div>
                </div>
             </div>
@@ -556,21 +569,21 @@ const AdminPage = () => {
             </div>
 
             <div className="admin-actions-card">
-               <h5 style={{ color: '#ef4444', marginBottom: '12px' }}>Access Control</h5>
+               <h5 style={{ color: '#ef4444', marginBottom: '12px' }}>Block Controls</h5>
                <div className="flex-gap">
                   <button 
                     className="btn btn-outline" 
                     style={{ flex: 1, borderColor: 'rgba(245, 158, 11, 0.3)' }}
                     onClick={() => { handleBlockTemp(selectedUser._id); setShowDetailsModal(false); }}
                   >
-                    24H TEMP BLOCK
+                    Block 24 Hours
                   </button>
                   <button 
                     className={`btn ${selectedUser.isBlocked ? 'btn-success' : 'btn-danger'}`}
                     style={{ flex: 1 }}
                     onClick={() => { handleToggleBlock(selectedUser._id); setShowDetailsModal(false); }}
                   >
-                    {selectedUser.isBlocked ? 'REVOKE BAN' : 'PERMANENT BAN'}
+                    {selectedUser.isBlocked ? 'Unblock User' : 'Block Account'}
                   </button>
                </div>
             </div>
@@ -578,19 +591,19 @@ const AdminPage = () => {
         )}
       </Modal>
 
-      <Modal isOpen={showPointsModal} onClose={() => setShowPointsModal(false)} title="Credit Adjustment Protocol">
+      <Modal isOpen={showPointsModal} onClose={() => setShowPointsModal(false)} title="Adjust Points">
         {selectedUser && (
           <form onSubmit={handleAdjustPoints}>
-             <p style={{ fontSize: '0.85rem', marginBottom: '20px', color: '#94a3b8' }}>Adjusting credits for <strong>{selectedUser.name}</strong>. Current balance: {selectedUser.points}</p>
+             <p style={{ fontSize: '0.85rem', marginBottom: '20px', color: '#94a3b8' }}>Adjusting points for <strong>{selectedUser.name}</strong>. Current balance: {selectedUser.points}</p>
              <div className="form-group">
-               <label>Credit Delta (+/-)</label>
+               <label>Points to Add/Remove</label>
                <input type="number" className="form-input" value={pointsForm.points} onChange={(e) => setPointsForm({ ...pointsForm, points: e.target.value })} required />
              </div>
              <div className="form-group">
-               <label>Audit Memo</label>
+               <label>Reason</label>
                <input type="text" className="form-input" placeholder="Reason for adjustment..." value={pointsForm.reason} onChange={(e) => setPointsForm({ ...pointsForm, reason: e.target.value })} required />
              </div>
-             <button type="submit" className="btn btn-primary btn-block">Authorize Adjustment</button>
+             <button type="submit" className="btn btn-primary btn-block">Adjust Points</button>
           </form>
         )}
       </Modal>

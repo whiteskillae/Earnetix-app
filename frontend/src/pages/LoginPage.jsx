@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useApi } from '../hooks/useApi';
 import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
-import { Mail, Lock, Zap, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, IndianRupee, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 import { getDeviceFingerprint } from '../utils/fingerprint';
 
 const LoginPage = () => {
@@ -56,7 +56,7 @@ const LoginPage = () => {
         deviceFingerprint: getDeviceFingerprint()
       });
       login(res.data.accessToken, res.data.user);
-      toast.success('Operational Access Restored');
+      toast.success('Login Successful');
       
       if (!res.data.user.isProfileComplete && res.data.user.role !== 'admin') {
         navigate('/onboarding');
@@ -72,15 +72,15 @@ const LoginPage = () => {
         <div className="glass-panel slide-up" style={{ padding: '40px' }}>
           <div className="text-center" style={{ marginBottom: '32px' }}>
             <div className="logo-icon" style={{ width: '56px', height: '56px', background: 'var(--blue-gradient)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 10px 30px var(--blue-glow)' }}>
-              <Zap size={28} color="white" fill="white" />
+              <IndianRupee size={28} color="white" />
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>EARNITIX</h1>
-            <p className="subtitle">Secure Access Portal</p>
+            <p className="subtitle">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="form-group">
-              <label>Agent Email</label>
+              <label>Email</label>
               <div style={{ position: 'relative' }}>
                 <Mail size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-500)' }} />
                 <input 
@@ -96,7 +96,7 @@ const LoginPage = () => {
             </div>
 
             <div className="form-group">
-              <label>Security Key</label>
+              <label>Password</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-500)' }} />
                 <input 
@@ -121,7 +121,7 @@ const LoginPage = () => {
 
 
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>
-              {loading ? 'INITIALIZING...' : 'SIGN IN'}
+              {loading ? 'Signing In...' : 'Sign In'}
               {!loading && <ArrowRight size={18} />}
             </button>
           </form>
@@ -139,7 +139,7 @@ const LoginPage = () => {
 
           <div className="text-center" style={{ marginTop: '32px', fontSize: '0.9rem' }}>
             <span style={{ color: 'var(--gray-500)' }}>New User? </span>
-            <Link to="/register" style={{ color: 'var(--blue-light)', fontWeight: 700, textDecoration: 'none' }}>Create Command Profile</Link>
+            <Link to="/register" style={{ color: 'var(--blue-light)', fontWeight: 700, textDecoration: 'none' }}>Create Account</Link>
           </div>
         </div>
       </div>

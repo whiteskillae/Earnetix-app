@@ -268,8 +268,6 @@ const approveSubmissionsBulk = async (req, res, next) => {
         const submission = await Submission.findById(id).populate('taskId userId');
         if (!submission || submission.status !== 'pending') { results.failed++; continue; }
         
-        // Using existing transactional logic (but without a single big session to avoid locking too much)
-        // Optimization: In a real high-load scenario, we might use a single session but for 10-20 items separate is safer.
         await approveSubmissionTransactional(submission, req.user._id);
         results.success++;
       } catch (err) { results.failed++; }
@@ -414,14 +412,14 @@ const approveAssignedTask = async (req, res, next) => {
 
     await AdminLog.create([{
       adminId: req.user._id, action: 'approve_assigned', targetId: task._id,
-      targetType: 'assigned_task', details: `Approved mission: ${task.title} for user ${submission.userId}`, ip: req.ip,
+      targetType: 'assigned_task', details: `Approved task: ${task.title} for user ${submission.userId}`, ip: req.ip,
     }], { session });
 
     await session.commitTransaction();
 
     cache.del('admin_dashboard');
 
-    res.json({ success: true, message: 'Mission approved and points awarded' });
+    res.json({ success: true, message: 'Task approved and points awarded' });
   } catch (error) {
     await session.abortTransaction();
     next(error);
@@ -443,10 +441,10 @@ const rejectAssignedTask = async (req, res, next) => {
 
     await AdminLog.create({
       adminId: req.user._id, action: 'reject_assigned', targetId: task._id,
-      targetType: 'assigned_task', details: `Rejected mission: ${task.title}. Reason: ${rejectionReason}`, ip: req.ip,
+      targetType: 'assigned_task', details: `Rejected task: ${task.title}. Reason: ${rejectionReason}`, ip: req.ip,
     });
 
-    res.json({ success: true, message: 'Mission rejected' });
+    res.json({ success: true, message: 'Task rejected' });
   } catch (error) { next(error); }
 };
 
@@ -478,10 +476,6 @@ const unblockUser = async (req, res, next) => {
 
     user.isBlocked = false;
     user.blockedUntil = null;
-    
-    // If KYC was rejected, reset it to allow re-submission if needed, 
-    // but usually unblocking just means access.
-    // For this context, we'll clear the block flags.
 
     await user.save();
 
@@ -494,10 +488,75 @@ const unblockUser = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+/**
+ * ─── DELETE USER (Hard Delete) ────────────────────────
+ * Completely removes user + their data from the database.
+ * Frees their IP address and device fingerprint so they
+ * can register again without any "already registered" error.
+ */
+const deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (user.role === 'admin') return res.status(400).json({ success: false, message: 'Cannot delete admin accounts' });
+
+    const { deleteFromCloudinary } = require('../services/uploadService');
+
+    // 1. Delete KYC document from Cloudinary
+    if (user.kycDocumentPublicId) {
+      await deleteFromCloudinary(user.kycDocumentPublicId).catch(e => 
+        console.warn(`[deleteUser] KYC Cloudinary cleanup failed: ${e.message}`)
+      );
+    }
+
+    // 2. Delete all submission files from Cloudinary
+    const userSubmissions = await Submission.find({ userId: user._id });
+    for (const sub of userSubmissions) {
+      if (sub.imagePublicId) await deleteFromCloudinary(sub.imagePublicId).catch(() => {});
+      if (sub.filePublicId) await deleteFromCloudinary(sub.filePublicId).catch(() => {});
+    }
+
+    // 3. Delete all Submission documents
+    await Submission.deleteMany({ userId: user._id });
+
+    // 4. Delete all Withdrawal documents
+    const Withdrawal = require('../models/Withdrawal');
+    await Withdrawal.deleteMany({ userId: user._id });
+
+    // 5. Delete all AssignedTask entries where user was assigned
+    await AssignedTask.updateMany(
+      { assignedUsers: user._id },
+      { $pull: { assignedUsers: user._id } }
+    );
+
+    // 6. Log the admin action before deleting (while user._id still exists)
+    await AdminLog.create({
+      adminId: req.user._id,
+      action: 'delete_user',
+      targetId: user._id,
+      targetType: 'user',
+      details: `Permanently deleted user: ${user.email} (IP: ${user.registrationIp}, Device: ${user.deviceFingerprint})`,
+      ip: req.ip,
+    });
+
+    // 7. Hard delete the user — this frees email, IP, and device fingerprint
+    await User.findByIdAndDelete(user._id);
+
+    cache.del('admin_dashboard');
+
+    res.json({ 
+      success: true, 
+      message: `User "${user.name}" (${user.email}) has been permanently deleted. Their IP and device are now free for re-registration.` 
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission,
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
   getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
   approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk,
-  getBlockedUsers, unblockUser
+  getBlockedUsers, unblockUser, deleteUser
 };

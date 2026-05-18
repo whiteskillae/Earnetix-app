@@ -2,7 +2,7 @@ import { Search, Eye, Zap, Clock, Filter, Target, CheckSquare, Square, Trash2, B
 import { useState, useEffect } from 'react';
 import { useApi } from '../../hooks/useApi';
 
-const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onViewDetails, onBulkBlock }) => {
+const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onViewDetails, onBulkBlock, onDeleteUser }) => {
   const { request } = useApi();
   const [searchTerm, setSearchTerm] = useState('');
   const [skillFilter, setSkillFilter] = useState('');
@@ -60,14 +60,14 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
   return (
     <div className="glass-panel">
       <div className="view-filters" style={{ flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-        <h3 style={{ margin: 0, minWidth: '200px' }}>User Directory</h3>
+        <h3 style={{ margin: 0, minWidth: '200px' }}>Users</h3>
         
         <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '300px' }}>
           <div className="search-box" style={{ flex: 1 }}>
             <Search size={18} />
             <input 
               type="text" 
-              placeholder="Search agents..." 
+              placeholder="Search users..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
             />
@@ -80,7 +80,7 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
               onChange={(e) => setSkillFilter(e.target.value)}
               style={{ background: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', cursor: 'pointer' }}
             >
-              <option value="" style={{ background: '#1a1a2e' }}>All Expertise</option>
+              <option value="" style={{ background: '#1a1a2e' }}>All Skills</option>
               {allSkills.map(s => (
                 <option key={s} value={s} style={{ background: '#1a1a2e' }}>{s}</option>
               ))}
@@ -90,7 +90,7 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
 
         {selectedIds.length > 0 && (
           <button className="btn btn-danger" onClick={() => onBulkBlock(selectedIds)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
-            <Ban size={14} /> Bulk Ban ({selectedIds.length})
+            <Ban size={14} /> Block Selected ({selectedIds.length})
           </button>
         )}
       </div>
@@ -104,10 +104,10 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
                   {selectedIds.length === filteredUsers.length && filteredUsers.length > 0 ? <CheckSquare size={18} color="var(--blue)" /> : <Square size={18} />}
                 </button>
               </th>
-              <th>Identity</th>
-              <th>Wallet</th>
+              <th>User</th>
+              <th>Points</th>
               <th>Status</th>
-              <th>Protection</th>
+              <th>IP Info</th>
               <th>Last Login</th>
               <th className="text-right">Actions</th>
             </tr>
@@ -134,14 +134,14 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
                 </td>
                 <td>
                   {u.isBlocked ? (
-                    <span className="status-pill rejected" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>PERMANENT BAN</span>
+                    <span className="status-pill rejected" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>Blocked</span>
                   ) : isTempBlocked(u) ? (
                     <div className="block-badge-temp">
                       <Clock size={12} style={{ marginRight: '6px' }} />
-                      TEMP BLOCKED
+                      Temp Blocked
                     </div>
                   ) : (
-                    <span className="status-pill approved" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>VERIFIED ACTIVE</span>
+                    <span className="status-pill approved" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>Active</span>
                   )}
                 </td>
                 <td>
@@ -154,12 +154,20 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
                 </td>
                 <td className="text-right">
                   <div className="flex-gap" style={{ justifyContent: 'flex-end' }}>
-                    <button className="btn-icon" title="Audit User" onClick={() => onViewDetails(u)}>
+                    <button className="btn-icon" title="View Details" onClick={() => onViewDetails(u)}>
                       <Eye size={16} />
                     </button>
                     
-                    <button className="btn-icon" onClick={() => onAdjustPoints(u)} title="Adjust Credits">
+                    <button className="btn-icon" onClick={() => onAdjustPoints(u)} title="Adjust Points">
                       <Zap size={16} color="#f59e0b" />
+                    </button>
+
+                    <button className="btn-icon danger" onClick={() => {
+                      if (window.confirm('WARNING: Are you sure you want to permanently delete this user? This cannot be undone.')) {
+                        onDeleteUser(u._id);
+                      }
+                    }} title="Delete User">
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </td>

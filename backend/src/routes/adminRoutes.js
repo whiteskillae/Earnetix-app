@@ -4,7 +4,7 @@ const {
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
   getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
   approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk,
-  getBlockedUsers, unblockUser
+  getBlockedUsers, unblockUser, deleteUser
 } = require('../controllers/adminController');
 const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');
@@ -34,5 +34,8 @@ router.post('/users/bulk-block', blockUsersBulk);
 // Block Management
 router.get('/users/blocked', getBlockedUsers);
 router.post('/users/:id/unblock', unblockUser);
+
+// Delete User (Hard Delete)
+router.delete('/users/:id', deleteUser);
 
 module.exports = router;

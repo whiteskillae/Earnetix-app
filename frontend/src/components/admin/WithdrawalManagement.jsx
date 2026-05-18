@@ -35,15 +35,15 @@ const WithdrawalManagement = () => {
   const handleComplete = async (id) => {
     setConfirmModal({
       open: true,
-      title: 'Finalize Disbursement',
-      message: 'Confirm that the funds have been successfully transferred to the agent\'s bank account? This will permanently deduct the corresponding points from their wallet.',
+      title: 'Mark as Paid',
+      message: 'Confirm that the funds have been successfully transferred to the user\'s bank account? This will permanently deduct the corresponding points from their wallet.',
       type: 'primary',
       confirmText: 'Confirm Payment',
       onConfirm: async () => {
         setActionLoading(true);
         try {
           await request('put', `/withdrawals/admin/${id}/complete`, { note: 'Payment processed and verified' });
-          toast.success('Disbursement Finalized');
+          toast.success('Payment Finalized');
           fetchWithdrawals();
           setConfirmModal(prev => ({ ...prev, open: false }));
         } catch (err) {
@@ -72,15 +72,15 @@ const WithdrawalManagement = () => {
   const handleBlock = async (id) => {
     setConfirmModal({
       open: true,
-      title: 'Mandatory Termination',
-      message: 'Are you sure you want to PERMANENTLY blacklist this agent? This will reject the current withdrawal and lock the account immediately.',
+      title: 'Block User',
+      message: 'Are you sure you want to block this user? This will reject the current withdrawal and lock the account immediately.',
       type: 'danger',
-      confirmText: 'Terminate & Block',
+      confirmText: 'Block User',
       onConfirm: async () => {
         setActionLoading(true);
         try {
           await request('put', `/withdrawals/admin/${id}/block-user`);
-          toast.success('Agent Blacklisted');
+          toast.success('User Blocked');
           fetchWithdrawals();
           setConfirmModal(prev => ({ ...prev, open: false }));
         } catch (err) {
@@ -108,7 +108,7 @@ const WithdrawalManagement = () => {
     <div className="withdrawal-mgmt fade-in">
       <div className="flex-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Treasury — Withdrawals</h2>
+          <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Payment Requests</h2>
           <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Manage user payment requests</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -184,8 +184,9 @@ const WithdrawalManagement = () => {
                       <div style={{ fontSize: '0.8rem' }}>
                         <div style={{ fontWeight: 700 }}>{w.bankDetails?.bankName}</div>
                         <div style={{ color: '#64748b', fontSize: '0.7rem' }}>
-                          {w.bankDetails?.accountName} • ****{w.bankDetails?.accountNumber?.slice(-4)}
+                          {w.bankDetails?.accountName} • Acct: {w.bankDetails?.accountNumber}
                         </div>
+                        {w.bankDetails?.ifscCode && <div style={{ color: '#64748b', fontSize: '0.7rem' }}>IFSC: {w.bankDetails.ifscCode}</div>}
                         {w.bankDetails?.upiId && <div style={{ color: '#3b82f6', fontSize: '0.7rem' }}>UPI: {w.bankDetails.upiId}</div>}
                       </div>
                     </td>
@@ -196,7 +197,7 @@ const WithdrawalManagement = () => {
                     <td>
                       {(w.status === 'pending' || w.status === 'processing') && (
                         <div style={{ display: 'flex', gap: '6px' }}>
-                          <button className="btn-icon success" title="Mark as Done" onClick={() => handleComplete(w._id)}>
+                          <button className="btn-icon success" title="Mark as Paid" onClick={() => handleComplete(w._id)}>
                             <CheckCircle size={16} />
                           </button>
                           <button className="btn-icon" title="Reject (return points)" style={{ color: '#f59e0b' }} onClick={() => { setRejectId(w._id); setShowRejectModal(true); }}>
@@ -217,14 +218,14 @@ const WithdrawalManagement = () => {
           </div>
         </div>
       )}
-      <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="Invalidate Withdrawal Request">
+      <Modal isOpen={showRejectModal} onClose={() => setShowRejectModal(false)} title="Reject Payment Request">
         <form onSubmit={handleReject}>
           <div className="form-group">
-            <label>Reason for Invalidation</label>
+            <label>Reason for Rejection</label>
             <textarea className="form-input" rows={3} placeholder="e.g. UPI details incorrect..." value={rejectReason} onChange={e => setRejectReason(e.target.value)} required />
           </div>
           <button type="submit" className="btn btn-danger btn-block" disabled={actionLoading} style={{ marginTop: '16px' }}>
-            {actionLoading ? 'Processing...' : 'Invalidate Request'}
+            {actionLoading ? 'Processing...' : 'Reject Request'}
           </button>
         </form>
       </Modal>

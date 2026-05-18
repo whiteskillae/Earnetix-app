@@ -12,6 +12,17 @@ const verifyCaptcha = async (token, action = 'default') => {
   return true;
 };
 
+// Helper: build cookie options based on environment
+const getCookieOptions = () => {
+  const isProd = env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+};
+
 // ─── REGISTER ──────────────────────────────────────────
 const register = async (req, res, next) => {
   try {
@@ -23,30 +34,7 @@ const register = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'Email already registered' });
     }
 
-    // Check IP address for multi-accounting (only check against 'user' role)
     const ip = req.ip || req.connection.remoteAddress;
-    if (ip) {
-      const ipUser = await User.findOne({ registrationIp: ip, role: 'user' });
-      if (ipUser) {
-        logger.warn(`Multi-account attempt from IP: ${ip}`);
-        return res.status(403).json({
-          success: false,
-          message: 'An account already exists from this network/device. Only one account per device is allowed.',
-        });
-      }
-    }
-
-    // Check device fingerprint for multi-accounting (only check against 'user' role)
-    if (deviceFingerprint) {
-      const deviceUser = await User.findOne({ deviceFingerprint, role: 'user' });
-      if (deviceUser) {
-        logger.warn(`Multi-account attempt from device: ${deviceFingerprint}`);
-        return res.status(403).json({
-          success: false,
-          message: 'An account already exists on this device',
-        });
-      }
-    }
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
@@ -170,18 +158,7 @@ const login = async (req, res, next) => {
     user.loginHistory.push({ ip, userAgent });
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20); // keep last 20
 
-    // Update device fingerprint & Check for multi-accounting
-    if (deviceFingerprint && user.role === 'user') {
-      const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id }, role: 'user' });
-      if (otherUser) {
-        logger.warn(`Multi-account login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
-        return res.status(403).json({ 
-          success: false, 
-          message: `Security Alert: This device is already associated with another account (${otherUser.email}). Multi-accounting is prohibited on this platform.` 
-        });
-      }
-      user.deviceFingerprint = deviceFingerprint;
-    } else if (deviceFingerprint) {
+    if (user.role !== 'admin' && deviceFingerprint) {
       user.deviceFingerprint = deviceFingerprint;
     }
 
@@ -193,13 +170,8 @@ const login = async (req, res, next) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    // Set refresh token as HTTP-only cookie
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true, // Always true for cross-site support with sameSite: none
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    // Set refresh token as HTTP-only cookie (environment-aware)
+    res.cookie('refreshToken', refreshToken, getCookieOptions());
 
     res.json({
       success: true,
@@ -225,7 +197,6 @@ const googleAuth = async (req, res, next) => {
     if (!credential) return res.status(400).json({ success: false, message: 'Google credential missing' });
 
     // Step 1: Parallelize Google Token Verification and User Lookup
-    // We try to verify as an ID Token first (faster/better), fallback to userinfo if it's an access token
     let googleUser;
     
     const verifyToken = async () => {
@@ -254,7 +225,7 @@ const googleAuth = async (req, res, next) => {
     // Parallelize the external request and the first DB check
     const [googleInfo, existingUser] = await Promise.all([
       verifyToken(),
-      User.findOne({ email: req.body.email || '' }) // Optimization: if email is in body, use it, else wait
+      User.findOne({ email: req.body.email || '' })
     ]);
 
     googleUser = googleInfo;
@@ -265,20 +236,6 @@ const googleAuth = async (req, res, next) => {
 
     if (!user) {
       const ip = req.ip || req.connection.remoteAddress;
-      // Parallelize new user validation checks
-      const [ipUser, deviceUser] = await Promise.all([
-        ip ? User.findOne({ registrationIp: ip, role: 'user' }) : null,
-        deviceFingerprint ? User.findOne({ deviceFingerprint, role: 'user' }) : null
-      ]);
-
-      if (ipUser) {
-        logger.warn(`Multi-account attempt (IP) for ${email}`);
-        return res.status(403).json({ success: false, message: 'Only one account per device allowed.' });
-      }
-      if (deviceUser) {
-        logger.warn(`Multi-account attempt (Device) for ${email}`);
-        return res.status(403).json({ success: false, message: 'Device already linked to another account.' });
-      }
 
       user = await User.create({
         name: name || email.split('@')[0],
@@ -298,18 +255,7 @@ const googleAuth = async (req, res, next) => {
     user.loginHistory.push({ ip, userAgent: req.headers['user-agent'] || 'unknown' });
     if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20);
     
-    // Multi-account protection for standard users
-    if (deviceFingerprint) {
-      if (user.role === 'user') {
-        const otherUser = await User.findOne({ deviceFingerprint, _id: { $ne: user._id }, role: 'user' });
-        if (otherUser) {
-          logger.warn(`Multi-account Google login attempt: User ${user.email} on device ${deviceFingerprint} already linked to ${otherUser.email}`);
-          return res.status(403).json({ 
-            success: false, 
-            message: 'Security Alert: This device is already associated with another account.' 
-          });
-        }
-      }
+    if (user.role !== 'admin' && deviceFingerprint) {
       user.deviceFingerprint = deviceFingerprint;
     }
 
@@ -320,12 +266,8 @@ const googleAuth = async (req, res, next) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    // Set refresh token cookie (environment-aware)
+    res.cookie('refreshToken', refreshToken, getCookieOptions());
 
     logger.info(`[GoogleAuth] Total processing time: ${Date.now() - startTime}ms`);
     res.json({
@@ -360,12 +302,7 @@ const refresh = async (req, res, next) => {
     user.refreshToken = newRefreshToken;
     await user.save();
 
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', newRefreshToken, getCookieOptions());
 
     res.json({ success: true, data: { accessToken } });
   } catch (error) {
@@ -382,7 +319,14 @@ const logout = async (req, res, next) => {
       await user.save();
     }
 
-    res.clearCookie('refreshToken');
+    // Clear cookie with matching options so browsers honour the deletion
+    const isProd = env.NODE_ENV === 'production';
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+    });
+
     res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     next(error);

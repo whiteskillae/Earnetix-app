@@ -26,6 +26,16 @@ const galleryRoutes = require('./routes/galleryRoutes');
 const app = express();
 app.set('trust proxy', true);
 
+// ─── HTTPS ENFORCEMENT (Production) ───────────────────
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
 // ─── SECURITY ──────────────────────────────────────────
 app.use(helmet({
   crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, // Fixed: Prevents Google OAuth popup blocks
@@ -34,14 +44,17 @@ app.use(helmet({
 }));
 
 // CORS Configuration
+// Normalize CLIENT_URL: strip trailing slash to match browser origin headers
+const cleanClientUrl = env.CLIENT_URL ? env.CLIENT_URL.replace(/\/$/, '') : '';
+
 const allowedOrigins = [
-  env.CLIENT_URL,
+  cleanClientUrl,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://earnitix-app.vercel.app',
   'https://earnitix-app-93ba.vercel.app',
   'https://earnitix-app.onrender.com'
-];
+].filter(Boolean); // remove empty strings
 
 app.use(cors({
   origin: (origin, callback) => {

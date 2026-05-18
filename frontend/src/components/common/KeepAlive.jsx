@@ -8,7 +8,8 @@ import axios from 'axios';
 const KeepAlive = () => {
   useEffect(() => {
     const ping = () => {
-      const url = import.meta.env.VITE_API_URL + '/health' || '/api/health';
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const url = `${apiBase.replace(/\/$/, '')}/health`;
       axios.get(url).catch(() => {});
     };
 

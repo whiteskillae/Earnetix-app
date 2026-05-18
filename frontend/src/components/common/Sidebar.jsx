@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user, isAdmin, logout } = useAuth();
@@ -10,21 +10,21 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   if (isAdmin) {
     navItems = [
-      { to: '/admin?tab=dashboard', label: 'Overview', icon: Shield },
-      { to: '/admin?tab=kyc', label: 'KYC Review', icon: Shield },
-      { to: '/admin?tab=assignments', label: 'Individual Tasks', icon: Award },
-      { to: '/admin?tab=tasks', label: 'Campaigns', icon: ListTodo },
-      { to: '/admin?tab=submissions', label: 'Review Center', icon: Clock },
-      { to: '/admin?tab=withdrawals', label: 'Treasury', icon: Wallet },
-      { to: '/admin?tab=users', label: 'User Directory', icon: Users },
-      { to: '/admin?tab=skills', label: 'Expertise', icon: Shield },
-      { to: '/admin?tab=announcements', label: 'Broadcasting', icon: Bell },
+      { to: '/admin?tab=dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/admin?tab=kyc', label: 'KYC Review', icon: BadgeCheck },
+      { to: '/admin?tab=assignments', label: 'Direct Tasks', icon: Award },
+      { to: '/admin?tab=tasks', label: 'Tasks', icon: ListTodo },
+      { to: '/admin?tab=submissions', label: 'Submissions', icon: FileText },
+      { to: '/admin?tab=withdrawals', label: 'Payments', icon: Wallet },
+      { to: '/admin?tab=users', label: 'Users', icon: Users },
+      { to: '/admin?tab=skills', label: 'Skills', icon: Target },
+      { to: '/admin?tab=announcements', label: 'Announcements', icon: Mic },
     ];
   } else {
     navItems = [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/missions', label: 'Direct Missions', icon: Award },
-      { to: '/tasks', label: 'Campaigns', icon: ListTodo },
+      { to: '/missions', label: 'My Missions', icon: Award },
+      { to: '/tasks', label: 'Tasks', icon: ListTodo },
       { to: '/withdraw', label: 'Withdraw', icon: Wallet },
       { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },
@@ -94,12 +94,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             </div>
             <div style={{ overflow: 'hidden' }}>
               <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user?.name}</p>
-              <p style={{ fontSize: '0.7rem', color: 'var(--gray-500)', margin: 0, fontWeight: 600 }}>{isAdmin ? 'ADMIN ACCESS' : 'VERIFIED ACCOUNT'}</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--gray-500)', margin: 0, fontWeight: 600 }}>{isAdmin ? 'Admin' : 'Member'}</p>
             </div>
           </div>
           <button className="btn btn-outline btn-block" onClick={logout} style={{ justifyContent: 'flex-start', gap: '12px', borderRadius: '16px' }}>
             <LogOut size={18} />
-            <span>Terminate Session</span>
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>

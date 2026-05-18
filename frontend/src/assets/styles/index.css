@@ -22,29 +22,32 @@ input, textarea {
 }
 
 :root {
-  --blue: #3b82f6;
-  --blue-dark: #1d4ed8;
-  --blue-light: #60a5fa;
-  --blue-glow: rgba(59, 130, 246, 0.2);
-  --blue-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  --blue: #4f8ef7;
+  --blue-dark: #2563eb;
+  --blue-light: #93c5fd;
+  --blue-glow: rgba(79, 142, 247, 0.25);
+  --blue-gradient: linear-gradient(135deg, #4f8ef7 0%, #2563eb 100%);
   
-  --green: #10b981;
-  --green-glow: rgba(16, 185, 129, 0.2);
-  --green-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --purple: #8b5cf6;
+  --purple-glow: rgba(139, 92, 246, 0.2);
+  --green: #22d3a5;
+  --green-glow: rgba(34, 211, 165, 0.2);
+  --green-gradient: linear-gradient(135deg, #22d3a5 0%, #059669 100%);
+  --amber: #f59e0b;
 
-  --black: #020617;
-  --dark-950: #0f172a;
-  --dark-900: #1e293b;
-  --dark-800: #334155;
-  --dark-700: #475569;
+  --black: #03060f;
+  --dark-950: #0a1120;
+  --dark-900: #111827;
+  --dark-800: #1f2937;
+  --dark-700: #374151;
   
   --white: #f8fafc;
   --white-soft: #f1f5f9;
   --gray-100: #f1f5f9;
   --gray-200: #e2e8f0;
   --gray-300: #cbd5e1;
-  --gray-400: #94a3b8;
-  --gray-500: #64748b;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
 
   --pending: #f59e0b;
   --approved: #10b981;
@@ -80,7 +83,7 @@ html, body {
   padding: 0;
   background: var(--black);
   color: var(--white);
-  font-family: 'Outfit', sans-serif; /* Cleaner typography */
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
   overflow: hidden;
 }
 
@@ -99,8 +102,9 @@ html, body {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: 
-    radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08), transparent 40%),
-    radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.08), transparent 40%);
+    radial-gradient(ellipse at top left, var(--blue-glow), transparent 40%),
+    radial-gradient(ellipse at bottom right, var(--purple-glow), transparent 40%),
+    radial-gradient(ellipse at center right, var(--green-glow), transparent 30%);
   pointer-events: none;
   z-index: 0;
 }
