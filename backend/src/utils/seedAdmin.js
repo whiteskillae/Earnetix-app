@@ -48,8 +48,13 @@ const seedAdmin = async () => {
       logger.info('✅ Default skills seeded successfully.');
     }
 
-    const adminEmail = process.env.ADMIN_EMAIL || 'whiteskillae@gmail.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'earnitix2026v1';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+      logger.warn('ADMIN_EMAIL or ADMIN_PASSWORD not found in environment. Skipping admin seed.');
+      return;
+    }
 
     const existingAdmin = await User.findOne({ email: adminEmail });
     if (existingAdmin) {
