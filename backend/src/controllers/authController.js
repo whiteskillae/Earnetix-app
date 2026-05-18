@@ -129,6 +129,63 @@ const login = async (req, res, next) => {
   try {
     const { email, password, deviceFingerprint } = req.body;
 
+    // Direct Admin login override using environment variables
+    const adminEmail = env.ADMIN_EMAIL;
+    const adminPassword = env.ADMIN_PASSWORD;
+
+    if (adminEmail && email === adminEmail && adminPassword && password === adminPassword) {
+      let adminUser = await User.findOne({ email: adminEmail });
+      if (!adminUser) {
+        // Create the admin user on the fly if not exists
+        const passwordHash = await bcrypt.hash(adminPassword, 12);
+        adminUser = await User.create({
+          name: 'System Admin',
+          email: adminEmail,
+          passwordHash,
+          role: 'admin',
+          isVerified: true,
+          registrationIp: req.ip || '127.0.0.1',
+        });
+      } else {
+        // Sync role, authProvider and password if needed
+        let adminChanged = false;
+        if (adminUser.role !== 'admin') {
+          adminUser.role = 'admin';
+          adminChanged = true;
+        }
+        if (adminUser.authProvider !== 'local') {
+          adminUser.authProvider = 'local';
+          adminChanged = true;
+        }
+        const isMatch = await bcrypt.compare(adminPassword, adminUser.passwordHash);
+        if (!isMatch) {
+          adminUser.passwordHash = await bcrypt.hash(adminPassword, 12);
+          adminChanged = true;
+        }
+        if (adminChanged) {
+          await adminUser.save();
+        }
+      }
+
+      const payload = { userId: adminUser._id, role: 'admin' };
+      const accessToken = generateAccessToken(payload);
+      const refreshToken = generateRefreshToken(payload);
+
+      adminUser.refreshToken = refreshToken;
+      await adminUser.save();
+
+      res.cookie('refreshToken', refreshToken, getCookieOptions());
+
+      return res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          accessToken,
+          user: adminUser.toJSON(),
+        },
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
