@@ -58,7 +58,7 @@ const createTask = async (req, res, next) => {
     const attachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks');
+        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks', file.originalname);
         attachments.push({ name: file.originalname, url: result.url });
       }
     }
@@ -98,7 +98,7 @@ const updateTask = async (req, res, next) => {
     if (req.files && req.files.length > 0) {
       const newAttachments = [];
       for (const file of req.files) {
-        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks');
+        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks', file.originalname);
         newAttachments.push({ name: file.originalname, url: result.url });
       }
       

@@ -46,7 +46,7 @@ const submitKyc = async (req, res, next) => {
       await deleteFromCloudinary(user.kycDocumentPublicId);
     }
 
-    const uploadResult = await uploadToCloudinary(docFile.buffer, 'earnetix/kyc');
+    const uploadResult = await uploadToCloudinary(docFile.buffer, 'earnetix/kyc', docFile.originalname);
 
     user.kycStatus = 'pending';
     user.kycDocumentUrl = uploadResult.url;

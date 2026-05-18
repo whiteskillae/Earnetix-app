@@ -78,12 +78,12 @@ const submitProof = async (req, res, next) => {
     let imageUrl = null, imagePublicId = null, fileUrl = null, filePublicId = null;
 
     if (imageFile) {
-      const r = await uploadToCloudinary(imageFile.buffer);
+      const r = await uploadToCloudinary(imageFile.buffer, 'earnetix/submissions', imageFile.originalname);
       imageUrl = r.url; imagePublicId = r.publicId;
     }
 
     if (otherFile) {
-      const r = await uploadToCloudinary(otherFile.buffer);
+      const r = await uploadToCloudinary(otherFile.buffer, 'earnetix/submissions', otherFile.originalname);
       fileUrl = r.url; filePublicId = r.publicId;
     }
 
@@ -134,13 +134,13 @@ const resubmit = async (req, res, next) => {
 
     if (imageFile) {
       validateFile(imageFile, allowedImages, task.maxFileSize);
-      const r = await uploadToCloudinary(imageFile.buffer);
+      const r = await uploadToCloudinary(imageFile.buffer, 'earnetix/submissions', imageFile.originalname);
       imageUrl = r.url; imagePublicId = r.publicId; fileHash = r.hash;
     }
 
     if (otherFile) {
       validateFile(otherFile, allowedFiles, task.maxFileSize);
-      const r = await uploadToCloudinary(otherFile.buffer);
+      const r = await uploadToCloudinary(otherFile.buffer, 'earnetix/submissions', otherFile.originalname);
       fileUrl = r.url; filePublicId = r.publicId; 
       if (!fileHash) fileHash = r.hash;
     }

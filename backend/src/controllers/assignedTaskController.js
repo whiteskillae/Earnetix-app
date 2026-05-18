@@ -59,7 +59,7 @@ const createAndAssignTask = async (req, res, next) => {
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         try {
-          const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks');
+          const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks', file.originalname);
           attachments.push({ name: file.originalname, url: result.url });
         } catch (uploadError) {
           console.error('Cloudinary Upload Error:', uploadError);
@@ -150,7 +150,7 @@ const submitAssignedTask = async (req, res, next) => {
     const submissionAttachments = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const result = await uploadToCloudinary(file.buffer, 'earnetix/submissions');
+        const result = await uploadToCloudinary(file.buffer, 'earnetix/submissions', file.originalname);
         submissionAttachments.push(result.url);
       }
     }

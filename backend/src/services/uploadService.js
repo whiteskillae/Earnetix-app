@@ -84,14 +84,31 @@ const sanitizeFilename = (filename) => {
  * Upload file buffer to Cloudinary via stream and return URL + hash.
  * Uses streaming to avoid holding entire buffer in memory during upload.
  */
-const uploadToCloudinary = async (fileBuffer, folder = 'earnetix/submissions') => {
+const uploadToCloudinary = async (fileBuffer, folder = 'earnetix/submissions', originalNameOrType = 'auto') => {
   const hash = hashFileBuffer(fileBuffer);
+
+  let resource_type = 'auto';
+  if (originalNameOrType === 'raw' || originalNameOrType === 'image' || originalNameOrType === 'video') {
+    resource_type = originalNameOrType;
+  } else if (typeof originalNameOrType === 'string' && originalNameOrType.includes('.')) {
+    const ext = originalNameOrType.split('.').pop().toLowerCase();
+    // If it's a PDF, DOCX, ZIP, PPT, etc. (all documents/archives/etc.), upload as 'raw' to avoid Cloudinary PDF restriction 401s
+    const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'].includes(ext);
+    const isVideo = ['mp4', 'mov', 'avi', 'mkv'].includes(ext);
+    if (isImage) {
+      resource_type = 'image';
+    } else if (isVideo) {
+      resource_type = 'video';
+    } else {
+      resource_type = 'raw';
+    }
+  }
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: 'auto', // Support non-image files
+        resource_type,
       },
       (error, result) => {
         if (error) {
