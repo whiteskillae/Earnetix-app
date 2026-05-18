@@ -70,7 +70,7 @@ const RegisterPage = () => {
               <Zap size={28} color="white" fill="white" />
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
-              {step === 'register' ? 'JOIN EARNITIX' : 'VERIFICATION'}
+              {step === 'register' ? 'JOIN EARNETIX' : 'VERIFICATION'}
             </h1>
             <p className="subtitle">
               {step === 'register' ? 'Initialize operative profile' : `Code sent to ${form.email}`}

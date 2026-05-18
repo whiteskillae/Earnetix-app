@@ -96,7 +96,7 @@ const WithdrawalPage = () => {
         <p style={{ color: '#94a3b8', maxWidth: '400px', margin: '0 auto 24px' }}>
           Your withdrawal privilege has been suspended. Please connect with the administration team to resolve any pending account issues.
         </p>
-        <button className="btn btn-primary" onClick={() => window.location.href = 'mailto:support@earnitix.app'}>
+        <button className="btn btn-primary" onClick={() => window.location.href = 'mailto:support@earnetix.app'}>
           Contact Support Team
         </button>
       </div>

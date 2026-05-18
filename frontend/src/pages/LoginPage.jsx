@@ -74,7 +74,7 @@ const LoginPage = () => {
             <div className="logo-icon" style={{ width: '56px', height: '56px', background: 'var(--blue-gradient)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 10px 30px var(--blue-glow)' }}>
               <IndianRupee size={28} color="white" />
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>EARNITIX</h1>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>EARNETIX</h1>
             <p className="subtitle">Sign in to your account</p>
           </div>
 

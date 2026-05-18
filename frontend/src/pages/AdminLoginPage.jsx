@@ -54,7 +54,7 @@ const AdminLoginPage = () => {
                 type="email" 
                 className="form-input" 
                 style={{ paddingLeft: '48px' }}
-                placeholder="admin@earnitix.com" 
+                placeholder="admin@earnetix.com" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)} 
                 required 

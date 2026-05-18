@@ -74,7 +74,7 @@ const AdminLayout = ({ children }) => {
           <div className="logo-icon">
             <LayoutDashboard size={24} color="white" />
           </div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>EARNITIX <span style={{ color: '#3b82f6', fontSize: '0.7rem', display: 'block' }}>ADMIN SUITE</span></h1>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>EARNETIX <span style={{ color: '#3b82f6', fontSize: '0.7rem', display: 'block' }}>ADMIN SUITE</span></h1>
         </div>
 
         <nav className="admin-nav">

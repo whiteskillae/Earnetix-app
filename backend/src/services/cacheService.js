@@ -5,7 +5,7 @@ const NodeCache = require('node-cache');
 const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
 
 /**
- * Cache service for Earnitix
+ * Cache service for Earnetix
  * Used to store frequently accessed data like active tasks and announcements.
  */
 const cacheService = {
