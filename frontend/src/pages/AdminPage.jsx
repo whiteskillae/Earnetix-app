@@ -20,6 +20,7 @@ import WithdrawalManagement from '../components/admin/WithdrawalManagement';
 import GalleryManagement from '../components/admin/GalleryManagement';
 import BlockManagement from '../components/admin/BlockManagement';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
 const AdminPage = () => {
   const { request } = useApi();
@@ -527,7 +528,7 @@ const AdminPage = () => {
             {previewSub.fileUrl && (
               <div className="proof-section" style={{ marginTop: '20px' }}>
                 <h5>File Archive:</h5>
-                <a href={previewSub.fileUrl} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
+                <a href={getDownloadableUrl(previewSub.fileUrl)} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
                   <Upload size={16} /> Inspect File
                 </a>
               </div>

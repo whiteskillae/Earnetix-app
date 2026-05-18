@@ -7,6 +7,7 @@ import {
   Calendar, User, CheckSquare, Square
 } from 'lucide-react';
 import ConfirmModal from '../common/ConfirmModal';
+import { getDownloadableUrl } from '../../utils/cloudinaryHelper';
 
 const GalleryManagement = () => {
   const { request } = useApi();
@@ -348,7 +349,7 @@ const GalleryManagement = () => {
               <div className="glass-panel" style={{ padding: '40px', borderRadius: '16px', textAlign: 'center' }}>
                 <FileText size={48} color="var(--gray-500)" />
                 <p style={{ marginTop: '16px', color: 'var(--gray-400)' }}>Document Preview</p>
-                <a href={preview.url} target="_blank" rel="noreferrer"
+                <a href={getDownloadableUrl(preview.url)} target="_blank" rel="noreferrer"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '16px', color: 'var(--blue)', fontWeight: 700, textDecoration: 'none' }}
                 ><Download size={16} /> Download File</a>
               </div>

@@ -5,6 +5,7 @@ import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock, File, Eye, Target, TrendingUp, AlertCircle } from 'lucide-react';
+import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
 const TasksPage = () => {
   const { request } = useApi();
@@ -242,7 +243,7 @@ const TasksPage = () => {
                         <p style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, marginBottom: '8px' }}>BRIEFING MATERIALS:</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             {task.attachments.map((att, idx) => (
-                                <a key={idx} href={att.url} target="_blank" rel="noreferrer" className="attachment-link" style={{ 
+                                <a key={idx} href={getDownloadableUrl(att.url)} target="_blank" rel="noreferrer" className="attachment-link" style={{ 
                                     display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--blue-light)',
                                     background: 'rgba(59, 130, 246, 0.05)', padding: '6px 12px', borderRadius: '8px'
                                 }}>

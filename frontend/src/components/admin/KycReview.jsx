@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import Modal from '../common/Modal';
 import ConfirmModal from '../common/ConfirmModal';
 import { Shield, CheckCircle, XCircle, Ban, Eye, Clock, FileText, User, ExternalLink } from 'lucide-react';
+import { getDownloadableUrl } from '../../utils/cloudinaryHelper';
 
 const KycReview = () => {
   const { request } = useApi();
@@ -186,9 +187,9 @@ const KycReview = () => {
             {previewUser.kycDocumentUrl && (
               <div>
                 <h5 style={{ marginBottom: '12px' }}>Identity Document:</h5>
-                {previewUser.kycDocumentUrl.endsWith('.pdf') ? (
-                  <a href={previewUser.kycDocumentUrl} target="_blank" rel="noreferrer" className="btn btn-outline btn-block">
-                    <FileText size={16} /> Open PDF Document
+                {previewUser.kycDocumentUrl && !/\.(jpg|jpeg|png|webp|gif|svg|bmp)$/i.test(previewUser.kycDocumentUrl) ? (
+                  <a href={getDownloadableUrl(previewUser.kycDocumentUrl)} target="_blank" rel="noreferrer" className="btn btn-outline btn-block">
+                    <FileText size={16} /> Open Document ({previewUser.kycDocumentUrl.split('.').pop().toUpperCase()})
                   </a>
                 ) : (
                   <img src={previewUser.kycDocumentUrl} alt="KYC Document" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} />

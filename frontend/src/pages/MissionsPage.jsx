@@ -8,6 +8,7 @@ import {
   FileText, Link as LinkIcon, Trash2, File, 
   Upload, X, Zap, Image, Target, ChevronRight
 } from 'lucide-react';
+import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
 const MissionsPage = () => {
   const { request } = useApi();
@@ -160,7 +161,7 @@ const MissionsPage = () => {
                     <h4 style={{ fontSize: '0.7rem', color: 'var(--blue)', fontWeight: 900, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Strategic Intelligence</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {m.attachments.map((att, idx) => (
-                        <a key={idx} href={att.url} target="_blank" rel="noreferrer" className="glass-panel" style={{ 
+                        <a key={idx} href={getDownloadableUrl(att.url)} target="_blank" rel="noreferrer" className="glass-panel" style={{ 
                           display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderRadius: '16px',
                           fontSize: '0.85rem', color: 'var(--gray-300)', textDecoration: 'none', transition: '0.2s'
                         }}>
