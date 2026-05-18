@@ -8,11 +8,42 @@ import {
   Zap, ChevronRight, UserPlus, Layers, List, Plus
 } from 'lucide-react';
 
+const defaultCategories = [
+  {
+    name: "Development",
+    skills: ["Coding / Programming", "Web Development", "App Development", "Software Designing", "Game Development", "Cloud Computing", "DevOps", "QA Testing", "Automation"]
+  },
+  {
+    name: "Design & Creative",
+    skills: ["UI/UX Design", "Graphic Designing", "Video Editing", "Motion Graphics", "Animation", "Photography", "Cinematography", "Video Production", "Architectural Design", "Interior Design", "Music Production", "Choreography"]
+  },
+  {
+    name: "Writing & Content",
+    skills: ["Content Writing", "Copywriting", "Blogging", "Script Writing", "Voice Over"]
+  },
+  {
+    name: "Marketing",
+    skills: ["SEO", "Digital Marketing", "Social Media Management", "Influencer Marketing", "Content Creator", "Branding", "E-commerce"]
+  },
+  {
+    name: "Data & AI",
+    skills: ["Data Analysis", "Business Analytics", "AI Prompt Engineering", "Machine Learning", "Artificial Intelligence", "Cyber Security", "Networking"]
+  },
+  {
+    name: "Finance & Business",
+    skills: ["Trading Knowledge", "Financial Market Knowledge", "Cryptocurrency", "HR Management", "Project Management", "Entrepreneurship", "Sales"]
+  },
+  {
+    name: "Education & Support",
+    skills: ["Public Speaking", "Teaching", "Coaching", "Fitness Coaching", "Customer Support", "Virtual Assistance", "Technical Support", "Research"]
+  }
+];
+
 const AssignmentManagement = () => {
   const { request, loading: apiLoading } = useApi();
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(defaultCategories);
   const [loading, setLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +75,9 @@ const AssignmentManagement = () => {
       ]);
       if (tRes.success) setTasks(tRes.data);
       if (uRes.success) setUsers(uRes.data.users);
-      if (cRes.success) setCategories(cRes.data);
+      if (cRes.success && cRes.data && cRes.data.length > 0) {
+        setCategories(cRes.data);
+      }
     } catch (err) {
       toast.error('Failed to load mission data');
     } finally {

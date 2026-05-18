@@ -8,12 +8,43 @@ import { User, Phone, Globe, MapPin, ArrowRight, Target, Zap, FileText, Upload, 
 import Select from 'react-select';
 import { countries } from '../utils/countries';
 
+const defaultCategories = [
+  {
+    name: "Development",
+    skills: ["Coding / Programming", "Web Development", "App Development", "Software Designing", "Game Development", "Cloud Computing", "DevOps", "QA Testing", "Automation"]
+  },
+  {
+    name: "Design & Creative",
+    skills: ["UI/UX Design", "Graphic Designing", "Video Editing", "Motion Graphics", "Animation", "Photography", "Cinematography", "Video Production", "Architectural Design", "Interior Design", "Music Production", "Choreography"]
+  },
+  {
+    name: "Writing & Content",
+    skills: ["Content Writing", "Copywriting", "Blogging", "Script Writing", "Voice Over"]
+  },
+  {
+    name: "Marketing",
+    skills: ["SEO", "Digital Marketing", "Social Media Management", "Influencer Marketing", "Content Creator", "Branding", "E-commerce"]
+  },
+  {
+    name: "Data & AI",
+    skills: ["Data Analysis", "Business Analytics", "AI Prompt Engineering", "Machine Learning", "Artificial Intelligence", "Cyber Security", "Networking"]
+  },
+  {
+    name: "Finance & Business",
+    skills: ["Trading Knowledge", "Financial Market Knowledge", "Cryptocurrency", "HR Management", "Project Management", "Entrepreneurship", "Sales"]
+  },
+  {
+    name: "Education & Support",
+    skills: ["Public Speaking", "Teaching", "Coaching", "Fitness Coaching", "Customer Support", "Virtual Assistance", "Technical Support", "Research"]
+  }
+];
+
 const OnboardingPage = () => {
   const { user, setUser, fetchProfile } = useAuth();
   const { request } = useApi();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(defaultCategories);
   const [step, setStep] = useState(1); // Step 1: Profile, Step 2: KYC
   const [kycFile, setKycFile] = useState(null);
   const [kycDocType, setKycDocType] = useState('aadhar');
@@ -32,7 +63,9 @@ const OnboardingPage = () => {
     const fetchCategories = async () => {
       try {
         const res = await request('get', '/skill-categories');
-        if (res.success) setCategories(res.data);
+        if (res.success && res.data && res.data.length > 0) {
+          setCategories(res.data);
+        }
       } catch (err) {}
     };
     fetchCategories();
