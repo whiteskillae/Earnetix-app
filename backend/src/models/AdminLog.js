@@ -13,7 +13,8 @@ const adminLogSchema = new mongoose.Schema({
       'block', 'unblock', 'block_user', 'unblock_user', 'adjust_points', 'temp_block',
       'approve_assigned', 'reject_assigned',
       'kyc_verify', 'kyc_reject', 'kyc_block',
-      'withdrawal_complete', 'withdrawal_reject', 'withdrawal_block_user'
+      'withdrawal_complete', 'withdrawal_reject', 'withdrawal_block_user',
+      'delete_user'
     ],
     required: true,
   },
