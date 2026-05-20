@@ -376,14 +376,9 @@ const OnboardingPage = () => {
                 {loading ? 'Submitting...' : 'Submit for Verification'} <Shield size={18} />
               </button>
 
-              <button 
-                type="button" 
-                className="btn btn-outline btn-block" 
-                style={{ marginTop: '-8px' }}
-                onClick={() => navigate('/dashboard')}
-              >
-                Skip for now (limited access)
-              </button>
+              <p style={{ textAlign: 'center', fontSize: '0.78rem', color: '#64748b', margin: '8px 0 0' }}>
+                🔒 Identity verification is required to access the platform.
+              </p>
             </form>
           </>
         )}

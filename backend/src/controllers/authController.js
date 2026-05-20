@@ -4,7 +4,7 @@ const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = requir
 const { generateOTP, sendOTP } = require('../services/otpService');
 const logger = require('../utils/logger');
 const env = require('../config/env');
-const axios = require('axios');
+const cacheService = require('../services/cacheService');
 
 const { RecaptchaEnterpriseServiceClient } = require('@google-cloud/recaptcha-enterprise');
 
@@ -14,10 +14,49 @@ const verifyCaptcha = async (token, action = 'default') => {
 
 const jwt = require('jsonwebtoken');
 
-// Helper: check OTP rate limit
+// ─── CACHE KEYS ───────────────────────────────────────
+const pendingKey = (email) => `pending_reg:${email.toLowerCase()}`;
+const otpRateKey = (email) => `otp_rate:${email.toLowerCase()}`;
+
+// ─── HELPER: OTP Rate Limit (cache-based for pending registrations) ───────────
+/**
+ * Returns current rate-limit data from cache for a given email.
+ * Returns null if no data yet.
+ */
+const getCacheOtpRate = (email) => {
+  return cacheService.get(otpRateKey(email)) || null;
+};
+
+const checkCacheOtpRateLimit = (email) => {
+  const now = Date.now();
+  let rateData = getCacheOtpRate(email) || { dailyCount: 0, lastRequestAt: 0, lastDailyReset: now };
+
+  // Reset daily count if 24h passed
+  if ((now - rateData.lastDailyReset) > 24 * 60 * 60 * 1000) {
+    rateData.dailyCount = 0;
+    rateData.lastDailyReset = now;
+  }
+
+  if (rateData.dailyCount >= 4) {
+    throw new Error('Daily OTP request limit exceeded. Please try again tomorrow.');
+  }
+
+  if (rateData.lastRequestAt && (now - rateData.lastRequestAt) < 2 * 60 * 1000) {
+    const secsLeft = Math.ceil((2 * 60 * 1000 - (now - rateData.lastRequestAt)) / 1000);
+    throw new Error(`Please wait ${secsLeft} seconds before requesting another OTP.`);
+  }
+
+  rateData.dailyCount += 1;
+  rateData.lastRequestAt = now;
+
+  // Store rate data with 24h TTL
+  cacheService.set(otpRateKey(email), rateData, 24 * 60 * 60);
+};
+
+// ─── HELPER: OTP Rate Limit for verified DB users (e.g. forgot password) ─────
 const checkOtpRateLimit = (user) => {
   const now = new Date();
-  
+
   if (!user.otp.lastDailyReset || (now - user.otp.lastDailyReset) > 24 * 60 * 60 * 1000) {
     user.otp.dailyCount = 0;
     user.otp.lastDailyReset = now;
@@ -35,7 +74,7 @@ const checkOtpRateLimit = (user) => {
   user.otp.lastRequestAt = now;
 };
 
-// Helper: build cookie options based on environment
+// ─── HELPER: Cookie options ────────────────────────────
 const getCookieOptions = () => {
   const isProd = env.NODE_ENV === 'production';
   return {
@@ -47,72 +86,49 @@ const getCookieOptions = () => {
 };
 
 // ─── REGISTER ──────────────────────────────────────────
+// Only stores data in-memory cache. No DB write until OTP verified.
 const register = async (req, res, next) => {
   try {
     const { name, email, password, deviceFingerprint } = req.body;
-
-    let user = await User.findOne({ email });
     const ip = req.ip || req.connection.remoteAddress;
-    const now = new Date();
 
-    if (user) {
-      if (user.isVerified) {
-        return res.status(409).json({ success: false, message: 'Email already registered' });
-      }
-      
-      // User is unverified, allow re-registration and check rate limits
-      try {
-        checkOtpRateLimit(user);
-      } catch (err) {
-        return res.status(429).json({ success: false, message: err.message });
-      }
-
-      user.name = name;
-      user.passwordHash = await bcrypt.hash(password, 12);
-      user.deviceFingerprint = deviceFingerprint;
-      user.registrationIp = ip;
-      
-      const newOtp = generateOTP();
-      user.otp.code = newOtp.code;
-      user.otp.expiresAt = newOtp.expiresAt;
-      await user.save();
-      
-      await sendOTP(email, newOtp.code);
-      
-      return res.status(201).json({
-        success: true,
-        message: 'Registration successful. Please verify your email with the OTP sent.',
-        data: { email: user.email },
-      });
+    // 1. Block if email is already registered & verified
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser && existingUser.isVerified) {
+      return res.status(409).json({ success: false, message: 'Email already registered. Please log in.' });
     }
 
-    // Hash password for new user
+    // 2. Apply cache-based OTP rate limiting
+    try {
+      checkCacheOtpRateLimit(email);
+    } catch (err) {
+      return res.status(429).json({ success: false, message: err.message });
+    }
+
+    // 3. Hash password and generate OTP
     const passwordHash = await bcrypt.hash(password, 12);
     const otp = generateOTP();
 
-    // Create user (unverified)
-    user = await User.create({
+    // 4. Store pending registration in cache (15-min TTL)
+    cacheService.set(pendingKey(email), {
       name,
-      email,
+      email: email.toLowerCase(),
       passwordHash,
       deviceFingerprint,
       registrationIp: ip,
-      otp: { 
-        code: otp.code, 
-        expiresAt: otp.expiresAt,
-        lastRequestAt: now,
-        dailyCount: 1,
-        lastDailyReset: now
+      otp: {
+        code: otp.code,
+        expiresAt: otp.expiresAt.getTime(),
       },
-    });
+    }, 15 * 60); // 15 minutes TTL
 
-    // Send OTP email
+    // 5. Send OTP (non-blocking in dev if SMTP fails)
     await sendOTP(email, otp.code);
 
-    res.status(201).json({
+    return res.status(200).json({
       success: true,
-      message: 'Registration successful. Please verify your email with the OTP sent.',
-      data: { email: user.email },
+      message: 'Verification code sent to your email. Please check your inbox.',
+      data: { email: email.toLowerCase() },
     });
   } catch (error) {
     next(error);
@@ -120,34 +136,56 @@ const register = async (req, res, next) => {
 };
 
 // ─── VERIFY OTP ────────────────────────────────────────
+// Reads from cache, creates user in DB only on success.
 const verifyOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+    const pending = cacheService.get(pendingKey(email));
+
+    if (!pending) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending registration found. Please register again.',
+      });
     }
 
-    if (user.isVerified) {
-      return res.status(400).json({ success: false, message: 'Email already verified' });
+    if (!pending.otp.code || Date.now() > pending.otp.expiresAt) {
+      cacheService.del(pendingKey(email));
+      return res.status(400).json({ success: false, message: 'OTP expired. Please register again.' });
     }
 
-    if (!user.otp.code || user.otp.expiresAt < new Date()) {
-      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
+    if (pending.otp.code !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP. Please try again.' });
     }
 
-    if (user.otp.code !== otp) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    // OTP is valid — create the user in the database NOW
+    // Check one more time in case someone registered from another device
+    const existingUser = await User.findOne({ email: pending.email });
+    if (existingUser && existingUser.isVerified) {
+      cacheService.del(pendingKey(email));
+      return res.status(409).json({ success: false, message: 'Email already registered.' });
     }
 
-    // Mark as verified and clear OTP
-    user.isVerified = true;
-    user.otp.code = null;
-    user.otp.expiresAt = null;
-    await user.save();
+    await User.create({
+      name: pending.name,
+      email: pending.email,
+      passwordHash: pending.passwordHash,
+      deviceFingerprint: pending.deviceFingerprint,
+      registrationIp: pending.registrationIp,
+      isVerified: true,
+    });
 
-    res.json({ success: true, message: 'Email verified successfully. You can now login.' });
+    // Clean up cache
+    cacheService.del(pendingKey(email));
+    cacheService.del(otpRateKey(email));
+
+    logger.info(`[register] New user created: ${pending.email}`);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Email verified successfully. You can now log in.',
+    });
   } catch (error) {
     next(error);
   }
@@ -158,29 +196,35 @@ const resendOtp = async (req, res, next) => {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+    const pending = cacheService.get(pendingKey(email));
+    if (!pending) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending registration found. Please register again.',
+      });
     }
 
-    if (user.isVerified) {
-      return res.status(400).json({ success: false, message: 'Email already verified' });
-    }
-
+    // Apply rate limiting
     try {
-      checkOtpRateLimit(user);
+      checkCacheOtpRateLimit(email);
     } catch (err) {
       return res.status(429).json({ success: false, message: err.message });
     }
 
     const otp = generateOTP();
-    user.otp.code = otp.code;
-    user.otp.expiresAt = otp.expiresAt;
-    await user.save();
+
+    // Update OTP in cache, keeping original registration data
+    cacheService.set(pendingKey(email), {
+      ...pending,
+      otp: {
+        code: otp.code,
+        expiresAt: otp.expiresAt.getTime(),
+      },
+    }, 15 * 60);
 
     await sendOTP(email, otp.code);
 
-    res.json({ success: true, message: 'New OTP sent to your email' });
+    res.json({ success: true, message: 'New verification code sent to your email.' });
   } catch (error) {
     next(error);
   }
@@ -258,7 +302,7 @@ const login = async (req, res, next) => {
     }
 
     if (!user.isVerified) {
-      return res.status(403).json({ success: false, message: 'Please verify your email first' });
+      return res.status(403).json({ success: false, message: 'Please verify your email first before logging in.' });
     }
 
     if (user.isBlocked) {
@@ -588,4 +632,3 @@ module.exports = {
   refresh, logout, completeProfile, verifyCaptcha,
   forgotPassword, verifyForgotPasswordOtp, resetPassword
 };
-

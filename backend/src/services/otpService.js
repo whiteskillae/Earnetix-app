@@ -4,10 +4,19 @@ const env = require('../config/env');
 const logger = require('../utils/logger');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(env.SMTP_PORT || '587'),
+  secure: false, // TLS via STARTTLS on port 587
   auth: {
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
+  },
+  // Strict timeouts to avoid hanging requests
+  connectionTimeout: 6000,   // 6s to establish connection
+  greetingTimeout: 5000,     // 5s to receive server greeting
+  socketTimeout: 10000,       // 10s for socket inactivity
+  tls: {
+    rejectUnauthorized: false, // allow self-signed certs in dev
   },
 });
 
@@ -22,8 +31,17 @@ const generateOTP = () => {
 
 /**
  * Send OTP email.
+ * In development, if SMTP fails, logs the OTP to the console so local
+ * testing is never blocked by firewall/ISP restrictions.
  */
 const sendOTP = async (email, otpCode) => {
+  // Always log in dev so you can test without real SMTP
+  if (env.NODE_ENV === 'development') {
+    logger.info(`======================================`);
+    logger.info(`  DEV OTP for ${email}: ${otpCode}`);
+    logger.info(`======================================`);
+  }
+
   const mailOptions = {
     from: `"EARNETIX" <${env.SMTP_USER}>`,
     to: email,
@@ -45,10 +63,16 @@ const sendOTP = async (email, otpCode) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.info(`OTP sent to ${email}`);
+    logger.info(`OTP email sent to ${email}`);
   } catch (error) {
-    logger.error(`Failed to send OTP to ${email}: ${error.message}`);
-    throw new Error('Failed to send verification email');
+    logger.error(`Failed to send OTP email to ${email}: ${error.message}`);
+    if (env.NODE_ENV === 'development') {
+      // In development, swallow SMTP errors — OTP is already logged above
+      logger.warn(`[DEV] SMTP failed but OTP is logged to console. Proceeding without email.`);
+      return; // don't throw, let the registration flow continue
+    }
+    // In production, throw so the user knows something went wrong
+    throw new Error('Failed to send verification email. Please try again.');
   }
 };
 

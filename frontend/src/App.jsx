@@ -50,9 +50,20 @@ const ProtectedRoute = ({ children, adminOnly = false, isOnboarding = false }) =
     return <Navigate to="/onboarding" replace />;
   }
 
+  // Redirect to onboarding if KYC is not submitted or was rejected (mandatory for all non-admin users)
+  if (
+    !isOnboarding &&
+    user.role !== 'admin' &&
+    isProfileComplete &&
+    (user.kycStatus === 'none' || user.kycStatus === 'rejected')
+  ) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   if (adminOnly && !isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 };
+
 
 // Guest-only route (redirect logged-in users)
 const GuestRoute = ({ children }) => {
