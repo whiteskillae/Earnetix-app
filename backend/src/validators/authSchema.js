@@ -25,4 +25,21 @@ const googleAuthSchema = z.object({
   deviceFingerprint: z.string().optional(),
 });
 
-module.exports = { registerSchema, loginSchema, verifyOtpSchema, googleAuthSchema };
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address').trim().toLowerCase(),
+});
+
+const verifyForgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address').trim().toLowerCase(),
+  otp: z.string().length(6, 'OTP must be 6 digits'),
+});
+
+const resetPasswordSchema = z.object({
+  resetToken: z.string().min(1, 'Token is required'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128),
+});
+
+module.exports = { 
+  registerSchema, loginSchema, verifyOtpSchema, googleAuthSchema,
+  forgotPasswordSchema, verifyForgotPasswordSchema, resetPasswordSchema
+};

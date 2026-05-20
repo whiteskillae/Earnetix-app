@@ -24,6 +24,8 @@ const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const ReportPage = lazy(() => import('./pages/ReportPage'));
 const MissionsPage = lazy(() => import('./pages/MissionsPage'));
 const WithdrawalPage = lazy(() => import('./pages/WithdrawalPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 import { ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -99,6 +101,8 @@ const AppRoutes = () => (
       {/* Auth */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+      <Route path="/forgot-password" element={<GuestRoute><ForgotPasswordPage /></GuestRoute>} />
+      <Route path="/reset-password" element={<GuestRoute><ResetPasswordPage /></GuestRoute>} />
       <Route path="/onboarding" element={<ProtectedRoute isOnboarding><OnboardingPage /></ProtectedRoute>} />
 
       {/* Protected */}

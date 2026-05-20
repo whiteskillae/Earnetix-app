@@ -116,9 +116,10 @@ const LoginPage = () => {
                   {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                <Link to="/forgot-password" style={{ color: 'var(--blue-light)', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 600 }}>Forgot Password?</Link>
+              </div>
             </div>
-
-
 
             <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{ marginTop: '8px' }}>
               {loading ? 'Signing In...' : 'Sign In'}

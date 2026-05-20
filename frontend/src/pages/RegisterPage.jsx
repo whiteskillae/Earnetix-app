@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
@@ -12,6 +12,16 @@ const RegisterPage = () => {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [otp, setOtp] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const { loading, request } = useApi();
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -49,6 +59,7 @@ const RegisterPage = () => {
       });
       toast.success('Verification Code Dispatched');
       setStep('otp');
+      setCooldown(120);
     } catch {}
   };
 
@@ -58,6 +69,15 @@ const RegisterPage = () => {
       await request('post', '/auth/verify-otp', { email: form.email, otp });
       toast.success('Identity Verified');
       navigate('/login');
+    } catch {}
+  };
+
+  const handleResend = async () => {
+    if (cooldown > 0) return;
+    try {
+      await request('post', '/auth/resend-otp', { email: form.email });
+      toast.success('New Signal Dispatched');
+      setCooldown(120);
     } catch {}
   };
 
@@ -178,10 +198,15 @@ const RegisterPage = () => {
 
                <div style={{ textAlign: 'center', marginTop: '16px' }}>
                   <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem', marginBottom: '8px' }}>Signal not received?</p>
-                  <button type="button" className="btn btn-sm btn-outline" style={{ border: 'none', background: 'none', color: 'var(--blue-light)', fontWeight: 800 }} onClick={async () => {
-                     await request('post', '/auth/resend-otp', { email: form.email });
-                     toast.success('New Signal Dispatched');
-                  }}>RESEND ENCRYPTION CODE</button>
+                  <button 
+                    type="button" 
+                    className="btn btn-sm btn-outline" 
+                    style={{ border: 'none', background: 'none', color: cooldown > 0 ? 'var(--gray-500)' : 'var(--blue-light)', fontWeight: 800, cursor: cooldown > 0 ? 'not-allowed' : 'pointer' }} 
+                    onClick={handleResend}
+                    disabled={cooldown > 0 || loading}
+                  >
+                    {cooldown > 0 ? `RESEND IN ${Math.floor(cooldown / 60)}:${(cooldown % 60).toString().padStart(2, '0')}` : 'RESEND ENCRYPTION CODE'}
+                  </button>
                </div>
             </form>
           )}

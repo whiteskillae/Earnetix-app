@@ -12,6 +12,29 @@ const verifyCaptcha = async (token, action = 'default') => {
   return true;
 };
 
+const jwt = require('jsonwebtoken');
+
+// Helper: check OTP rate limit
+const checkOtpRateLimit = (user) => {
+  const now = new Date();
+  
+  if (!user.otp.lastDailyReset || (now - user.otp.lastDailyReset) > 24 * 60 * 60 * 1000) {
+    user.otp.dailyCount = 0;
+    user.otp.lastDailyReset = now;
+  }
+
+  if (user.otp.dailyCount >= 4) {
+    throw new Error('Daily OTP request limit exceeded. Please try again tomorrow.');
+  }
+
+  if (user.otp.lastRequestAt && (now - user.otp.lastRequestAt) < 2 * 60 * 1000) {
+    throw new Error('Please wait 2 minutes before requesting another OTP.');
+  }
+
+  user.otp.dailyCount += 1;
+  user.otp.lastRequestAt = now;
+};
+
 // Helper: build cookie options based on environment
 const getCookieOptions = () => {
   const isProd = env.NODE_ENV === 'production';
@@ -43,13 +66,20 @@ const register = async (req, res, next) => {
     const otp = generateOTP();
 
     // Create user (unverified)
+    const now = new Date();
     const user = await User.create({
       name,
       email,
       passwordHash,
       deviceFingerprint,
       registrationIp: ip,
-      otp: { code: otp.code, expiresAt: otp.expiresAt },
+      otp: { 
+        code: otp.code, 
+        expiresAt: otp.expiresAt,
+        lastRequestAt: now,
+        dailyCount: 1,
+        lastDailyReset: now
+      },
     });
 
     // Send OTP email
@@ -89,7 +119,8 @@ const verifyOtp = async (req, res, next) => {
 
     // Mark as verified and clear OTP
     user.isVerified = true;
-    user.otp = { code: null, expiresAt: null };
+    user.otp.code = null;
+    user.otp.expiresAt = null;
     await user.save();
 
     res.json({ success: true, message: 'Email verified successfully. You can now login.' });
@@ -112,8 +143,15 @@ const resendOtp = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email already verified' });
     }
 
+    try {
+      checkOtpRateLimit(user);
+    } catch (err) {
+      return res.status(429).json({ success: false, message: err.message });
+    }
+
     const otp = generateOTP();
-    user.otp = { code: otp.code, expiresAt: otp.expiresAt };
+    user.otp.code = otp.code;
+    user.otp.expiresAt = otp.expiresAt;
     await user.save();
 
     await sendOTP(email, otp.code);
@@ -437,7 +475,93 @@ const completeProfile = async (req, res, next) => {
   }
 };
 
+// ─── FORGOT PASSWORD ───────────────────────────────────
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    if (user.authProvider === 'google') {
+      return res.status(400).json({ success: false, message: 'Please use Google login for this account' });
+    }
+
+    try {
+      checkOtpRateLimit(user);
+    } catch (err) {
+      return res.status(429).json({ success: false, message: err.message });
+    }
+
+    const otp = generateOTP();
+    user.otp.code = otp.code;
+    user.otp.expiresAt = otp.expiresAt;
+    await user.save();
+
+    await sendOTP(email, otp.code);
+
+    res.json({ success: true, message: 'OTP sent to your email' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyForgotPasswordOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email });
+    
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user.otp.code || user.otp.expiresAt < new Date()) {
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request a new one.' });
+    }
+    if (user.otp.code !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    // OTP verified, clear it
+    user.otp.code = null;
+    user.otp.expiresAt = null;
+    await user.save();
+
+    // Generate a temporary reset token (valid for 15 mins)
+    const resetToken = jwt.sign({ email: user.email }, env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
+    res.json({ success: true, message: 'OTP verified', data: { resetToken } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Missing token or password' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, env.JWT_ACCESS_SECRET);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
+    }
+
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successfully. You can now login.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = { 
   register, verifyOtp, resendOtp, login, googleAuth, 
-  refresh, logout, completeProfile, verifyCaptcha
+  refresh, logout, completeProfile, verifyCaptcha,
+  forgotPassword, verifyForgotPasswordOtp, resetPassword
 };
+
