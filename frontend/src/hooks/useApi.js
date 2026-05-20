@@ -18,6 +18,10 @@ export const useApi = () => {
         message = errors.map(e => e.message || e).join('; ');
       } else if (error.response?.data?.error) {
         message = error.response.data.error;
+      } else if (error.code === 'ECONNABORTED') {
+        message = 'The server is taking too long to respond. Please try again.';
+      } else if (!error.response) {
+        message = 'Network error. Please check your internet connection.';
       }
       
       // Log detailed error to console for easier debugging (especially for 400 Bad Request validation details)
@@ -25,6 +29,7 @@ export const useApi = () => {
         status: error.response?.status,
         data: error.response?.data,
         message: message,
+        code: error.code,
         error: error
       });
       
