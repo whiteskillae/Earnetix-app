@@ -51,23 +51,47 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password, deviceFingerprint } = req.body;
 
-    // Check if email exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ success: false, message: 'Email already registered' });
+    let user = await User.findOne({ email });
+    const ip = req.ip || req.connection.remoteAddress;
+    const now = new Date();
+
+    if (user) {
+      if (user.isVerified) {
+        return res.status(409).json({ success: false, message: 'Email already registered' });
+      }
+      
+      // User is unverified, allow re-registration and check rate limits
+      try {
+        checkOtpRateLimit(user);
+      } catch (err) {
+        return res.status(429).json({ success: false, message: err.message });
+      }
+
+      user.name = name;
+      user.passwordHash = await bcrypt.hash(password, 12);
+      user.deviceFingerprint = deviceFingerprint;
+      user.registrationIp = ip;
+      
+      const newOtp = generateOTP();
+      user.otp.code = newOtp.code;
+      user.otp.expiresAt = newOtp.expiresAt;
+      await user.save();
+      
+      await sendOTP(email, newOtp.code);
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Registration successful. Please verify your email with the OTP sent.',
+        data: { email: user.email },
+      });
     }
 
-    const ip = req.ip || req.connection.remoteAddress;
-
-    // Hash password
+    // Hash password for new user
     const passwordHash = await bcrypt.hash(password, 12);
-
-    // Generate OTP
     const otp = generateOTP();
 
     // Create user (unverified)
-    const now = new Date();
-    const user = await User.create({
+    user = await User.create({
       name,
       email,
       passwordHash,
