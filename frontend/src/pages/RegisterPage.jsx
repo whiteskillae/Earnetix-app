@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import { Mail, Lock, User, Zap, Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle } from 'lucide-react';
 import { getDeviceFingerprint } from '../utils/fingerprint';
 
+import logo from '../assets/logo.svg';
+
 const RegisterPage = () => {
   const [step, setStep] = useState('register'); // register | otp
   const [form, setForm] = useState({ name: '', email: '', password: '' });
@@ -86,8 +88,8 @@ const RegisterPage = () => {
       <div className="auth-container" style={{ maxWidth: '420px', width: '100%', padding: '24px' }}>
         <div className="glass-panel slide-up" style={{ padding: '40px' }}>
           <div className="text-center" style={{ marginBottom: '32px' }}>
-            <div className="logo-icon" style={{ width: '56px', height: '56px', background: 'var(--green-gradient)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 10px 30px rgba(16, 185, 129, 0.2)' }}>
-              <Zap size={28} color="white" fill="white" />
+            <div className="logo-icon" style={{ width: '56px', height: '56px', background: 'transparent', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: 'none' }}>
+              <img src={logo} alt="Earnetix Logo" style={{ width: '48px', height: '48px' }} />
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
               {step === 'register' ? 'JOIN EARNETIX' : 'VERIFICATION'}

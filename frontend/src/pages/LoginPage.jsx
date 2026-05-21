@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import { Mail, Lock, IndianRupee, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 import { getDeviceFingerprint } from '../utils/fingerprint';
 
+import logo from '../assets/logo.svg';
+
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -71,8 +73,8 @@ const LoginPage = () => {
       <div className="auth-container" style={{ maxWidth: '420px', width: '100%', padding: '24px' }}>
         <div className="glass-panel slide-up" style={{ padding: '40px' }}>
           <div className="text-center" style={{ marginBottom: '32px' }}>
-            <div className="logo-icon" style={{ width: '56px', height: '56px', background: 'var(--blue-gradient)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 10px 30px var(--blue-glow)' }}>
-              <IndianRupee size={28} color="white" />
+            <div className="logo-icon" style={{ width: '56px', height: '56px', background: 'transparent', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: 'none' }}>
+              <img src={logo} alt="Earnetix Logo" style={{ width: '48px', height: '48px' }} />
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>EARNETIX</h1>
             <p className="subtitle">Sign in to your account</p>

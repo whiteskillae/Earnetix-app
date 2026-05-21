@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Define Gradients -->
+  <defs>
+    <linearGradient id="barYellow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD700" />
+      <stop offset="100%" stop-color="#FF8C00" />
+    </linearGradient>
+    <linearGradient id="barGreen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#32CD32" />
+      <stop offset="100%" stop-color="#008000" />
+    </linearGradient>
+    <linearGradient id="barBlue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00BFFF" />
+      <stop offset="100%" stop-color="#0000CD" />
+    </linearGradient>
+    <linearGradient id="arrowBlue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00D1FF" />
+      <stop offset="100%" stop-color="#0055FF" />
+    </linearGradient>
+    <linearGradient id="arrowGreen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ADFF2F" />
+      <stop offset="100%" stop-color="#32CD32" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(5, 10)">
+    <!-- Yellow Bar -->
+    <rect x="55" y="10" width="18" height="35" rx="3" fill="url(#barYellow)" transform="skewY(-20)" />
+    <!-- Green Bar -->
+    <rect x="30" y="30" width="18" height="35" rx="3" fill="url(#barGreen)" transform="skewY(-20)" />
+    <!-- Blue Bar -->
+    <rect x="5" y="50" width="18" height="35" rx="3" fill="url(#barBlue)" transform="skewY(-20)" />
+    
+    <!-- Sweeping Arrow Main -->
+    <path d="M-5 70 Q 30 100 85 45" fill="none" stroke="url(#arrowBlue)" stroke-width="10" stroke-linecap="round"/>
+    <!-- Arrow Head -->
+    <polygon points="75,35 95,30 90,55" fill="url(#arrowBlue)" />
+    
+    <!-- Lower Swoosh -->
+    <path d="M5 85 Q 40 105 75 65" fill="none" stroke="url(#arrowGreen)" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

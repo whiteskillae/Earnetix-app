@@ -2,6 +2,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic } from 'lucide-react';
 
+import logo from '../../assets/logo.svg';
+
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const { user, isAdmin, logout } = useAuth();
   const location = useLocation();
@@ -49,8 +51,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {/* Brand */}
         <div className="sidebar-logo">
           <Link to="/dashboard" onClick={() => setIsOpen(false)} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div className="logo-icon">
-              <Zap size={24} fill="white" />
+            <div className="logo-icon" style={{ background: 'transparent', width: '32px', height: '32px' }}>
+              <img src={logo} alt="Earnetix Logo" style={{ width: '100%', height: '100%' }} />
             </div>
             <div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--white)', margin: 0 }}>EARNETIX</h2>
