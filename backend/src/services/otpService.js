@@ -16,7 +16,10 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
-  // Removed strict timeouts to allow Render enough time to connect
+  // Restore strict timeouts so Render load balancer doesn't throw 502
+  connectionTimeout: 6000,   // 6s to establish connection
+  greetingTimeout: 5000,     // 5s to receive server greeting
+  socketTimeout: 10000,       // 10s for socket inactivity
 });
 
 /**
