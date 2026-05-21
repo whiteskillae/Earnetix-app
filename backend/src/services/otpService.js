@@ -68,9 +68,8 @@ const sendOTP = async (email, otpCode) => {
     logger.info(`OTP email sent to ${email}`);
   } catch (error) {
     logger.error(`Failed to send OTP email to ${email}: ${error.message}`);
-    // Always throw an error so the frontend knows the email failed to send.
-    // In production, this helps identify SMTP or IP blocking issues.
-    throw new Error('Failed to send verification email. Please try again or check SMTP configuration.');
+    // Expose the actual error temporarily to help debug the Render issue
+    throw new Error(`SMTP Error: ${error.message}`);
   }
 };
 
