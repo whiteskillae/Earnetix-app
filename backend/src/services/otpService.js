@@ -3,23 +3,20 @@ const crypto = require('crypto');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 
-const port = parseInt(env.SMTP_PORT || '465');
+const port = parseInt(env.SMTP_PORT || '587');
 
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST || 'smtp.gmail.com',
   port: port,
-  secure: port === 465, // true for 465, false for other ports
+  secure: port === 465, // true for 465, false for other ports (STARTTLS)
   auth: {
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
   },
-  // Strict timeouts to avoid hanging requests
-  connectionTimeout: 6000,   // 6s to establish connection
-  greetingTimeout: 5000,     // 5s to receive server greeting
-  socketTimeout: 10000,       // 10s for socket inactivity
   tls: {
-    rejectUnauthorized: false, // allow self-signed certs in dev
+    rejectUnauthorized: false,
   },
+  // Removed strict timeouts to allow Render enough time to connect
 });
 
 /**
