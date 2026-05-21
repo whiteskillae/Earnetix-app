@@ -27,6 +27,15 @@ const getCacheOtpRate = (email) => {
   return cacheService.get(otpRateKey(email)) || null;
 };
 
+const rollbackCacheOtpRateLimit = (email) => {
+  let rateData = cacheService.get(otpRateKey(email));
+  if (rateData) {
+    rateData.dailyCount = Math.max(0, rateData.dailyCount - 1);
+    rateData.lastRequestAt = 0;
+    cacheService.set(otpRateKey(email), rateData, 24 * 60 * 60);
+  }
+};
+
 const checkCacheOtpRateLimit = (email) => {
   const now = Date.now();
   let rateData = getCacheOtpRate(email) || { dailyCount: 0, lastRequestAt: 0, lastDailyReset: now };
@@ -54,6 +63,13 @@ const checkCacheOtpRateLimit = (email) => {
 };
 
 // ─── HELPER: OTP Rate Limit for verified DB users (e.g. forgot password) ─────
+const rollbackOtpRateLimit = (user) => {
+  if (user.otp) {
+    user.otp.dailyCount = Math.max(0, user.otp.dailyCount - 1);
+    user.otp.lastRequestAt = null;
+  }
+};
+
 const checkOtpRateLimit = (user) => {
   const now = new Date();
 
@@ -123,7 +139,13 @@ const register = async (req, res, next) => {
     }, 15 * 60); // 15 minutes TTL
 
     // 5. Send OTP (non-blocking in dev if SMTP fails)
-    await sendOTP(email, otp.code);
+    try {
+      await sendOTP(email, otp.code);
+    } catch (error) {
+      cacheService.del(pendingKey(email));
+      rollbackCacheOtpRateLimit(email);
+      throw error;
+    }
 
     return res.status(200).json({
       success: true,
@@ -223,7 +245,12 @@ const resendOtp = async (req, res, next) => {
       },
     }, 15 * 60);
 
-    await sendOTP(email, otp.code);
+    try {
+      await sendOTP(email, otp.code);
+    } catch (error) {
+      rollbackCacheOtpRateLimit(email);
+      throw error;
+    }
 
     res.json({ success: true, message: 'New verification code sent to your email.' });
   } catch (error) {
@@ -574,7 +601,15 @@ const forgotPassword = async (req, res, next) => {
     user.otp.expiresAt = otp.expiresAt;
     await user.save();
 
-    await sendOTP(email, otp.code);
+    try {
+      await sendOTP(email, otp.code);
+    } catch (error) {
+      rollbackOtpRateLimit(user);
+      user.otp.code = null;
+      user.otp.expiresAt = null;
+      await user.save();
+      throw error;
+    }
 
     res.json({ success: true, message: 'OTP sent to your email' });
   } catch (error) {
