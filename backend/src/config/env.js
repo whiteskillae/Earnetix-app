@@ -13,7 +13,7 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
-  SMTP_PORT: z.string().default('587'),
+  SMTP_PORT: z.string().default('465'),
   SMTP_USER: z.string().min(1),
   SMTP_PASS: z.string().min(1),
   GOOGLE_CLIENT_ID: z.string().optional(),

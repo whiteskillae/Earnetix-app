@@ -3,10 +3,12 @@ const crypto = require('crypto');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 
+const port = parseInt(env.SMTP_PORT || '465');
+
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(env.SMTP_PORT || '587'),
-  secure: false, // TLS via STARTTLS on port 587
+  port: port,
+  secure: port === 465, // true for 465, false for other ports
   auth: {
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
