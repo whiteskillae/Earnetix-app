@@ -93,7 +93,7 @@ const RegisterPage = () => {
               {step === 'register' ? 'JOIN EARNETIX' : 'VERIFICATION'}
             </h1>
             <p className="subtitle">
-              {step === 'register' ? 'Initialize operative profile' : `Code sent to ${form.email}`}
+              {step === 'register' ? 'Create your account' : `Code sent to ${form.email}`}
             </p>
           </div>
 
@@ -205,7 +205,7 @@ const RegisterPage = () => {
                     onClick={handleResend}
                     disabled={cooldown > 0 || loading}
                   >
-                    {cooldown > 0 ? `RESEND IN ${Math.floor(cooldown / 60)}:${(cooldown % 60).toString().padStart(2, '0')}` : 'RESEND ENCRYPTION CODE'}
+                    {cooldown > 0 ? `RESEND IN ${Math.floor(cooldown / 60)}:${(cooldown % 60).toString().padStart(2, '0')}` : 'RESEND OTP'}
                   </button>
                </div>
             </form>
@@ -213,7 +213,7 @@ const RegisterPage = () => {
 
           <div className="text-center" style={{ marginTop: '32px', fontSize: '0.9rem' }}>
             <span style={{ color: 'var(--gray-500)' }}>Already Enlisted? </span>
-            <Link to="/login" style={{ color: 'var(--blue-light)', fontWeight: 700, textDecoration: 'none' }}>Access Terminal</Link>
+            <Link to="/login" style={{ color: 'var(--blue-light)', fontWeight: 700, textDecoration: 'none' }}>Already have an account? Log in</Link>
           </div>
         </div>
       </div>

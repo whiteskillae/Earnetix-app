@@ -174,6 +174,7 @@ const verifyOtp = async (req, res, next) => {
       deviceFingerprint: pending.deviceFingerprint,
       registrationIp: pending.registrationIp,
       isVerified: true,
+      accountStatus: 'processing',
     });
 
     // Clean up cache
@@ -408,6 +409,7 @@ const googleAuth = async (req, res, next) => {
         avatar: picture,
         deviceFingerprint,
         registrationIp: ip,
+        accountStatus: 'processing',
       });
     }
 
@@ -523,6 +525,11 @@ const completeProfile = async (req, res, next) => {
     
     user.isProfileComplete = true;
     user.onboardingVersion = 1; // Current version
+    
+    // If KYC is already submitted, they are fully active
+    if (user.kycStatus !== 'none') {
+      user.accountStatus = 'active';
+    }
 
     if (username) {
       user.markModified('username');

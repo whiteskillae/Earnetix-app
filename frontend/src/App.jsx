@@ -45,18 +45,8 @@ const ProtectedRoute = ({ children, adminOnly = false, isOnboarding = false }) =
     return <Navigate to="/login" replace />;
   }
 
-  // Redirect to onboarding if profile is incomplete (and not already on onboarding page)
-  if (!isProfileComplete && !isOnboarding && user.role !== 'admin') {
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  // Redirect to onboarding if KYC is not submitted or was rejected (mandatory for all non-admin users)
-  if (
-    !isOnboarding &&
-    user.role !== 'admin' &&
-    isProfileComplete &&
-    (user.kycStatus === 'none' || user.kycStatus === 'rejected')
-  ) {
+  // Redirect to onboarding if user is in processing stage (Profile or KYC incomplete)
+  if (!isOnboarding && user.role !== 'admin' && (user.accountStatus === 'processing' || !isProfileComplete || user.kycStatus === 'none')) {
     return <Navigate to="/onboarding" replace />;
   }
 

@@ -55,6 +55,12 @@ const submitKyc = async (req, res, next) => {
     user.kycDocumentNumber = documentNumber.toUpperCase();
     user.kycRejectionReason = null;
     user.kycSubmittedAt = new Date();
+    
+    // If profile is also complete, activate the account
+    if (user.isProfileComplete) {
+      user.accountStatus = 'active';
+    }
+    
     await user.save();
 
     logger.info(`KYC submitted by user ${user.email} (${documentType})`);

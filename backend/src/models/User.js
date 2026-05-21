@@ -61,6 +61,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  accountStatus: {
+    type: String,
+    enum: ['processing', 'active', 'blocked'],
+    default: 'processing',
+  },
   points: {
     type: Number,
     default: 0,
