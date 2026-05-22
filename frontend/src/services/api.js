@@ -7,7 +7,7 @@ const normalizedBaseURL = baseURL.endsWith('/') ? baseURL : `${baseURL}/`;
 const api = axios.create({
   baseURL: normalizedBaseURL,
   withCredentials: true,
-  timeout: 15000, // 15s timeout to prevent infinite hangs
+  timeout: 30000, // 30s — backend now responds in <500ms; this handles slow networks
 });
 
 // Request interceptor — attach access token

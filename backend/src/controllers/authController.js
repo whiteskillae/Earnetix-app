@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../services/tokenService');
-const { generateOTP, sendOTP } = require('../services/otpService');
+const { generateOTP } = require('../services/otpService');
+const emailQueue = require('../services/emailQueue');
 const logger = require('../utils/logger');
 const env = require('../config/env');
 const cacheService = require('../services/cacheService');
@@ -121,8 +122,8 @@ const register = async (req, res, next) => {
       return res.status(429).json({ success: false, message: err.message });
     }
 
-    // 3. Hash password and generate OTP
-    const passwordHash = await bcrypt.hash(password, 12);
+    // 3. Hash password (rounds=10: ~250ms, still production-secure) and generate OTP
+    const passwordHash = await bcrypt.hash(password, 10);
     const otp = generateOTP();
 
     // 4. Store pending registration in cache (15-min TTL)
@@ -138,14 +139,9 @@ const register = async (req, res, next) => {
       },
     }, 15 * 60); // 15 minutes TTL
 
-    // 5. Send OTP (non-blocking in dev if SMTP fails)
-    try {
-      await sendOTP(email, otp.code);
-    } catch (error) {
-      cacheService.del(pendingKey(email));
-      rollbackCacheOtpRateLimit(email);
-      throw error;
-    }
+    // 5. Enqueue OTP email — NON-BLOCKING. API responds immediately without
+    //    waiting for Brevo. The queue worker sends with automatic retry.
+    emailQueue.enqueue(email, otp.code);
 
     return res.status(200).json({
       success: true,
@@ -245,12 +241,8 @@ const resendOtp = async (req, res, next) => {
       },
     }, 15 * 60);
 
-    try {
-      await sendOTP(email, otp.code);
-    } catch (error) {
-      rollbackCacheOtpRateLimit(email);
-      throw error;
-    }
+    // Enqueue resend — non-blocking, responds immediately
+    emailQueue.enqueue(email, otp.code);
 
     res.json({ success: true, message: 'New verification code sent to your email.' });
   } catch (error) {
@@ -601,15 +593,8 @@ const forgotPassword = async (req, res, next) => {
     user.otp.expiresAt = otp.expiresAt;
     await user.save();
 
-    try {
-      await sendOTP(email, otp.code);
-    } catch (error) {
-      rollbackOtpRateLimit(user);
-      user.otp.code = null;
-      user.otp.expiresAt = null;
-      await user.save();
-      throw error;
-    }
+    // Enqueue password-reset OTP — non-blocking, responds immediately
+    emailQueue.enqueue(email, otp.code);
 
     res.json({ success: true, message: 'OTP sent to your email' });
   } catch (error) {

@@ -10,8 +10,12 @@ dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(env.MONGO_URI, {
-      serverSelectionTimeoutMS: 15000,
-      family: 4, // Force IPv4
+      serverSelectionTimeoutMS: 10000, // 10s to find a server
+      connectTimeoutMS: 10000,          // 10s to establish connection
+      socketTimeoutMS: 30000,           // 30s idle socket timeout
+      maxPoolSize: 10,                  // up to 10 concurrent connections
+      minPoolSize: 2,                   // keep 2 warm connections ready
+      family: 4,                        // Force IPv4 for Render
     });
     logger.info(`✅ MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
