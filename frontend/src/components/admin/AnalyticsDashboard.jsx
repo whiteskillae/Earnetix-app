@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApi } from '../../../hooks/useApi';
+import { useApi } from '../../hooks/useApi';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Activity, Users, Globe, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';

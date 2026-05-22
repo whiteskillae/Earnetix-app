@@ -13,7 +13,8 @@ import {
   Target,
   Award,
   Image,
-  Activity
+  Activity,
+  BarChart2
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -33,6 +34,7 @@ const AdminLayout = ({ children }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Overview', icon: <LayoutDashboard size={20} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart2 size={20} /> },
     { id: 'users', label: 'User Directory', icon: <Users size={20} /> },
     { id: 'kyc', label: 'KYC Review', icon: <Shield size={20} /> },
     { id: 'skills', label: 'Expertise', icon: <Target size={20} /> },
