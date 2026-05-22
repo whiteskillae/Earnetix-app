@@ -61,18 +61,18 @@ input, textarea {
   --space-xl: 32px;
   --space-2xl: 48px;
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 28px;
-  --radius-2xl: 36px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-2xl: 40px;
   --radius-full: 9999px;
 
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow-premium: 0 10px 30px -10px rgba(0,0,0,0.5);
+  --shadow-premium: 0 24px 48px -12px rgba(0,0,0,0.4);
   
   --glass: rgba(15, 23, 42, 0.65);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.04);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -110,10 +110,10 @@ html, body {
 }
 
 /* ─── TYPOGRAPHY ────────────────────────────────────── */
-h1, h2, h3, h4 { font-weight: 800; color: var(--white); line-height: 1.2; }
-h1 { font-size: 2.25rem; letter-spacing: -0.04em; }
-h2 { font-size: 1.75rem; letter-spacing: -0.03em; }
-h3 { font-size: 1.35rem; }
+h1, h2, h3, h4 { font-weight: 800; color: var(--white); line-height: 1.2; letter-spacing: -0.02em; }
+h1 { font-size: 2.5rem; letter-spacing: -0.04em; }
+h2 { font-size: 1.85rem; letter-spacing: -0.03em; }
+h3 { font-size: 1.45rem; }
 
 /* ─── LAYOUT ────────────────────────────────────────── */
 .app-layout {
@@ -148,8 +148,8 @@ h3 { font-size: 1.35rem; }
   top: 0; left: 0; bottom: 0;
   width: 280px;
   background: var(--glass);
-  backdrop-filter: blur(30px) saturate(200%);
-  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
   border-right: 1px solid var(--glass-border);
   z-index: 2000;
   padding: var(--space-xl) var(--space-md);
@@ -255,8 +255,8 @@ h3 { font-size: 1.35rem; }
 /* ─── PREMIUM COMPONENTS ────────────────────────────── */
 .glass-panel {
   background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-premium);
@@ -676,8 +676,9 @@ h3 { font-size: 1.35rem; }
 
 .admin-sidebar-new {
   width: 280px;
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(20px);
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
@@ -736,8 +737,9 @@ h3 { font-size: 1.35rem; }
 }
 
 .glass-panel {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(12px);
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 24px;
   padding: 32px;
