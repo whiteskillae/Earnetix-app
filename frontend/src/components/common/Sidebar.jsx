@@ -46,11 +46,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     const checkNewItems = async () => {
       try {
         const [tasksRes, missionsRes] = await Promise.all([
-          request('get', '/tasks/available'),
+          request('get', '/tasks'),
           request('get', '/assigned-tasks/my')
         ]);
 
-        const tasksCount = tasksRes.data?.length || 0;
+        const tasksCount = tasksRes.data?.tasks?.length || 0;
         const missionsCount = missionsRes.data?.filter(m => m.status === 'pending')?.length || 0;
 
         const seenTasks = parseInt(localStorage.getItem('seen_tasks_count') || '0', 10);
