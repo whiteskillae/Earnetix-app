@@ -18,12 +18,14 @@ import {
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 
 const AdminLayout = ({ children }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'dashboard';
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+  const { logout } = useAuth();
 
   // Close sidebar on mobile when tab changes
   useEffect(() => {
@@ -52,8 +54,8 @@ const AdminLayout = ({ children }) => {
     setSearchParams({ tab: tabId });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    await logout();
     navigate('/admin/login');
   };
 

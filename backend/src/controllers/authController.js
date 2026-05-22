@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const AdminLog = require('../models/AdminLog');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../services/tokenService');
 const { generateOTP } = require('../services/otpService');
 const emailQueue = require('../services/emailQueue');
@@ -235,6 +236,18 @@ const verifyOtp = async (req, res, next) => {
     cacheService.del(pendingKey(email));
     cacheService.del(otpRateKey(email));
 
+    // Create System Log for Registration
+    const newUser = await User.findOne({ email: pending.email }).select('_id');
+    if (newUser) {
+      await AdminLog.create({
+        userId: newUser._id,
+        action: 'user_register',
+        targetType: 'auth',
+        details: 'User successfully registered and verified email',
+        ip: pending.registrationIp
+      }).catch(err => logger.error('Failed to log registration:', err));
+    }
+
     logger.info(`[register] New user created: ${pending.email}`);
 
     return res.status(201).json({
@@ -401,6 +414,17 @@ const login = async (req, res, next) => {
 
     // Set refresh token as HTTP-only cookie (environment-aware)
     res.cookie('refreshToken', refreshToken, getCookieOptions());
+
+    // Create System Log for Login
+    if (user.role !== 'admin') {
+      await AdminLog.create({
+        userId: user._id,
+        action: 'user_login',
+        targetType: 'auth',
+        details: 'User logged in',
+        ip
+      }).catch(err => logger.error('Failed to log login:', err));
+    }
 
     res.json({
       success: true,

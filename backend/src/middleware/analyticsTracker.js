@@ -1,11 +1,13 @@
 const Analytics = require('../models/Analytics');
 const logger = require('../utils/logger');
+const jwt = require('jsonwebtoken');
 
 // Memory buffer for stats
 let statsBuffer = {
   apiHits: 0,
   pageViews: 0,
-  uniqueIps: new Set()
+  uniqueIps: new Set(),
+  activeUsers: new Set()
 };
 
 // Helper to get YYYY-MM-DD
@@ -15,17 +17,19 @@ const getDateString = () => new Date().toISOString().split('T')[0];
  * Flush memory buffer to MongoDB
  */
 const flushAnalytics = async () => {
-  if (statsBuffer.apiHits === 0 && statsBuffer.pageViews === 0 && statsBuffer.uniqueIps.size === 0) return;
+  if (statsBuffer.apiHits === 0 && statsBuffer.pageViews === 0 && statsBuffer.uniqueIps.size === 0 && statsBuffer.activeUsers.size === 0) return;
 
   const dateString = getDateString();
   const currentHits = statsBuffer.apiHits;
   const currentViews = statsBuffer.pageViews;
   const currentUniques = statsBuffer.uniqueIps.size;
+  const currentUsers = Array.from(statsBuffer.activeUsers);
 
   // Reset buffer immediately
   statsBuffer.apiHits = 0;
   statsBuffer.pageViews = 0;
   statsBuffer.uniqueIps.clear();
+  statsBuffer.activeUsers.clear();
 
   try {
     await Analytics.findOneAndUpdate(
@@ -35,7 +39,10 @@ const flushAnalytics = async () => {
           apiHits: currentHits, 
           pageViews: currentViews,
           uniqueVisitors: currentUniques
-        } 
+        },
+        $addToSet: {
+          activeUsers: { $each: currentUsers }
+        }
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
@@ -66,6 +73,20 @@ const analyticsTracker = (req, res, next) => {
   const ip = req.ip || req.headers['x-forwarded-for'];
   if (ip) {
     statsBuffer.uniqueIps.add(ip);
+  }
+
+  // Track active users by decoding JWT if present
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.userId) {
+        statsBuffer.activeUsers.add(decoded.userId);
+      }
+    } catch (e) {
+      // ignore invalid tokens
+    }
   }
 
   next();

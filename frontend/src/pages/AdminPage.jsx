@@ -50,7 +50,7 @@ const AdminPage = () => {
   const [previewSub, setPreviewSub] = useState(null);
 
   const [showAnnModal, setShowAnnModal] = useState(false);
-  const [annForm, setAnnForm] = useState({ title: '', content: '', priority: 'medium' });
+  const [annForm, setAnnForm] = useState({ title: '', content: '', priority: 'medium', targetEmails: '' });
 
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -425,7 +425,12 @@ const AdminPage = () => {
             {announcements.map(ann => (
               <div key={ann._id} className="card" style={{ marginBottom: '16px', background: 'rgba(255,255,255,0.02)' }}>
                 <div className="flex-between">
-                  <h4 style={{ color: ann.priority === 'high' ? '#ef4444' : '#fff' }}>{ann.title}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h4 style={{ color: ann.priority === 'high' ? '#ef4444' : '#fff', margin: 0 }}>{ann.title}</h4>
+                    {ann.targetUsers && ann.targetUsers.length > 0 && (
+                      <span style={{ fontSize: '0.65rem', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>PRIVATE ({ann.targetUsers.length})</span>
+                    )}
+                  </div>
                   <button className="btn-icon danger" onClick={() => {
                     setConfirmModal({
                       open: true,
@@ -497,11 +502,20 @@ const AdminPage = () => {
           e.preventDefault();
           await request('post', '/announcements', annForm);
           setShowAnnModal(false);
-          setAnnForm({ title: '', content: '', priority: 'medium' });
+          setAnnForm({ title: '', content: '', priority: 'medium', targetEmails: '' });
           fetchAnnouncements();
         }}>
           <div className="form-group"><label>Announcement Title</label><input className="form-input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} required /></div>
           <div className="form-group"><label>Announcement Content</label><textarea className="form-input" rows="4" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} required /></div>
+          <div className="form-group">
+            <label>Target Users (Optional)</label>
+            <input 
+              className="form-input" 
+              placeholder="Leave blank for global broadcast, or enter comma-separated emails..." 
+              value={annForm.targetEmails} 
+              onChange={(e) => setAnnForm({ ...annForm, targetEmails: e.target.value })} 
+            />
+          </div>
           <div className="form-group">
             <label>Priority Tier</label>
             <select className="form-input" value={annForm.priority} onChange={(e) => setAnnForm({ ...annForm, priority: e.target.value })}>

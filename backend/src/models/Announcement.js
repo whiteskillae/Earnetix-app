@@ -24,11 +24,10 @@ const announcementSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  targetUser: {
+  targetUsers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: null, // null means global announcement
-  },
+  }],
 }, {
   timestamps: true,
 });

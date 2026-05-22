@@ -575,6 +575,7 @@ const getAdminLogs = async (req, res, next) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .populate('adminId', 'name email')
+        .populate('userId', 'name email')
         .lean(),
       AdminLog.countDocuments(filter),
     ]);

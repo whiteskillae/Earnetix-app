@@ -4,11 +4,12 @@ const getAnnouncements = async (req, res, next) => {
   try {
     let filter = { isActive: true };
     
-    // If not admin, only show global (targetUser: null) OR those targeted at this specific user
+    // If not admin, only show global (targetUsers is empty) OR those targeted at this specific user
     if (req.user.role !== 'admin') {
       filter.$or = [
-        { targetUser: null },
-        { targetUser: req.user._id }
+        { targetUsers: { $size: 0 } },
+        { targetUsers: { $exists: false } },
+        { targetUsers: req.user._id }
       ];
     } else {
       // Admin sees everything
@@ -22,9 +23,21 @@ const getAnnouncements = async (req, res, next) => {
 
 const createAnnouncement = async (req, res, next) => {
   try {
-    const { title, content, priority } = req.body;
+    const { title, content, priority, targetEmails } = req.body;
+    
+    // Parse targetEmails string from frontend and convert to user IDs
+    let targetUsers = [];
+    if (targetEmails && typeof targetEmails === 'string') {
+      const emailList = targetEmails.split(',').map(e => e.trim().toLowerCase()).filter(e => e);
+      if (emailList.length > 0) {
+        const User = require('../models/User');
+        const users = await User.find({ email: { $in: emailList } }).select('_id');
+        targetUsers = users.map(u => u._id);
+      }
+    }
+
     const announcement = await Announcement.create({
-      title, content, priority, createdBy: req.user._id
+      title, content, priority, targetUsers, createdBy: req.user._id
     });
     res.status(201).json({ success: true, data: announcement });
   } catch (error) { next(error); }

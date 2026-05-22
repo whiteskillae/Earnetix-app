@@ -109,7 +109,11 @@ const AssignmentManagement = () => {
                           (user.uid && user.uid.toLowerCase().includes(term));
       
       const matchesSkills = !hasSelectedSkills || 
-                            selectedSkills.some(skill => user.skills?.includes(skill));
+                            selectedSkills.some(selected => 
+                              user.skills?.some(userSkill => 
+                                userSkill.toLowerCase() === selected.toLowerCase()
+                              )
+                            );
       
       return matchesText && matchesSkills;
     });

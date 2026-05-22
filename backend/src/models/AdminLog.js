@@ -6,6 +6,11 @@ const adminLogSchema = new mongoose.Schema({
     ref: 'User',
     required: false, // Made optional for automated system logs
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false, // For tracking general user actions
+  },
   action: {
     type: String,
     enum: [
@@ -15,7 +20,8 @@ const adminLogSchema = new mongoose.Schema({
       'kyc_verify', 'kyc_reject', 'kyc_block',
       'withdrawal_complete', 'withdrawal_reject', 'withdrawal_block_user',
       'delete_user',
-      'system_error'
+      'system_error',
+      'user_login', 'user_register', 'task_submitted', 'profile_update'
     ],
     required: true,
   },
@@ -25,7 +31,7 @@ const adminLogSchema = new mongoose.Schema({
   },
   targetType: {
     type: String,
-    enum: ['submission', 'task', 'user', 'assigned_task', 'withdrawal', 'system'],
+    enum: ['submission', 'task', 'user', 'assigned_task', 'withdrawal', 'system', 'auth', 'profile'],
     required: true,
   },
   details: {

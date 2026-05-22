@@ -1,5 +1,6 @@
 const Submission = require('../models/Submission');
 const Task = require('../models/Task');
+const AdminLog = require('../models/AdminLog');
 const { validateFile, uploadToCloudinary, deleteFromCloudinary } = require('../services/uploadService');
 const { hashFileBuffer, hashText } = require('../utils/hashFile');
 const { checkDailyLimit } = require('../services/taskService');
@@ -94,7 +95,17 @@ const submitProof = async (req, res, next) => {
       fileHash 
     });
 
-    res.status(201).json({ success: true, message: 'Proof submitted', data: submission });
+    // Create System Log
+    await AdminLog.create({
+      userId,
+      action: 'task_submitted',
+      targetType: 'submission',
+      targetId: submission._id,
+      details: `User submitted proof for task: ${task.title}`,
+      ip: req.ip
+    }).catch(err => console.error('Failed to log submission:', err));
+
+    res.status(201).json({ success: true, message: 'Proof submitted successfully', data: submission });
   } catch (error) { next(error); }
 };
 

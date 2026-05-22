@@ -8,7 +8,8 @@ const getAnalytics = async (req, res, next) => {
     const dateStringLimit = thirtyDaysAgo.toISOString().split('T')[0];
 
     const dailyStats = await Analytics.find({ dateString: { $gte: dateStringLimit } })
-      .sort({ dateString: 1 });
+      .sort({ dateString: 1 })
+      .populate('activeUsers', 'name email _id');
 
     // Aggregate totals
     let totalApiHits = 0;

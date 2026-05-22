@@ -73,6 +73,9 @@ const AnalyticsDashboard = () => {
     return null;
   };
 
+  const latestStats = data.timeSeries[data.timeSeries.length - 1] || {};
+  const activeUsersToday = latestStats.activeUsers || [];
+
   return (
     <div className="admin-content-new fade-in">
       <div style={{ marginBottom: '40px' }}>
@@ -174,6 +177,32 @@ const AnalyticsDashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
+      </div>
+
+      {/* Active Users Today */}
+      <div className="glass-panel" style={{ marginTop: '40px', padding: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '30px' }}>
+          <Users size={24} color="#10b981" />
+          <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Active Users Today ({activeUsersToday.length})</h3>
+        </div>
+        
+        {activeUsersToday.length === 0 ? (
+          <p style={{ color: 'var(--gray-500)', fontStyle: 'italic' }}>No active users tracked today yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+            {activeUsersToday.map(user => (
+              <div key={user._id} style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--blue-gradient)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {user.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem' }}>{user.name}</div>
+                  <div style={{ color: 'var(--gray-400)', fontSize: '0.75rem' }}>{user.email}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

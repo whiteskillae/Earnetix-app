@@ -24,6 +24,10 @@ const ACTION_LABELS = {
   withdrawal_block_user: { label: 'Withdrawal Block', color: '#ef4444' },
   delete_user: { label: 'User Deleted', color: '#ef4444' },
   system_error: { label: 'System Fault', color: '#f43f5e' },
+  user_login: { label: 'User Login', color: '#3b82f6' },
+  user_register: { label: 'User Registered', color: '#10b981' },
+  task_submitted: { label: 'Task Submitted', color: '#8b5cf6' },
+  profile_update: { label: 'Profile Updated', color: '#f59e0b' },
 };
 
 const TARGET_TYPE_LABELS = {
@@ -33,6 +37,8 @@ const TARGET_TYPE_LABELS = {
   assigned_task: 'Mission',
   withdrawal: 'Withdrawal',
   system: 'System / Core',
+  auth: 'Authentication',
+  profile: 'Profile',
 };
 
 const AdminLogs = () => {
@@ -75,10 +81,11 @@ const AdminLogs = () => {
     const header = ['Timestamp', 'Action', 'Admin', 'Target Type', 'Details', 'IP'];
     const rows = filteredLogs.map(l => {
       const details = (l.details || '').replace(/"/g, "'");
+      const actor = l.userId ? l.userId.email : (l.adminId?.email || 'System');
       return [
         new Date(l.createdAt).toISOString(),
         l.action,
-        l.adminId?.email || 'System',
+        actor,
         l.targetType,
         `"${details}"`,
         l.ip || '',
@@ -186,7 +193,7 @@ const AdminLogs = () => {
                   <th>Timestamp</th>
                   <th>Action</th>
                   <th>Type</th>
-                  <th>Admin</th>
+                  <th>Actor (Admin/User)</th>
                   <th>Details</th>
                   <th>IP</th>
                 </tr>
@@ -207,8 +214,17 @@ const AdminLogs = () => {
                     </td>
                     <td>
                       <div style={{ fontSize: '0.82rem' }}>
-                        <div style={{ fontWeight: 700, color: '#e2e8f0' }}>{log.adminId?.name || 'System'}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{log.adminId?.email}</div>
+                        {log.userId ? (
+                          <>
+                            <div style={{ fontWeight: 700, color: '#3b82f6' }}>{log.userId.name} (User)</div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{log.userId.email}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontWeight: 700, color: '#10b981' }}>{log.adminId?.name || 'System'} (Admin)</div>
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{log.adminId?.email}</div>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td style={{ maxWidth: '280px' }}>
