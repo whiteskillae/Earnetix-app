@@ -163,9 +163,7 @@ const AssignmentManagement = () => {
     });
 
     try {
-      const res = await request('post', '/assigned-tasks', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await request('post', '/assigned-tasks', formData);
       
       if (res.success) {
         toast.success('Missions Broadcasted Successfully');

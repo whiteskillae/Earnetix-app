@@ -4,27 +4,29 @@ const storage = multer.memoryStorage();
 
 // ─── SUBMISSION UPLOADS (User Evidence) ────────────────
 // Images: 15MB limit, other files: 50MB (server-side practical limit for buffered uploads)
-const submissionUpload = multer({
+const uploadSubmissionFiles = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB hard limit per file
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split('.').pop().toLowerCase();
-    const BLOCKED = [
-      'exe', 'bat', 'cmd', 'sh', 'bash', 'ps1', 'msi', 'com', 'scr', 'pif',
-      'vbs', 'vbe', 'wsf', 'wsh', 'php', 'py', 'rb', 'pl', 'cgi',
-      'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
-      'apk', 'ipa', 'dll', 'sys', 'jar', 'class',
-      'htaccess', 'htpasswd',
-    ];
-    if (BLOCKED.includes(ext)) {
-      return cb(new Error(`File type .${ext} is not allowed for security reasons`), false);
+    const ALLOWED = ['png', 'jpg', 'jpeg', 'webp', 'pdf'];
+    if (!ALLOWED.includes(ext)) {
+      return cb(new Error(`File type .${ext} is not allowed. Please upload PNG, JPG, WEBP, or PDF.`), false);
     }
     cb(null, true);
   },
-}).fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'file', maxCount: 1 }
-]);
+}).array('files', 5);
+
+const submissionUpload = (req, res, next) => {
+  uploadSubmissionFiles(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    next();
+  });
+};
 
 // ─── TASK ATTACHMENT UPLOADS (Admin) ───────────────────
 const taskAttachmentUpload = multer({

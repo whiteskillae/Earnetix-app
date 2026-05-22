@@ -86,9 +86,7 @@ const MissionsPage = () => {
         formData.append('files', file);
       });
 
-      const res = await request('post', `/assigned-tasks/${selected._id}/submit`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await request('post', `/assigned-tasks/${selected._id}/submit`, formData);
 
       if (res.success) {
         toast.success('Evidence logged for clearance');

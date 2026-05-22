@@ -268,14 +268,10 @@ const AdminPage = () => {
 
     try {
       if (editingTask) {
-        await request('put', `/tasks/${editingTask._id}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await request('put', `/tasks/${editingTask._id}`, formData);
         toast.success('Task updated');
       } else {
-        await request('post', '/tasks', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await request('post', '/tasks', formData);
         toast.success('Task created');
       }
       setShowTaskModal(false);
