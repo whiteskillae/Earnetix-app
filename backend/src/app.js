@@ -56,8 +56,29 @@ const allowedOrigins = [
   'https://earnetix-app.onrender.com',
   'https://earnitix-app.vercel.app',
   'https://earnitix-app-93ba.vercel.app',
-  'https://earnitix-app.onrender.com'
+  'https://earnitix-app.onrender.com',
+  'https://www.earnetixhub.com',
+  'https://earnetixhub.com'
 ].filter(Boolean); // remove empty strings
+
+// Manual headers for robust CORS (especially for preflight OPTIONS)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || /^https:\/\/(earnitix|earnetix)-app.*\.vercel\.app$/.test(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  } else {
+    // Fallback if needed, though cors() will also handle it
+    res.header("Access-Control-Allow-Origin", "https://www.earnetixhub.com");
+  }
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(cors({
   origin: (origin, callback) => {
