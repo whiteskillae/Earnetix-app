@@ -23,7 +23,7 @@ const getAnnouncements = async (req, res, next) => {
 
 const createAnnouncement = async (req, res, next) => {
   try {
-    const { title, content, priority, targetEmails } = req.body;
+    const { title, content, priority, targetEmails, targetCountry, targetSkill } = req.body;
     
     // Parse targetEmails string from frontend and convert to user IDs
     let targetUsers = [];
@@ -34,6 +34,20 @@ const createAnnouncement = async (req, res, next) => {
         const users = await User.find({ email: { $in: emailList } }).select('_id');
         targetUsers = users.map(u => u._id);
       }
+    }
+
+    // Filter by Country and/or Skill if provided
+    if (targetCountry || targetSkill) {
+      const User = require('../models/User');
+      let query = { role: 'user' };
+      if (targetCountry) query.country = targetCountry;
+      if (targetSkill) query.skills = targetSkill;
+      
+      const filteredUsers = await User.find(query).select('_id');
+      const filteredUserIds = filteredUsers.map(u => u._id);
+      
+      // Merge with existing targetUsers and make unique
+      targetUsers = [...new Set([...targetUsers.map(id => id.toString()), ...filteredUserIds.map(id => id.toString())])];
     }
 
     const announcement = await Announcement.create({

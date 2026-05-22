@@ -50,7 +50,7 @@ const AdminPage = () => {
   const [previewSub, setPreviewSub] = useState(null);
 
   const [showAnnModal, setShowAnnModal] = useState(false);
-  const [annForm, setAnnForm] = useState({ title: '', content: '', priority: 'medium', targetEmails: '' });
+  const [annForm, setAnnForm] = useState({ title: '', content: '', priority: 'medium', targetEmails: '', targetCountry: '', targetSkill: '' });
 
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -502,19 +502,39 @@ const AdminPage = () => {
           e.preventDefault();
           await request('post', '/announcements', annForm);
           setShowAnnModal(false);
-          setAnnForm({ title: '', content: '', priority: 'medium', targetEmails: '' });
+          setAnnForm({ title: '', content: '', priority: 'medium', targetEmails: '', targetCountry: '', targetSkill: '' });
           fetchAnnouncements();
         }}>
           <div className="form-group"><label>Announcement Title</label><input className="form-input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} required /></div>
           <div className="form-group"><label>Announcement Content</label><textarea className="form-input" rows="4" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} required /></div>
           <div className="form-group">
-            <label>Target Users (Optional)</label>
+            <label>Target Specific Users by Email (Optional)</label>
             <input 
               className="form-input" 
               placeholder="Leave blank for global broadcast, or enter comma-separated emails..." 
               value={annForm.targetEmails} 
               onChange={(e) => setAnnForm({ ...annForm, targetEmails: e.target.value })} 
             />
+          </div>
+          <div className="grid-2" style={{ gap: '16px', marginBottom: '16px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Target by Country (Optional)</label>
+              <input 
+                className="form-input" 
+                placeholder="e.g. India, USA" 
+                value={annForm.targetCountry} 
+                onChange={(e) => setAnnForm({ ...annForm, targetCountry: e.target.value })} 
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label>Target by Skill (Optional)</label>
+              <input 
+                className="form-input" 
+                placeholder="e.g. Web Development" 
+                value={annForm.targetSkill} 
+                onChange={(e) => setAnnForm({ ...annForm, targetSkill: e.target.value })} 
+              />
+            </div>
           </div>
           <div className="form-group">
             <label>Priority Tier</label>
@@ -580,6 +600,32 @@ const AdminPage = () => {
                     <span style={{ opacity: 0.5 }}>{new Date(h.timestamp).toLocaleString()}</span>
                  </div>
                ))}
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
+               <h5 style={{ color: '#f59e0b', marginBottom: '12px' }}>KYC Information</h5>
+               <div className="grid-2">
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Status</label><p style={{ color: selectedUser.kycStatus === 'verified' ? '#10b981' : '#f59e0b', fontWeight: 'bold', textTransform: 'capitalize' }}>{selectedUser.kycStatus || 'None'}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Document Type</label><p style={{ textTransform: 'capitalize' }}>{selectedUser.kycDocumentType?.replace('_', ' ') || '—'}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Document Number</label><p>{selectedUser.kycDocumentNumber || '—'}</p></div>
+                 <div>
+                   <label style={{ fontSize: '0.7rem', color: '#64748b' }}>Document File</label>
+                   {selectedUser.kycDocumentUrl ? (
+                     <p><a href={selectedUser.kycDocumentUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>View Uploaded Document</a></p>
+                   ) : <p>—</p>}
+                 </div>
+               </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', marginBottom: '16px' }}>
+               <h5 style={{ color: '#8b5cf6', marginBottom: '12px' }}>Bank Details</h5>
+               <div className="grid-2">
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Account Name</label><p>{selectedUser.bankDetails?.accountName || '—'}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Account Number</label><p>{selectedUser.bankDetails?.accountNumber || '—'}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>IFSC Code</label><p>{selectedUser.bankDetails?.ifscCode || '—'}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>Bank Name</label><p>{selectedUser.bankDetails?.bankName || '—'}</p></div>
+                 <div><label style={{ fontSize: '0.7rem', color: '#64748b' }}>UPI ID</label><p>{selectedUser.bankDetails?.upiId || '—'}</p></div>
+               </div>
             </div>
 
             <div className="admin-actions-card">

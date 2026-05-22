@@ -103,16 +103,50 @@ const WithdrawalPage = () => {
     );
   }
 
-  if (!isKycVerified) {
+  const isProfileComplete = user?.isProfileComplete;
+  
+  if (!isKycVerified || !isProfileComplete) {
     return (
-      <div className="withdrawal-page fade-in" style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <div style={{ width: '80px', height: '80px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-          <Shield size={40} color="#f59e0b" />
+      <div className="withdrawal-page fade-in" style={{ padding: '40px 20px', maxWidth: '600px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ width: '80px', height: '80px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+            <Shield size={40} color="#f59e0b" />
+          </div>
+          <h2 style={{ marginBottom: '12px' }}>Action Required</h2>
+          <p style={{ color: '#94a3b8' }}>
+            To ensure the security of your funds, please complete the following steps before you can request a withdrawal.
+          </p>
         </div>
-        <h2 style={{ marginBottom: '12px' }}>KYC Required</h2>
-        <p style={{ color: '#94a3b8', maxWidth: '400px', margin: '0 auto' }}>
-          Complete your identity verification before requesting withdrawals. This helps us secure your account and payments.
-        </p>
+
+        <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Profile Completion Check */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {isProfileComplete ? <CheckCircle size={24} color="#10b981" /> : <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid #64748b' }}></div>}
+              <div>
+                <h4 style={{ margin: 0, color: isProfileComplete ? '#fff' : '#e2e8f0' }}>Complete User Profile</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>Fill in your basic information and skills.</p>
+              </div>
+            </div>
+            {!isProfileComplete && (
+              <a href="/profile" className="btn btn-primary btn-sm">Go to Profile</a>
+            )}
+          </div>
+
+          {/* KYC Verification Check */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {isKycVerified ? <CheckCircle size={24} color="#10b981" /> : <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid #64748b' }}></div>}
+              <div>
+                <h4 style={{ margin: 0, color: isKycVerified ? '#fff' : '#e2e8f0' }}>Identity Verification (KYC)</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>Upload an official document to verify your identity.</p>
+              </div>
+            </div>
+            {!isKycVerified && (
+              <a href="/profile" className="btn btn-primary btn-sm">Start KYC</a>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
