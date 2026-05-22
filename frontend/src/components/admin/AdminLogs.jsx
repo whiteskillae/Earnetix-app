@@ -71,14 +71,17 @@ const AdminLogs = () => {
 
   const exportCsv = () => {
     const header = ['Timestamp', 'Action', 'Admin', 'Target Type', 'Details', 'IP'];
-    const rows = filteredLogs.map(l => [
-      new Date(l.createdAt).toISOString(),
-      l.action,
-      l.adminId?.email || 'System',
-      l.targetType,
-      `"${(l.details || '').replace(/"/g, "'')}"`,
-      l.ip || '',
-    ]);
+    const rows = filteredLogs.map(l => {
+      const details = (l.details || '').replace(/"/g, "'");
+      return [
+        new Date(l.createdAt).toISOString(),
+        l.action,
+        l.adminId?.email || 'System',
+        l.targetType,
+        `"${details}"`,
+        l.ip || '',
+      ];
+    });
     const csv = [header, ...rows].map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
