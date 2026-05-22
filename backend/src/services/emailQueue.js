@@ -24,7 +24,7 @@ let queueLength = 0;
  */
 const buildOtpHtml = (otpCode) => `
   <div style="font-family: 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #0A0A0A; border-radius: 16px;">
-    <h1 style="color: #0066FF; font-size: 28px; margin-bottom: 8px;">EARNITIX</h1>
+    <h1 style="color: #0066FF; font-size: 28px; margin-bottom: 8px;">EARNETIX</h1>
     <p style="color: #888; font-size: 14px; margin-bottom: 24px;">Earn Through Content. Grow with Skills.</p>
     <p style="color: #fff; font-size: 16px;">Your verification code is:</p>
     <div style="background: linear-gradient(135deg, #0066FF, #00D166); padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
@@ -47,11 +47,11 @@ const sendViaBrevo = async (email, otpCode) => {
 
   await brevoClient.post('/smtp/email', {
     sender: {
-      email: env.SMTP_USER || 'noreply@earnitix.com',
-      name: 'EARNITIX',
+      email: env.SMTP_USER || 'noreply@earnetix.com',
+      name: 'EARNETIX',
     },
     to: [{ email }],
-    subject: 'EARNITIX — Your Verification Code',
+    subject: 'EARNETIX — Your Verification Code',
     htmlContent: buildOtpHtml(otpCode),
   }, {
     headers: { 'api-key': env.BREVO_API_KEY },

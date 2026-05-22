@@ -174,10 +174,10 @@ const RegisterPage = () => {
                 justifyContent: 'center', margin: '0 auto 20px', boxShadow: 'none',
               }}
             >
-              <img src={logo} alt="Earnitix Logo" style={{ width: '48px', height: '48px' }} />
+              <img src={logo} alt="Earnetix Logo" style={{ width: '48px', height: '48px' }} />
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
-              {step === 'register' ? 'JOIN EARNITIX' : 'VERIFICATION'}
+              {step === 'register' ? 'JOIN EARNETIX' : 'VERIFICATION'}
             </h1>
             <p className="subtitle">
               {step === 'register'

@@ -23,6 +23,7 @@ const ACTION_LABELS = {
   withdrawal_reject: { label: 'Withdrawal Rejected', color: '#ef4444' },
   withdrawal_block_user: { label: 'Withdrawal Block', color: '#ef4444' },
   delete_user: { label: 'User Deleted', color: '#ef4444' },
+  system_error: { label: 'System Fault', color: '#f43f5e' },
 };
 
 const TARGET_TYPE_LABELS = {
@@ -31,6 +32,7 @@ const TARGET_TYPE_LABELS = {
   user: 'User',
   assigned_task: 'Mission',
   withdrawal: 'Withdrawal',
+  system: 'System / Core',
 };
 
 const AdminLogs = () => {

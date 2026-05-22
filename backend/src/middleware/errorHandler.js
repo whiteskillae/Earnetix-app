@@ -1,5 +1,22 @@
 const logger = require('../utils/logger');
 const env = require('../config/env');
+const AdminLog = require('../models/AdminLog');
+
+/**
+ * Helper to log critical system errors to the Admin Logs database.
+ */
+const logSystemError = (message, req) => {
+  try {
+    AdminLog.create({
+      action: 'system_error',
+      targetType: 'system',
+      details: `ERROR: ${message} | ROUTE: ${req.method} ${req.originalUrl}`,
+      ip: req.ip || req.headers['x-forwarded-for'] || 'System',
+    }).catch(err => logger.error(`Failed to save system error log: ${err.message}`));
+  } catch (err) {
+    logger.error(`Error in logSystemError: ${err.message}`);
+  }
+};
 
 /**
  * Global error handler middleware.
@@ -48,6 +65,11 @@ const errorHandler = (err, req, res, next) => {
 
   // Default server error
   const statusCode = err.statusCode || (err.name === 'Error' ? 400 : 500); 
+  
+  if (statusCode === 500) {
+    logSystemError(err.message, req);
+  }
+
   res.status(statusCode).json({
     success: false,
     message: (env.NODE_ENV === 'production' && statusCode === 500) ? 'Internal server error' : err.message,

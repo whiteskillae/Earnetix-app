@@ -4,7 +4,7 @@ const adminLogSchema = new mongoose.Schema({
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: false, // Made optional for automated system logs
   },
   action: {
     type: String,
@@ -14,17 +14,18 @@ const adminLogSchema = new mongoose.Schema({
       'approve_assigned', 'reject_assigned',
       'kyc_verify', 'kyc_reject', 'kyc_block',
       'withdrawal_complete', 'withdrawal_reject', 'withdrawal_block_user',
-      'delete_user'
+      'delete_user',
+      'system_error'
     ],
     required: true,
   },
   targetId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true,
+    required: false, // Optional for system errors
   },
   targetType: {
     type: String,
-    enum: ['submission', 'task', 'user', 'assigned_task', 'withdrawal'],
+    enum: ['submission', 'task', 'user', 'assigned_task', 'withdrawal', 'system'],
     required: true,
   },
   details: {
