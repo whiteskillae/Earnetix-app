@@ -6,6 +6,7 @@ const {
   approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk,
   getBlockedUsers, unblockUser, deleteUser, getAdminLogs
 } = require('../controllers/adminController');
+const { getAnalytics } = require('../controllers/adminAnalyticsController');
 const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');
 const validate = require('../middleware/validate');
@@ -14,6 +15,7 @@ const { rejectSubmissionSchema } = require('../validators/submissionSchema');
 router.use(auth, adminGuard); // All admin routes require auth + admin role
 
 router.get('/dashboard', getDashboard);
+router.get('/analytics', getAnalytics);
 router.get('/users', getUsers);
 router.get('/submissions', getSubmissions);
 router.get('/tasks', getTasksWithStats);

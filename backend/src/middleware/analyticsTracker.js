@@ -1,0 +1,74 @@
+const Analytics = require('../models/Analytics');
+const logger = require('../utils/logger');
+
+// Memory buffer for stats
+let statsBuffer = {
+  apiHits: 0,
+  pageViews: 0,
+  uniqueIps: new Set()
+};
+
+// Helper to get YYYY-MM-DD
+const getDateString = () => new Date().toISOString().split('T')[0];
+
+/**
+ * Flush memory buffer to MongoDB
+ */
+const flushAnalytics = async () => {
+  if (statsBuffer.apiHits === 0 && statsBuffer.pageViews === 0 && statsBuffer.uniqueIps.size === 0) return;
+
+  const dateString = getDateString();
+  const currentHits = statsBuffer.apiHits;
+  const currentViews = statsBuffer.pageViews;
+  const currentUniques = statsBuffer.uniqueIps.size;
+
+  // Reset buffer immediately
+  statsBuffer.apiHits = 0;
+  statsBuffer.pageViews = 0;
+  statsBuffer.uniqueIps.clear();
+
+  try {
+    await Analytics.findOneAndUpdate(
+      { dateString },
+      { 
+        $inc: { 
+          apiHits: currentHits, 
+          pageViews: currentViews,
+          uniqueVisitors: currentUniques
+        } 
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (error) {
+    logger.error(`Analytics flush failed: ${error.message}`);
+    // Restore buffer on failure to avoid data loss (approximate)
+    statsBuffer.apiHits += currentHits;
+    statsBuffer.pageViews += currentViews;
+  }
+};
+
+// Flush every 30 seconds
+setInterval(flushAnalytics, 30000);
+
+/**
+ * Analytics tracking middleware
+ */
+const analyticsTracker = (req, res, next) => {
+  // Always count as an API hit
+  statsBuffer.apiHits += 1;
+
+  // Simple heuristic for "page views" (GET requests to non-static assets, or specific endpoints)
+  if (req.method === 'GET' && !req.path.includes('.')) {
+    statsBuffer.pageViews += 1;
+  }
+
+  // Track unique IPs for the current interval
+  const ip = req.ip || req.headers['x-forwarded-for'];
+  if (ip) {
+    statsBuffer.uniqueIps.add(ip);
+  }
+
+  next();
+};
+
+module.exports = analyticsTracker;

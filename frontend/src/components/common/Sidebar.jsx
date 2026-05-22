@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic, BarChart2 } from 'lucide-react';
 
 import logo from '../../assets/logo.svg';
 
@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   if (isAdmin) {
     navItems = [
       { to: '/dashboard?tab=dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/dashboard?tab=analytics', label: 'Analytics', icon: BarChart2 },
       { to: '/dashboard?tab=kyc', label: 'KYC Review', icon: BadgeCheck },
       { to: '/dashboard?tab=assignments', label: 'Direct Tasks', icon: Award },
       { to: '/dashboard?tab=tasks', label: 'Tasks', icon: ListTodo },

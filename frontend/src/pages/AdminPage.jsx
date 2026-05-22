@@ -19,6 +19,7 @@ import WithdrawalManagement from '../components/admin/WithdrawalManagement';
 import GalleryManagement from '../components/admin/GalleryManagement';
 import BlockManagement from '../components/admin/BlockManagement';
 import AdminLogs from '../components/admin/AdminLogs';
+import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
@@ -366,6 +367,7 @@ const AdminPage = () => {
     <>
       <AdminLayout>
       {tab === 'dashboard' && <AdminDashboard data={dashboard} />}
+      {tab === 'analytics' && <AnalyticsDashboard />}
       
       {tab === 'users' && (
         <UserManagement 

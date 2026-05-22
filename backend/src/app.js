@@ -113,6 +113,10 @@ app.get('/api/health', (req, res) => {
 // ─── RATE LIMITING ─────────────────────────────────────
 app.use('/api', apiLimiter);
 
+// ─── ANALYTICS TRACKING ────────────────────────────────
+const analyticsTracker = require('./middleware/analyticsTracker');
+app.use('/api', analyticsTracker);
+
 // ─── ROUTES ────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
