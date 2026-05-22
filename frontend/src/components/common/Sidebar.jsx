@@ -1,5 +1,7 @@
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useApi } from '../../hooks/useApi';
 import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic } from 'lucide-react';
 
 import logo from '../../assets/logo.svg';
@@ -35,10 +37,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   }
 
   // --- Badge Logic ---
-  const { request } = require('../../hooks/useApi')();
-  const [badges, setBadges] = require('react').useState({ tasks: false, missions: false });
+  const { request } = useApi();
+  const [badges, setBadges] = useState({ tasks: false, missions: false });
 
-  require('react').useEffect(() => {
+  useEffect(() => {
     if (!user || isAdmin) return;
 
     const checkNewItems = async () => {
