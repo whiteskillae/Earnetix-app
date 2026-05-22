@@ -2,7 +2,7 @@ const router = require('express').Router();
 const multer = require('multer');
 const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');
-const { submitKyc, getKycStatus, getPendingKyc, verifyKyc, rejectKyc, blockUserKyc } = require('../controllers/kycController');
+const { submitKyc, getKycStatus, getPendingKyc, verifyKyc, rejectKyc, blockUserKyc, getFullKycUser } = require('../controllers/kycController');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -15,5 +15,6 @@ router.get('/admin/list', auth, adminGuard, getPendingKyc);
 router.put('/admin/:id/verify', auth, adminGuard, verifyKyc);
 router.put('/admin/:id/reject', auth, adminGuard, rejectKyc);
 router.put('/admin/:id/block', auth, adminGuard, blockUserKyc);
+router.get('/admin/:id/full', auth, adminGuard, getFullKycUser);
 
 module.exports = router;

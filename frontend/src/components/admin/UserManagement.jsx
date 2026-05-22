@@ -139,9 +139,10 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
               </th>
               <th>User</th>
               <th>Points</th>
-              <th>Status</th>
+              <th>Account Status</th>
+              <th>KYC</th>
               <th>IP Info</th>
-              <th>Last Login</th>
+              <th>Joined</th>
               <th className="text-right">Actions</th>
             </tr>
           </thead>
@@ -167,15 +168,22 @@ const UserManagement = ({ users, onToggleBlock, onBlockTemp, onAdjustPoints, onV
                 </td>
                 <td>
                   {u.isBlocked ? (
-                    <span className="status-pill rejected" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>Blocked</span>
+                    <span className="status-pill rejected" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>Blocked</span>
                   ) : isTempBlocked(u) ? (
                     <div className="block-badge-temp">
                       <Clock size={12} style={{ marginRight: '6px' }} />
                       Temp Blocked
                     </div>
                   ) : (
-                    <span className="status-pill approved" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>Active</span>
+                    <span className="status-pill approved" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>Active</span>
                   )}
+                </td>
+                <td>
+                  {(() => {
+                    const kycMap = { verified: { c: '#10b981', l: 'Verified' }, pending: { c: '#f59e0b', l: 'Pending' }, rejected: { c: '#ef4444', l: 'Rejected' }, none: { c: '#64748b', l: 'None' } };
+                    const k = kycMap[u.kycStatus] || kycMap.none;
+                    return <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '8px', background: `${k.c}15`, color: k.c }}>{k.l}</span>;
+                  })()}
                 </td>
                 <td>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>

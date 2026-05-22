@@ -18,6 +18,42 @@ const jwt = require('jsonwebtoken');
 // ─── CACHE KEYS ───────────────────────────────────────
 const pendingKey = (email) => `pending_reg:${email.toLowerCase()}`;
 const otpRateKey = (email) => `otp_rate:${email.toLowerCase()}`;
+const loginAttemptKey = (email) => `login_attempts:${email.toLowerCase()}`;
+
+// Max 15 attempts per minute; block for 30 minutes after that
+const MAX_LOGIN_ATTEMPTS = 15;
+const LOGIN_WINDOW_MS = 60 * 1000;      // 1 minute
+const LOGIN_BLOCK_MS = 30 * 60 * 1000;  // 30 minutes
+
+const checkLoginAttempts = (email) => {
+  const key = loginAttemptKey(email);
+  const data = cacheService.get(key) || { count: 0, firstAt: Date.now(), blockedUntil: 0 };
+
+  if (data.blockedUntil && Date.now() < data.blockedUntil) {
+    const minsLeft = Math.ceil((data.blockedUntil - Date.now()) / 60000);
+    throw Object.assign(new Error(`Too many login attempts. Try again after ${minsLeft} minute${minsLeft !== 1 ? 's' : ''}.`), { statusCode: 429 });
+  }
+
+  // Reset window if expired
+  if (Date.now() - data.firstAt > LOGIN_WINDOW_MS) {
+    data.count = 0;
+    data.firstAt = Date.now();
+  }
+
+  data.count += 1;
+
+  if (data.count >= MAX_LOGIN_ATTEMPTS) {
+    data.blockedUntil = Date.now() + LOGIN_BLOCK_MS;
+    cacheService.set(key, data, 30 * 60); // 30 min TTL
+    throw Object.assign(new Error('Too many login attempts. Try again after 30 minutes.'), { statusCode: 429 });
+  }
+
+  cacheService.set(key, data, 30 * 60);
+};
+
+const clearLoginAttempts = (email) => {
+  cacheService.del(loginAttemptKey(email));
+};
 
 // ─── HELPER: OTP Rate Limit (cache-based for pending registrations) ───────────
 /**
@@ -329,11 +365,21 @@ const login = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Account has been blocked' });
     }
 
+    // Check per-account login attempt limits (brute force protection)
+    try {
+      checkLoginAttempts(email);
+    } catch (err) {
+      return res.status(err.statusCode || 429).json({ success: false, message: err.message });
+    }
+
     // Check password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
+
+    // Successful login — clear the attempt counter
+    clearLoginAttempts(email);
 
     // Track login
     const ip = req.ip || req.connection.remoteAddress;

@@ -58,6 +58,26 @@ const MissionsPage = () => {
 
   const handleSubmitMission = async (e) => {
     e.preventDefault();
+    if (!selected) return;
+
+    // ── Frontend validation before API call ──────────────
+    const it = selected.submissionConfig?.inputType || 'file';
+    const hasText = submission.trim().length > 0;
+    const hasFiles = submissionFiles.length > 0;
+
+    if ((it === 'text') && !hasText) {
+      return toast.error('Please write your operational report before submitting.');
+    }
+    if ((it === 'file' || it === 'image' || it === 'multiple_files') && !hasFiles) {
+      return toast.error('Please upload at least one evidence file before submitting.');
+    }
+    if ((it === 'text_file' || it === 'text_image') && (!hasText || !hasFiles)) {
+      return toast.error('Both a report and evidence file are required for this mission.');
+    }
+    if ((it === 'link' || it === 'text_link') && !hasText) {
+      return toast.error('Please provide the required link/URL before submitting.');
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -83,6 +103,7 @@ const MissionsPage = () => {
       setSubmitting(false);
     }
   };
+
 
   const getStatusInfo = (status) => {
     switch (status) {

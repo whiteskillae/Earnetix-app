@@ -4,7 +4,7 @@ const {
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
   getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
   approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk,
-  getBlockedUsers, unblockUser, deleteUser
+  getBlockedUsers, unblockUser, deleteUser, getAdminLogs
 } = require('../controllers/adminController');
 const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');
@@ -37,5 +37,8 @@ router.post('/users/:id/unblock', unblockUser);
 
 // Delete User (Hard Delete)
 router.delete('/users/:id', deleteUser);
+
+// Admin Activity Logs
+router.get('/logs', getAdminLogs);
 
 module.exports = router;

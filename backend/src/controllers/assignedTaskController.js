@@ -167,12 +167,22 @@ const submitAssignedTask = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Both report and evidence files are required' });
     }
 
+    // Safely parse customData — never throw on bad JSON
+    let parsedCustomData = null;
+    if (customData) {
+      try {
+        parsedCustomData = typeof customData === 'string' ? JSON.parse(customData) : customData;
+      } catch {
+        parsedCustomData = null; // ignore malformed custom data
+      }
+    }
+
     task.status = 'under_review';
     task.submissions.push({
       userId: req.user._id,
       content: submissionContent,
       attachments: submissionAttachments,
-      customData: typeof customData === 'string' ? JSON.parse(customData) : customData,
+      customData: parsedCustomData,
       submittedAt: new Date()
     });
 

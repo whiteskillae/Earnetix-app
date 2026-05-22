@@ -24,11 +24,29 @@ const maskEmail = (email) => {
 const RegisterPage = () => {
   const [step, setStep] = useState('register'); // register | otp
   const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [otp, setOtp] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [otp, setOtp] = useState('');
   const [cooldown, setCooldown] = useState(0);
-  const [registerError, setRegisterError] = useState(null); // for retry UI
+  const [registerError, setRegisterError] = useState(null);
   const [otpDailyCount, setOtpDailyCount] = useState(0);
+
+  // Password strength helper
+  const getPasswordStrength = (pw) => {
+    if (!pw || pw.length < 6) return { level: 0, label: '', color: '' };
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (score <= 2) return { level: 1, label: 'Weak', color: '#ef4444' };
+    if (score <= 3) return { level: 2, label: 'Medium', color: '#f59e0b' };
+    return { level: 3, label: 'Strong', color: '#10b981' };
+  };
+  const pwStrength = getPasswordStrength(form.password);
+  const passwordsMatch = !confirmPassword || form.password === confirmPassword;
 
   const otpInputRef = useRef(null);
   const { loading, request } = useApi();
@@ -98,7 +116,7 @@ const RegisterPage = () => {
     e?.preventDefault();
     try {
       await request('post', '/auth/verify-otp', { email: form.email, otp });
-      toast.success('Identity Verified! You can now log in.');
+      toast.success('OTP verified successfully. Please login.');
       navigate('/login');
     } catch (err) {
       // Clear OTP on wrong code so user can retype
@@ -238,22 +256,61 @@ const RegisterPage = () => {
                     />
                     <button
                       type="button"
-                      style={{
-                        position: 'absolute', right: '16px', top: '50%',
-                        transform: 'translateY(-50%)', background: 'none',
-                        border: 'none', color: 'var(--gray-500)', cursor: 'pointer',
-                      }}
+                      style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--gray-500)', cursor: 'pointer' }}
                       onClick={() => setShowPw(!showPw)}
                     >
                       {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+
+                  {/* Password Strength Indicator */}
+                  {form.password.length > 0 && (
+                    <div style={{ marginTop: '8px' }}>
+                      <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                        {[1,2,3].map(level => (
+                          <div key={level} style={{ flex: 1, height: '3px', borderRadius: '2px', background: pwStrength.level >= level ? pwStrength.color : 'rgba(255,255,255,0.1)', transition: '0.3s' }} />
+                        ))}
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: pwStrength.color, fontWeight: 700 }}>{pwStrength.label} password</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm Password */}
+                <div className="form-group">
+                  <label>Confirm Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-500)' }} />
+                    <input
+                      type={showConfirmPw ? 'text' : 'password'}
+                      className="form-input"
+                      style={{ paddingLeft: '48px', paddingRight: '48px', borderColor: confirmPassword ? (passwordsMatch ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)') : undefined }}
+                      placeholder="Re-enter your password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                    <button
+                      type="button"
+                      style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--gray-500)', cursor: 'pointer' }}
+                      onClick={() => setShowConfirmPw(!showConfirmPw)}
+                    >
+                      {showConfirmPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {confirmPassword && !passwordsMatch && (
+                    <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '6px', fontWeight: 600 }}>✗ Passwords do not match</p>
+                  )}
+                  {confirmPassword && passwordsMatch && (
+                    <p style={{ color: '#10b981', fontSize: '0.75rem', marginTop: '6px', fontWeight: 600 }}>✓ Passwords match</p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
                   className="btn btn-primary btn-block btn-lg"
-                  disabled={loading}
+                  disabled={loading || !passwordsMatch || !confirmPassword}
                   style={{ marginTop: '8px' }}
                 >
                   {loading ? (

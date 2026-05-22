@@ -92,7 +92,7 @@ const getPendingKyc = async (req, res, next) => {
   try {
     const status = req.query.status || 'pending';
     const users = await User.find({ kycStatus: status, role: 'user' })
-      .select('name email country mobileNumber countryCode kycStatus kycDocumentUrl kycDocumentType kycSubmittedAt kycRejectionReason createdAt')
+      .select('name email country mobileNumber countryCode kycStatus kycDocumentUrl kycDocumentType kycDocumentNumber kycSubmittedAt kycRejectionReason kycVerifiedAt qualifications skills isProfileComplete accountStatus createdAt')
       .sort({ kycSubmittedAt: -1 })
       .limit(200);
 
@@ -179,4 +179,17 @@ const blockUserKyc = async (req, res, next) => {
   }
 };
 
-module.exports = { submitKyc, getKycStatus, getPendingKyc, verifyKyc, rejectKyc, blockUserKyc };
+// ─── ADMIN: GET FULL USER DETAILS FOR KYC REVIEW ───────────
+const getFullKycUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select(
+      '-passwordHash -refreshToken -otp -loginHistory'
+    );
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { submitKyc, getKycStatus, getPendingKyc, verifyKyc, rejectKyc, blockUserKyc, getFullKycUser };

@@ -6,7 +6,6 @@ import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 import { Bell, Plus, Upload, Eye, Zap, Trash2, Edit } from 'lucide-react';
 
-// New Modular Components
 import AdminLayout from '../components/admin/AdminLayout';
 import AdminDashboard from '../components/admin/AdminDashboard';
 import UserManagement from '../components/admin/UserManagement';
@@ -19,6 +18,7 @@ import KycReview from '../components/admin/KycReview';
 import WithdrawalManagement from '../components/admin/WithdrawalManagement';
 import GalleryManagement from '../components/admin/GalleryManagement';
 import BlockManagement from '../components/admin/BlockManagement';
+import AdminLogs from '../components/admin/AdminLogs';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
@@ -415,6 +415,7 @@ const AdminPage = () => {
       {tab === 'withdrawals' && <WithdrawalManagement />}
       {tab === 'gallery' && <GalleryManagement />}
       {tab === 'blocked' && <BlockManagement />}
+      {tab === 'logs' && <AdminLogs />}
 
       {tab === 'announcements' && (
         <div className="glass-panel">

@@ -553,10 +553,46 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+/**
+ * Get Admin Logs with pagination and filtering
+ */
+const getAdminLogs = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const filter = {};
+    if (req.query.action) filter.action = req.query.action;
+    if (req.query.targetType) filter.targetType = req.query.targetType;
+    if (req.query.from) filter.createdAt = { $gte: new Date(req.query.from) };
+    if (req.query.to) {
+      filter.createdAt = filter.createdAt || {};
+      filter.createdAt.$lte = new Date(req.query.to);
+    }
+
+    const [logs, total] = await Promise.all([
+      AdminLog.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('adminId', 'name email')
+        .lean(),
+      AdminLog.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        logs,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      },
+    });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getDashboard, getUsers, getSubmissions, approveSubmission, rejectSubmission,
   toggleBlockUser, getTasksWithStats, adjustPoints, blockUserTemporary,
   getPendingAssignedTasks, approveAssignedTask, rejectAssignedTask,
   approveSubmissionsBulk, rejectSubmissionsBulk, blockUsersBulk,
-  getBlockedUsers, unblockUser, deleteUser
+  getBlockedUsers, unblockUser, deleteUser, getAdminLogs
 };
