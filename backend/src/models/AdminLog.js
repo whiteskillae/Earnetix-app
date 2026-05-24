@@ -18,7 +18,7 @@ const adminLogSchema = new mongoose.Schema({
       'block', 'unblock', 'block_user', 'unblock_user', 'adjust_points', 'temp_block',
       'approve_assigned', 'reject_assigned',
       'kyc_verify', 'kyc_reject', 'kyc_block',
-      'withdrawal_complete', 'withdrawal_reject', 'withdrawal_block_user',
+      'withdrawal_complete', 'withdrawal_reject', 'withdrawal_block_user', 'withdrawal_delete',
       'delete_user',
       'system_error',
       'user_login', 'user_register', 'task_submitted', 'profile_update'

@@ -34,7 +34,7 @@ import { Link } from 'react-router-dom';
 const ProtectedRoute = ({ children, adminOnly = false, isOnboarding = false }) => {
   const { user, loading, isAdmin, isRefreshing, isProfileComplete } = useAuth();
   if (loading) return <Loader text="Verifying access..." />;
-  
+
   if (!user) {
     if (adminOnly) return <AdminLoginPage />;
     return <Navigate to="/login" replace />;
@@ -69,6 +69,32 @@ const AppLayout = ({ children }) => {
 
   return (
     <div className="app-layout">
+      <div style={{
+        background: 'linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+        color: '#60a5fa',
+        textAlign: 'center',
+        padding: '0 16px',
+        fontWeight: 600,
+        fontSize: '0.75rem',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        zIndex: 99999,
+        position: 'fixed',
+        top: 0, left: 0, right: 0,
+        height: '32px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px'
+      }}>
+        <span style={{ fontSize: '0.9rem', color: '#3b82f6' }}>✨</span>
+        <span style={{ textShadow: '0 0 10px rgba(96, 165, 250, 0.3)' }}>System Update: Earnetix is Now Live!</span>
+        <span style={{ fontSize: '0.9rem', color: '#3b82f6' }}>✨</span>
+      </div>
       <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <main className="app-main">
@@ -77,7 +103,7 @@ const AppLayout = ({ children }) => {
         </div>
       </main>
       <BottomNav />
-      
+
       {/* Floating Report Trigger */}
       <Link to="/reports" className="report-popup-trigger">
         <ShieldAlert size={28} />
@@ -131,22 +157,22 @@ const App = () => (
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <BrowserRouter>
       <AuthProvider>
-      <KeepAlive />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#1A1A1A',
-            color: '#fff',
-            border: '1px solid #2A2A2A',
-            borderRadius: '10px',
-            fontSize: '0.9rem',
-          },
-          success: { iconTheme: { primary: '#00D166', secondary: '#fff' } },
-          error: { iconTheme: { primary: '#FF4D4F', secondary: '#fff' } },
-        }}
-      />
-      <AppRoutes />
+        <KeepAlive />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#1A1A1A',
+              color: '#fff',
+              border: '1px solid #2A2A2A',
+              borderRadius: '10px',
+              fontSize: '0.9rem',
+            },
+            success: { iconTheme: { primary: '#00D166', secondary: '#fff' } },
+            error: { iconTheme: { primary: '#FF4D4F', secondary: '#fff' } },
+          }}
+        />
+        <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
   </GoogleOAuthProvider>

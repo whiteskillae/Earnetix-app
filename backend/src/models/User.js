@@ -168,6 +168,10 @@ const userSchema = new mongoose.Schema({
     bankName: { type: String, default: null },
     upiId: { type: String, default: null },
   },
+  lastBankDetailsUpdated: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true,
 });

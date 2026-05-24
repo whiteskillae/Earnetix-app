@@ -216,8 +216,12 @@ const TasksPage = () => {
             const canResubmit = isRejected && userSub?.submissionCount < 2;
 
             return (
-              <div key={task._id} className="premium-card slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div style={{ flex: 1 }}>
+              <div key={task._id} className="premium-card slide-up" style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
+                {/* SVG Background Effect */}
+                <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', right: '-50px', bottom: '-50px', opacity: 0.02, pointerEvents: 'none', transform: 'rotate(-15deg)' }}>
+                  <circle cx="100" cy="100" r="80" stroke="currentColor" strokeWidth="40"/>
+                </svg>
+                <div style={{ flex: 1, zIndex: 1 }}>
                   <div className="flex-between" style={{ marginBottom: '16px' }}>
                     <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: 'var(--blue)' }}>
                         <Zap size={20} fill="var(--blue)" strokeWidth={0} />

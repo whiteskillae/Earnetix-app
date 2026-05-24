@@ -54,8 +54,11 @@ const AssignmentManagement = () => {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    rewardPoints: 50
+    rewardPoints: 50,
+    deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)
   });
+
+  const [editForm, setEditForm] = useState(null);
 
   const [submissionConfig, setSubmissionConfig] = useState({
     inputType: 'file',
@@ -111,7 +114,7 @@ const AssignmentManagement = () => {
       const matchesSkills = !hasSelectedSkills || 
                             selectedSkills.some(selected => 
                               user.skills?.some(userSkill => 
-                                userSkill.toLowerCase() === selected.toLowerCase()
+                                userSkill.toLowerCase().includes(selected.toLowerCase())
                               )
                             );
       
@@ -142,6 +145,38 @@ const AssignmentManagement = () => {
     );
   };
 
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('WARNING: Are you sure you want to delete this mission permanently?')) return;
+    try {
+      const res = await request('delete', `/assigned-tasks/${taskId}`);
+      if (res.success) {
+        toast.success('Mission deleted successfully');
+        fetchData();
+      }
+    } catch (err) {
+      toast.error('Failed to delete mission');
+    }
+  };
+
+  const handleUpdateTask = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await request('put', `/assigned-tasks/${editForm._id}`, {
+        title: editForm.title,
+        description: editForm.description,
+        rewardPoints: editForm.rewardPoints,
+        deadline: new Date(editForm.deadline).toISOString()
+      });
+      if (res.success) {
+        toast.success('Mission updated successfully');
+        setEditForm(null);
+        fetchData();
+      }
+    } catch (err) {
+      toast.error('Failed to update mission');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -158,7 +193,7 @@ const AssignmentManagement = () => {
     formData.append('description', form.description.trim());
     formData.append('rewardPoints', Number(form.rewardPoints));
     formData.append('assignedUsers', JSON.stringify(selectedUsers));
-    formData.append('deadline', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString());
+    formData.append('deadline', new Date(form.deadline).toISOString());
     formData.append('priority', 'medium');
     formData.append('submissionConfig', JSON.stringify(submissionConfig));
     
@@ -171,7 +206,7 @@ const AssignmentManagement = () => {
       
       if (res.success) {
         toast.success('Missions Broadcasted Successfully');
-        setForm({ title: '', description: '', rewardPoints: 50 });
+        setForm({ title: '', description: '', rewardPoints: 50, deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16) });
         setAttachments([]);
         setSelectedUsers([]);
         setSubmissionConfig({ inputType: 'file', customFields: [] });
@@ -322,8 +357,18 @@ const AssignmentManagement = () => {
                                     <div className="h-title">{t.title}</div>
                                     <div className="h-meta">{t.assignedUsers[0]?.name} • {new Date(t.createdAt).toLocaleDateString()}</div>
                                 </div>
-                                <div className={`h-status ${t.status}`}>{t.status.toUpperCase()}</div>
-                                <div className="h-points">+{t.rewardPoints}</div>
+                                <div className="h-status-points">
+                                  <div className={`h-status ${t.status}`}>{t.status.toUpperCase()}</div>
+                                  <div className="h-points">+{t.rewardPoints}</div>
+                                </div>
+                                <div className="h-actions" style={{ display: 'flex', gap: '8px' }}>
+                                    <button className="btn-icon" title="Edit" onClick={() => setEditForm({ ...t, deadline: t.deadline ? new Date(t.deadline).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16) })}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                    </button>
+                                    <button className="btn-icon danger" title="Delete" onClick={() => handleDeleteTask(t._id)}>
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -385,8 +430,18 @@ const AssignmentManagement = () => {
                         <Award size={24} />
                         <div style={{ flex: 1 }}>
                             <div className="s-label" style={{ fontSize: '0.6rem', marginBottom: '2px' }}>Credits Per Unit</div>
-                            <input type="number" value={form.rewardPoints} onChange={(e) => setForm({ ...form, rewardPoints: e.target.value })} />
+                            <input type="number" value={form.rewardPoints} onChange={(e) => setForm({ ...form, rewardPoints: e.target.value })} style={{ width: '100%', background: 'none', border: 'none', fontSize: '1.4rem', fontWeight: 900, color: 'var(--green)', outline: 'none' }} />
                         </div>
+                    </div>
+
+                    <div className="form-field-wrap">
+                        <Calendar size={18} className="field-icon" />
+                        <input 
+                            type="datetime-local"
+                            className="minimal-input" 
+                            value={form.deadline} 
+                            onChange={(e) => setForm({ ...form, deadline: e.target.value })} 
+                        />
                     </div>
 
                     <div className="file-upload-zone">
@@ -425,6 +480,39 @@ const AssignmentManagement = () => {
             </div>
         </div>
       </div>
+
+      {/* Edit Form Modal */}
+      {editForm && (
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="glass-panel slide-up" style={{ width: '100%', maxWidth: '500px', padding: '32px' }}>
+            <div className="flex-between" style={{ marginBottom: '24px' }}>
+              <h3 style={{ margin: 0 }}>Edit Mission</h3>
+              <X size={20} cursor="pointer" onClick={() => setEditForm(null)} />
+            </div>
+            <form onSubmit={handleUpdateTask} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="form-group">
+                <label>Title</label>
+                <input className="form-input" value={editForm.title} onChange={(e) => setEditForm({...editForm, title: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea className="form-input" rows="3" value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} />
+              </div>
+              <div className="grid-2">
+                <div className="form-group">
+                  <label>Credits</label>
+                  <input type="number" className="form-input" value={editForm.rewardPoints} onChange={(e) => setEditForm({...editForm, rewardPoints: e.target.value})} />
+                </div>
+                <div className="form-group">
+                  <label>Deadline</label>
+                  <input type="datetime-local" className="form-input" value={editForm.deadline} onChange={(e) => setEditForm({...editForm, deadline: e.target.value})} />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary">Save Changes</button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .search-mission-control { padding: 10px; }

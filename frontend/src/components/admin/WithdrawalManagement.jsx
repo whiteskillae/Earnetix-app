@@ -3,7 +3,7 @@ import { useApi } from '../../hooks/useApi';
 import toast from 'react-hot-toast';
 import Modal from '../common/Modal';
 import ConfirmModal from '../common/ConfirmModal';
-import { DollarSign, CheckCircle, Clock, Ban, XCircle, CreditCard, User } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, Ban, XCircle, CreditCard, User, Trash2 } from 'lucide-react';
 
 const WithdrawalManagement = () => {
   const { request } = useApi();
@@ -13,6 +13,8 @@ const WithdrawalManagement = () => {
 
   // Modals state
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewData, setViewData] = useState(null);
   const [rejectId, setRejectId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null, type: 'danger' });
@@ -85,6 +87,28 @@ const WithdrawalManagement = () => {
           setConfirmModal(prev => ({ ...prev, open: false }));
         } catch (err) {
           toast.error(err.response?.data?.message || 'Failed');
+        }
+        setActionLoading(false);
+      }
+    });
+  };
+
+  const handleDelete = async (id) => {
+    setConfirmModal({
+      open: true,
+      title: 'Delete Withdrawal Record',
+      message: 'Are you sure you want to permanently delete this withdrawal record? This cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Record',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          await request('delete', `/withdrawals/admin/${id}`);
+          toast.success('Record Deleted');
+          fetchWithdrawals();
+          setConfirmModal(prev => ({ ...prev, open: false }));
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Failed to delete record');
         }
         setActionLoading(false);
       }
@@ -208,8 +232,18 @@ const WithdrawalManagement = () => {
                           </button>
                         </div>
                       )}
-                      {w.status === 'completed' && <span style={{ fontSize: '0.7rem', color: '#10b981' }}>✓ Paid</span>}
-                      {w.status === 'rejected' && <span style={{ fontSize: '0.7rem', color: '#ef4444' }}>{w.adminNote}</span>}
+                      {(w.status === 'completed' || w.status === 'rejected') && (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button className="btn-icon" style={{ color: '#3b82f6' }} title="View Details" onClick={() => { setViewData(w); setShowViewModal(true); }}>
+                            <DollarSign size={16} />
+                          </button>
+                          <button className="btn-icon danger" title="Delete Record" onClick={() => handleDelete(w._id)}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                      {w.status === 'completed' && <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'block', marginTop: '4px' }}>✓ Paid</span>}
+                      {w.status === 'rejected' && <span style={{ fontSize: '0.7rem', color: '#ef4444', display: 'block', marginTop: '4px' }}>{w.adminNote}</span>}
                     </td>
                   </tr>
                 ))}
@@ -228,6 +262,45 @@ const WithdrawalManagement = () => {
             {actionLoading ? 'Processing...' : 'Reject Request'}
           </button>
         </form>
+      </Modal>
+
+      {/* View Details Modal */}
+      <Modal isOpen={showViewModal} onClose={() => setShowViewModal(false)} title="Withdrawal Receipt Details">
+        {viewData && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+               <h4 style={{ margin: '0 0 12px', color: '#3b82f6', fontSize: '0.9rem' }}>User Info</h4>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Name:</strong> {viewData.userId?.name}</p>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Email:</strong> {viewData.userId?.email}</p>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Country:</strong> {viewData.userId?.country}</p>
+            </div>
+            
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+               <h4 style={{ margin: '0 0 12px', color: '#10b981', fontSize: '0.9rem' }}>Transaction Data</h4>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Amount (USD):</strong> ${viewData.amountUSD}</p>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Points Used:</strong> {viewData.pointsUsed?.toLocaleString()}</p>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Status:</strong> {viewData.status.toUpperCase()}</p>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Date Requested:</strong> {new Date(viewData.createdAt).toLocaleString()}</p>
+               {viewData.processedAt && (
+                 <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Date Processed:</strong> {new Date(viewData.processedAt).toLocaleString()}</p>
+               )}
+            </div>
+
+            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+               <h4 style={{ margin: '0 0 12px', color: '#f59e0b', fontSize: '0.9rem' }}>Banking & Notes</h4>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Bank Name:</strong> {viewData.bankDetails?.bankName}</p>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Acct Name:</strong> {viewData.bankDetails?.accountName}</p>
+               <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>Acct No.:</strong> {viewData.bankDetails?.accountNumber}</p>
+               {viewData.bankDetails?.ifscCode && <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>IFSC:</strong> {viewData.bankDetails?.ifscCode}</p>}
+               {viewData.bankDetails?.upiId && <p style={{ margin: '4px 0', fontSize: '0.85rem' }}><strong>UPI:</strong> {viewData.bankDetails?.upiId}</p>}
+               {viewData.adminNote && (
+                 <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                   <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}><strong>Admin Note:</strong> {viewData.adminNote}</p>
+                 </div>
+               )}
+            </div>
+          </div>
+        )}
       </Modal>
 
       <ConfirmModal 

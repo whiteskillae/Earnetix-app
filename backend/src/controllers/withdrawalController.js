@@ -21,10 +21,24 @@ const saveBankDetails = async (req, res, next) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
+    // 48-hour cooldown check
+    if (user.lastBankDetailsUpdated) {
+      const cooldownMs = 48 * 60 * 60 * 1000;
+      const timeSinceUpdate = Date.now() - new Date(user.lastBankDetailsUpdated).getTime();
+      if (timeSinceUpdate < cooldownMs) {
+        const hoursLeft = Math.ceil((cooldownMs - timeSinceUpdate) / (1000 * 60 * 60));
+        return res.status(400).json({ 
+          success: false, 
+          message: `Security Lock: You can only update bank details once every 48 hours. Please wait ${hoursLeft} more hours.` 
+        });
+      }
+    }
+
     user.bankDetails = { accountName, accountNumber, ifscCode, bankName, upiId };
+    user.lastBankDetailsUpdated = new Date();
     await user.save();
 
-    res.json({ success: true, message: 'Bank details saved securely', data: { bankDetails: user.bankDetails } });
+    res.json({ success: true, message: 'Bank details saved securely', data: { bankDetails: user.bankDetails, lastBankDetailsUpdated: user.lastBankDetailsUpdated } });
   } catch (error) {
     next(error);
   }
@@ -204,6 +218,15 @@ const completeWithdrawal = async (req, res, next) => {
       targetType: 'withdrawal', details: `Completed $${withdrawal.amountUSD} withdrawal for user ${withdrawal.userId}`, ip: req.ip,
     }], { session });
 
+    // Create a targeted announcement for the user
+    await Announcement.create([{
+      title: 'Withdrawal Successfully Processed',
+      content: `Your withdrawal of $${withdrawal.amountUSD} has been successfully processed and transferred to your bank account. Note: ${req.body.note || 'Payment completed'}. Enjoy your earnings!`,
+      priority: 'normal',
+      targetUser: withdrawal.userId,
+      createdBy: req.user._id
+    }], { session });
+
     await session.commitTransaction();
 
     const user = await User.findById(withdrawal.userId).select('email');
@@ -313,7 +336,31 @@ const blockWithdrawalUser = async (req, res, next) => {
   }
 };
 
+// ─── ADMIN: DELETE WITHDRAWAL ─────────────────────────
+const deleteWithdrawal = async (req, res, next) => {
+  try {
+    const withdrawal = await Withdrawal.findById(req.params.id);
+    if (!withdrawal) {
+      return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+    }
+    if (withdrawal.status === 'pending' || withdrawal.status === 'processing') {
+      return res.status(400).json({ success: false, message: 'Cannot delete pending or processing withdrawals. Please reject or complete them first.' });
+    }
+
+    await Withdrawal.findByIdAndDelete(req.params.id);
+
+    await AdminLog.create({
+      adminId: req.user._id, action: 'withdrawal_delete', targetId: withdrawal._id,
+      targetType: 'withdrawal', details: `Deleted ${withdrawal.status} withdrawal record of $${withdrawal.amountUSD} for user ${withdrawal.userId}`, ip: req.ip,
+    });
+
+    res.json({ success: true, message: 'Withdrawal record deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   saveBankDetails, requestWithdrawal, getMyWithdrawals,
-  getAllWithdrawals, completeWithdrawal, rejectWithdrawal, blockWithdrawalUser,
+  getAllWithdrawals, completeWithdrawal, rejectWithdrawal, blockWithdrawalUser, deleteWithdrawal
 };

@@ -42,7 +42,7 @@ const buildOtpHtml = (otpCode) => `
  */
 const sendViaBrevo = async (email, otpCode) => {
   if (!env.BREVO_API_KEY) {
-    throw new Error('BREVO_API_KEY is not configured.');
+    throw new Error('API_KEY is not configured.');
   }
 
   await brevoClient.post('/smtp/email', {

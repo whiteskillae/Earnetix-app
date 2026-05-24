@@ -11,5 +11,7 @@ router.patch('/:id/status', auth, updateTaskStatus);
 // Admin only
 router.get('/', auth, adminGuard, getAllAssignedTasks);
 router.post('/', auth, adminGuard, taskAttachmentUpload, createAndAssignTask);
+router.delete('/:id', auth, adminGuard, require('../controllers/assignedTaskController').deleteAssignedTask);
+router.put('/:id', auth, adminGuard, require('../controllers/assignedTaskController').updateAssignedTaskAdmin);
 
 module.exports = router;

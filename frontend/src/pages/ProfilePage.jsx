@@ -4,7 +4,7 @@ import { useApi } from '../hooks/useApi';
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin, TrendingUp, Wallet, Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { Zap, Mail, User, CheckCircle, XCircle, Clock, RefreshCw, LogOut, Phone, Globe, Target, Edit3, X, MapPin, TrendingUp, Wallet, Shield, Lock, Eye, EyeOff, Building, AlertCircle } from 'lucide-react';
 import Select from 'react-select';
 import { countries } from '../utils/countries';
 
@@ -16,7 +16,17 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+
+  const calculateCooldown = () => {
+    if (!user?.lastBankDetailsUpdated) return 0;
+    const cooldownMs = 48 * 60 * 60 * 1000;
+    const timeSinceUpdate = Date.now() - new Date(user.lastBankDetailsUpdated).getTime();
+    if (timeSinceUpdate >= cooldownMs) return 0;
+    return Math.ceil((cooldownMs - timeSinceUpdate) / (1000 * 60 * 60));
+  };
+  const cooldownHoursLeft = calculateCooldown();
 
   const selectStyles = {
     control: (base) => ({
@@ -56,7 +66,7 @@ const ProfilePage = () => {
     country: user?.country || 'India',
     countryCode: user?.countryCode || '+91',
     qualifications: user?.qualifications || '',
-    skills: user?.skills?.join(', ') || ''
+    skills: Array.isArray(user?.skills) ? user.skills.join(', ') : (user?.skills || '')
   });
 
   // Sync formData with user context when user data is loaded/updated
@@ -72,8 +82,23 @@ const ProfilePage = () => {
         qualifications: user.qualifications || '',
         skills: user.skills?.join(', ') || ''
       });
+      setBankForm({
+        accountName: user.bankDetails?.accountName || '',
+        accountNumber: user.bankDetails?.accountNumber || '',
+        ifscCode: user.bankDetails?.ifscCode || '',
+        bankName: user.bankDetails?.bankName || '',
+        upiId: user.bankDetails?.upiId || '',
+      });
     }
   }, [user]);
+
+  const [bankForm, setBankForm] = useState({
+    accountName: user?.bankDetails?.accountName || '',
+    accountNumber: user?.bankDetails?.accountNumber || '',
+    ifscCode: user?.bankDetails?.ifscCode || '',
+    bankName: user?.bankDetails?.bankName || '',
+    upiId: user?.bankDetails?.upiId || '',
+  });
 
   useEffect(() => {
     const fetch = async () => {
@@ -115,6 +140,23 @@ const ProfilePage = () => {
         toast.success('Identity Updated');
         setUser(res.data);
         setIsEditModalOpen(false);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Update Failed');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleBankUpdate = async (e) => {
+    e.preventDefault();
+    setEditLoading(true);
+    try {
+      const res = await request('post', '/withdrawals/bank-details', bankForm);
+      if (res.success) {
+        toast.success('Bank Details Updated');
+        await fetchProfile();
+        setIsBankModalOpen(false);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update Failed');
@@ -217,7 +259,7 @@ const ProfilePage = () => {
               <div>
                 <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Professional Skills</label>
                 <div className="skills-wrap" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                   {user?.skills?.length > 0 ? user.skills.map(skill => (
+                   {Array.isArray(user?.skills) && user.skills.length > 0 ? user.skills.map(skill => (
                      <span key={skill} className="skill-chip">{skill}</span>
                    )) : <span style={{ opacity: 0.5 }}>None Listed</span>}
                 </div>
@@ -246,6 +288,47 @@ const ProfilePage = () => {
 
 
          </div>
+      </div>
+
+      {/* Bank Details Section */}
+      <div className="premium-card" style={{ marginTop: '24px' }}>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '1.1rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+              <Building size={20} /> BANK DETAILS
+            </h3>
+            <button 
+              className="btn btn-outline btn-sm" 
+              style={{ padding: '4px 10px', fontSize: '0.75rem' }} 
+              onClick={() => setIsBankModalOpen(true)}
+            >
+              Edit Bank
+            </button>
+         </div>
+         
+         {user?.bankDetails?.accountNumber ? (
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Account Name</label>
+                <p style={{ fontWeight: 700, margin: '4px 0 0' }}>{user.bankDetails.accountName}</p>
+              </div>
+              <div className="grid-2" style={{ gap: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Bank Name</label>
+                  <p style={{ fontWeight: 700, margin: '4px 0 0' }}>{user.bankDetails.bankName}</p>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--gray-500)', fontWeight: 800, textTransform: 'uppercase' }}>Account No.</label>
+                  <p style={{ fontWeight: 700, margin: '4px 0 0', letterSpacing: '2px' }}>••••{user.bankDetails.accountNumber.slice(-4)}</p>
+                </div>
+              </div>
+           </div>
+         ) : (
+           <div style={{ padding: '20px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <Building size={32} color="#64748b" style={{ opacity: 0.5, marginBottom: '12px' }} />
+              <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '16px' }}>No bank details added yet.</p>
+              <button className="btn btn-primary btn-sm" onClick={() => setIsBankModalOpen(true)}>Add Bank Details</button>
+           </div>
+         )}
       </div>
 
       {/* Submissions Section */}
@@ -359,6 +442,60 @@ const ProfilePage = () => {
                  </div>
                  <button className="btn btn-primary btn-block" style={{ marginTop: '20px', padding: '16px', borderRadius: '16px' }} disabled={editLoading}>
                     {editLoading ? 'SYNCHRONIZING...' : 'EXECUTE UPDATE'}
+                 </button>
+              </form>
+           </div>
+        </div>
+      )}
+
+      {/* Edit Bank Modal */}
+      {isBankModalOpen && (
+        <div className="modal-new-overlay">
+           <div className="modal-new-content slide-up">
+              <div className="modal-header">
+                 <h2>BANK DETAILS</h2>
+                 <button onClick={() => setIsBankModalOpen(false)} className="modal-close"><X size={20} /></button>
+              </div>
+
+              {cooldownHoursLeft > 0 && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '16px', borderRadius: '12px', marginBottom: '24px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <AlertCircle size={24} color="#ef4444" style={{ flexShrink: 0 }} />
+                  <div>
+                    <h4 style={{ margin: '0 0 4px', color: '#ef4444' }}>Update Locked</h4>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#fca5a5' }}>
+                      For security reasons, bank details can only be updated once every 48 hours. Please wait <strong>{cooldownHoursLeft} more hours</strong> before making changes.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleBankUpdate} style={{ opacity: cooldownHoursLeft > 0 ? 0.5 : 1, pointerEvents: cooldownHoursLeft > 0 ? 'none' : 'auto' }}>
+                 <div className="form-group">
+                    <label>Account Holder Name</label>
+                    <input className="form-input" value={bankForm.accountName} onChange={e => setBankForm({...bankForm, accountName: e.target.value})} placeholder="Full name as per bank" required />
+                 </div>
+                 <div className="grid-2">
+                    <div className="form-group">
+                       <label>Account Number</label>
+                       <input className="form-input" value={bankForm.accountNumber} onChange={e => setBankForm({...bankForm, accountNumber: e.target.value})} placeholder="Bank account number" required />
+                    </div>
+                    <div className="form-group">
+                       <label>IFSC / Sort Code</label>
+                       <input className="form-input" value={bankForm.ifscCode} onChange={e => setBankForm({...bankForm, ifscCode: e.target.value})} placeholder="IFSC code" />
+                    </div>
+                 </div>
+                 <div className="grid-2">
+                    <div className="form-group">
+                       <label>Bank Name</label>
+                       <input className="form-input" value={bankForm.bankName} onChange={e => setBankForm({...bankForm, bankName: e.target.value})} placeholder="e.g. State Bank of India" required />
+                    </div>
+                    <div className="form-group">
+                       <label>UPI ID (optional)</label>
+                       <input className="form-input" value={bankForm.upiId} onChange={e => setBankForm({...bankForm, upiId: e.target.value})} placeholder="name@upi" />
+                    </div>
+                 </div>
+                 <button className="btn btn-primary btn-block" style={{ marginTop: '20px', padding: '16px', borderRadius: '16px' }} disabled={editLoading || cooldownHoursLeft > 0}>
+                    {editLoading ? 'SAVING...' : 'SAVE BANK DETAILS'}
                  </button>
               </form>
            </div>

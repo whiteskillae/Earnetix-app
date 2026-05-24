@@ -60,7 +60,7 @@ const LeaderboardPage = () => {
                  <img src={topThree[1].avatar} alt={topThree[1].username || topThree[1].name} style={{ width: '70px', height: '70px', borderRadius: '20px', objectFit: 'cover' }} />
                ) : (
                  <div className="user-avatar-wrap" style={{ width: '70px', height: '70px', fontSize: '1.5rem', background: 'linear-gradient(135deg, #94a3b8 0%, #475569 100%)' }}>
-                   {(topThree[1].username || topThree[1].name).charAt(0).toUpperCase()}
+                   {(topThree[1].username || topThree[1].name || 'U').charAt(0).toUpperCase()}
                  </div>
                )}
                <div className="rank-badge" style={{ background: '#94a3b8' }}>2</div>
@@ -80,7 +80,7 @@ const LeaderboardPage = () => {
                  <img src={topThree[0].avatar} alt={topThree[0].username || topThree[0].name} style={{ width: '100px', height: '100px', borderRadius: '28px', border: '4px solid #f59e0b', objectFit: 'cover' }} />
                ) : (
                  <div className="user-avatar-wrap" style={{ width: '100px', height: '100px', fontSize: '2.5rem', border: '4px solid #f59e0b' }}>
-                   {(topThree[0].username || topThree[0].name).charAt(0).toUpperCase()}
+                   {(topThree[0].username || topThree[0].name || 'U').charAt(0).toUpperCase()}
                  </div>
                )}
                <div className="rank-badge">1</div>
@@ -99,7 +99,7 @@ const LeaderboardPage = () => {
                  <img src={topThree[2].avatar} alt={topThree[2].username || topThree[2].name} style={{ width: '60px', height: '60px', borderRadius: '16px', objectFit: 'cover' }} />
                ) : (
                  <div className="user-avatar-wrap" style={{ width: '60px', height: '60px', fontSize: '1.2rem', background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)' }}>
-                   {(topThree[2].username || topThree[2].name).charAt(0).toUpperCase()}
+                   {(topThree[2].username || topThree[2].name || 'U').charAt(0).toUpperCase()}
                  </div>
                )}
                <div className="rank-badge" style={{ background: '#b45309' }}>3</div>
@@ -128,7 +128,7 @@ const LeaderboardPage = () => {
                 <img src={user.avatar} alt={user.username || user.name} style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover' }} />
               ) : (
                 <div className="user-avatar-wrap" style={{ width: '36px', height: '36px', fontSize: '0.9rem', borderRadius: '10px' }}>
-                  {(user.username || user.name).charAt(0).toUpperCase()}
+                  {(user.username || user.name || 'U').charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="rank-user-info">

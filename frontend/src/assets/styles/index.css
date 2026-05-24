@@ -22,24 +22,26 @@ input, textarea {
 }
 
 :root {
-  --blue: #4f8ef7;
-  --blue-dark: #2563eb;
-  --blue-light: #93c5fd;
-  --blue-glow: rgba(79, 142, 247, 0.25);
-  --blue-gradient: linear-gradient(135deg, #4f8ef7 0%, #2563eb 100%);
+  --blue: #3b82f6;
+  --blue-dark: #1d4ed8;
+  --blue-light: #60a5fa;
+  --blue-glow: rgba(59, 130, 246, 0.4);
+  --blue-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   
   --purple: #8b5cf6;
-  --purple-glow: rgba(139, 92, 246, 0.2);
-  --green: #22d3a5;
-  --green-glow: rgba(34, 211, 165, 0.2);
-  --green-gradient: linear-gradient(135deg, #22d3a5 0%, #059669 100%);
+  --purple-glow: rgba(139, 92, 246, 0.3);
+  --green: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.3);
+  --green-gradient: linear-gradient(135deg, #34d399 0%, #059669 100%);
   --amber: #f59e0b;
+  --warning: #f59e0b;
+  --danger: #ef4444;
 
-  --black: #03060f;
-  --dark-950: #0a1120;
-  --dark-900: #111827;
-  --dark-800: #1f2937;
-  --dark-700: #374151;
+  --black: #000000;
+  --dark-950: #09090b;
+  --dark-900: #18181b;
+  --dark-800: #27272a;
+  --dark-700: #3f3f46;
   
   --white: #f8fafc;
   --white-soft: #f1f5f9;
@@ -87,6 +89,10 @@ html, body {
   overflow: hidden;
 }
 
+html {
+  font-size: 14px;
+}
+
 #root {
   height: 100%;
   width: 100%;
@@ -102,9 +108,9 @@ html, body {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: 
-    radial-gradient(ellipse at top left, var(--blue-glow), transparent 40%),
-    radial-gradient(ellipse at bottom right, var(--purple-glow), transparent 40%),
-    radial-gradient(ellipse at center right, var(--green-glow), transparent 30%);
+    radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.18), transparent 55%),
+    radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.18), transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.08), transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -118,9 +124,11 @@ h3 { font-size: 1.45rem; }
 /* ─── LAYOUT ────────────────────────────────────────── */
 .app-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100%;
   position: relative;
   z-index: 1;
+  padding-top: 32px;
 }
 
 .app-main {
@@ -145,7 +153,7 @@ h3 { font-size: 1.45rem; }
 /* ─── SIDEBAR REVOLUTION ────────────────────────────── */
 .sidebar {
   position: fixed;
-  top: 0; left: 0; bottom: 0;
+  top: 32px; left: 0; bottom: 0;
   width: 280px;
   background: var(--glass);
   backdrop-filter: blur(40px) saturate(200%);
@@ -291,8 +299,8 @@ h3 { font-size: 1.45rem; }
 /* ─── MOBILE HEADER FIXES ───────────────────────────── */
 .mobile-header {
   position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 75px;
+  top: 32px; left: 0; right: 0;
+  height: 60px;
   background: var(--glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

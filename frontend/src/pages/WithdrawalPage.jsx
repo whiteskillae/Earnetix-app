@@ -22,6 +22,15 @@ const WithdrawalPage = () => {
   });
   const [pointsToConvert, setPointsToConvert] = useState(MIN_POINTS);
 
+  const calculateCooldown = () => {
+    if (!user?.lastBankDetailsUpdated) return 0;
+    const cooldownMs = 48 * 60 * 60 * 1000;
+    const timeSinceUpdate = Date.now() - new Date(user.lastBankDetailsUpdated).getTime();
+    if (timeSinceUpdate >= cooldownMs) return 0;
+    return Math.ceil((cooldownMs - timeSinceUpdate) / (1000 * 60 * 60));
+  };
+  const cooldownHoursLeft = calculateCooldown();
+
 
 
   const availablePoints = (user?.points || 0) - (user?.frozenPoints || 0);
@@ -198,8 +207,26 @@ const WithdrawalPage = () => {
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
             <Building size={20} color="#3b82f6" /> Bank Account Details
           </h3>
+          
+          {cooldownHoursLeft > 0 && (
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '16px', borderRadius: '12px', marginBottom: '24px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <AlertCircle size={24} color="#ef4444" style={{ flexShrink: 0 }} />
+              <div>
+                <h4 style={{ margin: '0 0 4px', color: '#ef4444' }}>Update Locked</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#fca5a5' }}>
+                  For security reasons, bank details can only be updated once every 48 hours. Please wait <strong>{cooldownHoursLeft} more hours</strong> before making changes.
+                </p>
+                {hasBankDetails && (
+                  <button className="btn btn-outline btn-sm" style={{ marginTop: '12px' }} onClick={() => setStep(2)}>
+                    Continue with Current Details
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSaveBank}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', opacity: cooldownHoursLeft > 0 ? 0.5 : 1, pointerEvents: cooldownHoursLeft > 0 ? 'none' : 'auto' }}>
               <div className="form-group">
                 <label>Account Holder Name</label>
                 <input className="form-input" placeholder="Full name as per bank" value={bankForm.accountName} onChange={e => setBankForm({...bankForm, accountName: e.target.value})} required />
@@ -225,7 +252,7 @@ const WithdrawalPage = () => {
                 </div>
               </div>
             </div>
-            <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '24px' }} disabled={loading}>
+            <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '24px' }} disabled={loading || cooldownHoursLeft > 0}>
               {loading ? 'Saving...' : 'Save & Continue'} <ArrowRight size={18} />
             </button>
           </form>

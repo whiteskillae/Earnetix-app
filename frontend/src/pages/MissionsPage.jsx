@@ -60,6 +60,10 @@ const MissionsPage = () => {
     e.preventDefault();
     if (!selected) return;
 
+    if (new Date(selected.deadline) < new Date()) {
+      return toast.error('Mission deadline has passed. Submissions are no longer accepted.');
+    }
+
     // ── Frontend validation before API call ──────────────
     const it = selected.submissionConfig?.inputType || 'file';
     const hasText = submission.trim().length > 0;
@@ -103,7 +107,13 @@ const MissionsPage = () => {
   };
 
 
-  const getStatusInfo = (status) => {
+  const getStatusInfo = (status, deadline) => {
+    const isPastDeadline = new Date(deadline) < new Date();
+    
+    if (isPastDeadline && (status === 'pending' || status === 'accepted' || status === 'in_progress')) {
+        return { color: '#ef4444', label: 'EXPIRED', icon: <AlertCircle size={16} /> };
+    }
+
     switch (status) {
       case 'completed': return { color: '#10b981', label: 'ACCOMPLISHED', icon: <CheckCircle size={16} /> };
       case 'under_review': return { color: '#f59e0b', label: 'IN REVIEW', icon: <Clock size={16} /> };
@@ -143,15 +153,20 @@ const MissionsPage = () => {
       ) : (
         <div className="missions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '32px' }}>
           {missions.map(m => {
-            const status = getStatusInfo(m.status);
+            const status = getStatusInfo(m.status, m.deadline);
             const inputType = m.submissionConfig?.inputType || 'file';
+            const isPastDeadline = new Date(m.deadline) < new Date();
             
             return (
               <div key={m._id} className="premium-card slide-up" style={{ 
-                padding: '32px', display: 'flex', flexDirection: 'column', 
+                position: 'relative', overflow: 'hidden', padding: '32px', display: 'flex', flexDirection: 'column', 
                 border: m.status === 'accepted' ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--glass-border)',
                 background: m.status === 'accepted' ? 'rgba(59, 130, 246, 0.02)' : 'rgba(255,255,255,0.01)'
               }}>
+                {/* SVG Background Effect */}
+                <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', right: '-50px', top: '-50px', opacity: 0.03, pointerEvents: 'none', transform: 'rotate(15deg)' }}>
+                  <path d="M100 0L200 50L200 150L100 200L0 150L0 50L100 0Z" fill="currentColor"/>
+                </svg>
                 <div className="flex-between" style={{ marginBottom: '24px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '16px', color: 'var(--blue-light)' }}>
@@ -192,7 +207,7 @@ const MissionsPage = () => {
                 )}
 
                 <div className="mission-actions" style={{ display: 'flex', gap: '16px' }}>
-                  {m.status === 'pending' && (
+                  {m.status === 'pending' && !isPastDeadline && (
                     <>
                       <button className="btn-premium btn-primary-new" style={{ flex: 2, height: '54px' }} onClick={() => handleUpdateStatus(m._id, 'accepted')}>
                          ACCEPT MISSION <ChevronRight size={18} />
@@ -200,10 +215,15 @@ const MissionsPage = () => {
                       <button className="btn-premium btn-outline" style={{ flex: 1, height: '54px' }} onClick={() => handleUpdateStatus(m._id, 'rejected')}>DECLINE</button>
                     </>
                   )}
-                  {(m.status === 'accepted' || m.status === 'in_progress') && (
+                  {(m.status === 'accepted' || m.status === 'in_progress') && !isPastDeadline && (
                     <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px' }} onClick={() => { setSelected(m); setShowModal(true); }}>
                       <Upload size={20} /> LOG EVIDENCE & CLAIM REWARD
                     </button>
+                  )}
+                  {isPastDeadline && (m.status === 'pending' || m.status === 'accepted' || m.status === 'in_progress') && (
+                    <div className="glass-panel" style={{ width: '100%', padding: '16px', textAlign: 'center', borderColor: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '16px' }}>
+                       <span style={{ color: 'var(--danger)', fontWeight: 900, letterSpacing: '0.1em' }}>DEADLINE PASSED</span>
+                    </div>
                   )}
                   {m.status === 'under_review' && (
                     <div className="glass-panel" style={{ width: '100%', padding: '16px', textAlign: 'center', borderColor: 'var(--warning)', background: 'rgba(245, 158, 11, 0.05)', borderRadius: '16px' }}>

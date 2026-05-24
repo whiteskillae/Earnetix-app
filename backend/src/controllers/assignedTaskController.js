@@ -191,10 +191,38 @@ const submitAssignedTask = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// Admin: Delete Assigned Task
+const deleteAssignedTask = async (req, res, next) => {
+  try {
+    const task = await AssignedTask.findByIdAndDelete(req.params.id);
+    if (!task) return res.status(404).json({ success: false, message: 'Mission not found' });
+    res.json({ success: true, message: 'Mission successfully deleted' });
+  } catch (error) { next(error); }
+};
+
+// Admin: Update Assigned Task
+const updateAssignedTaskAdmin = async (req, res, next) => {
+  try {
+    const { title, description, rewardPoints, deadline } = req.body;
+    const task = await AssignedTask.findById(req.params.id);
+    if (!task) return res.status(404).json({ success: false, message: 'Mission not found' });
+    
+    if (title) task.title = title;
+    if (description) task.description = description;
+    if (rewardPoints) task.rewardPoints = rewardPoints;
+    if (deadline) task.deadline = new Date(deadline);
+    
+    await task.save();
+    res.json({ success: true, message: 'Mission updated successfully', data: task });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createAndAssignTask,
   getAllAssignedTasks,
   getMyAssignedTasks,
   submitAssignedTask,
-  updateTaskStatus
+  updateTaskStatus,
+  deleteAssignedTask,
+  updateAssignedTaskAdmin
 };

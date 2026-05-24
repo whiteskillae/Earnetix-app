@@ -16,5 +16,6 @@ router.get('/admin/all', auth, adminGuard, getAllWithdrawals);
 router.put('/admin/:id/complete', auth, adminGuard, completeWithdrawal);
 router.put('/admin/:id/reject', auth, adminGuard, rejectWithdrawal);
 router.put('/admin/:id/block-user', auth, adminGuard, blockWithdrawalUser);
+router.delete('/admin/:id', auth, adminGuard, require('../controllers/withdrawalController').deleteWithdrawal);
 
 module.exports = router;
