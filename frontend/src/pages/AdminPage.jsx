@@ -20,6 +20,7 @@ import GalleryManagement from '../components/admin/GalleryManagement';
 import BlockManagement from '../components/admin/BlockManagement';
 import AdminLogs from '../components/admin/AdminLogs';
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
+import BlogManagement from '../components/admin/BlogManagement';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
@@ -260,6 +261,7 @@ const AdminPage = () => {
     formData.append('description', taskForm.description.trim());
     formData.append('rewardPoints', Math.floor(Number(taskForm.rewardPoints)));
     formData.append('inputType', taskForm.inputType);
+    formData.append('taskType', taskForm.taskType || 'general');
     
     if (taskForm.attachments) {
       taskForm.attachments.forEach(file => {
@@ -414,6 +416,7 @@ const AdminPage = () => {
       {tab === 'gallery' && <GalleryManagement />}
       {tab === 'blocked' && <BlockManagement />}
       {tab === 'logs' && <AdminLogs />}
+      {tab === 'blogs' && <BlogManagement />}
 
       {tab === 'announcements' && (
         <div className="glass-panel">
@@ -476,6 +479,19 @@ const AdminPage = () => {
               <option value="image_file">Screenshot + File</option>
               <option value="all">Full Evidence (Text+Img+File+Link)</option>
             </select></div>
+          </div>
+          <div className="form-group">
+            <label>Task Type</label>
+            <select className="form-input" value={taskForm.taskType || 'general'} onChange={(e) => setTaskForm({ ...taskForm, taskType: e.target.value })}>
+              <option value="general">General</option>
+              <option value="blog">📝 Blog</option>
+              <option value="software">💻 Software</option>
+              <option value="media">🎬 Media</option>
+              <option value="other">Other</option>
+            </select>
+            {(taskForm.taskType === 'blog') && (
+              <p style={{ fontSize: '0.78rem', color: 'var(--blue-light)', marginTop: '6px' }}>ℹ Users will submit a blog post via the Blog Editor page.</p>
+            )}
           </div>
           <div className="form-group">
             <label>Task Attachments</label>

@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
+import { useNavigate } from 'react-router-dom';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
 import { 
   Award, Clock, CheckCircle, AlertCircle, Send, 
   FileText, Link as LinkIcon, Trash2, File, 
-  Upload, X, Zap, Image, Target, ChevronRight
+  Upload, X, Zap, Image, Target, ChevronRight, BookOpen
 } from 'lucide-react';
 import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
 const MissionsPage = () => {
   const { request } = useApi();
+  const navigate = useNavigate();
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -174,9 +176,14 @@ const MissionsPage = () => {
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{m.title}</h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
                          <Clock size={12} color="var(--gray-600)" />
                          <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 700 }}>DUE: {new Date(m.deadline).toLocaleDateString()}</span>
+                         {m.taskType && m.taskType !== 'general' && (
+                           <span style={{ fontSize: '0.6rem', fontWeight: 900, color: m.taskType === 'blog' ? '#8b5cf6' : m.taskType === 'media' ? '#ec4899' : 'var(--blue-light)', background: m.taskType === 'blog' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)', padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                             {m.taskType === 'blog' ? '📝 Blog' : m.taskType === 'software' ? '💻 Software' : m.taskType === 'media' ? '🎬 Media' : m.taskType}
+                           </span>
+                         )}
                       </div>
                     </div>
                   </div>
@@ -216,9 +223,15 @@ const MissionsPage = () => {
                     </>
                   )}
                   {(m.status === 'accepted' || m.status === 'in_progress') && !isPastDeadline && (
-                    <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px' }} onClick={() => { setSelected(m); setShowModal(true); }}>
-                      <Upload size={20} /> LOG EVIDENCE & CLAIM REWARD
-                    </button>
+                    m.taskType === 'blog' ? (
+                      <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }} onClick={() => navigate(`/blog/create/${m._id}?type=assigned`)}>
+                        <BookOpen size={20} /> WRITE BLOG POST
+                      </button>
+                    ) : (
+                      <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px' }} onClick={() => { setSelected(m); setShowModal(true); }}>
+                        <Upload size={20} /> LOG EVIDENCE & CLAIM REWARD
+                      </button>
+                    )
                   )}
                   {isPastDeadline && (m.status === 'pending' || m.status === 'accepted' || m.status === 'in_progress') && (
                     <div className="glass-panel" style={{ width: '100%', padding: '16px', textAlign: 'center', borderColor: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '16px' }}>

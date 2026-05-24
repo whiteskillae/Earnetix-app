@@ -62,7 +62,8 @@ const AssignmentManagement = () => {
 
   const [submissionConfig, setSubmissionConfig] = useState({
     inputType: 'file',
-    customFields: []
+    customFields: [],
+    taskType: 'general',
   });
 
   useEffect(() => {
@@ -196,6 +197,7 @@ const AssignmentManagement = () => {
     formData.append('deadline', new Date(form.deadline).toISOString());
     formData.append('priority', 'medium');
     formData.append('submissionConfig', JSON.stringify(submissionConfig));
+    formData.append('taskType', submissionConfig.taskType || 'general');
     
     attachments.forEach(file => {
       formData.append('attachments', file);
@@ -209,7 +211,7 @@ const AssignmentManagement = () => {
         setForm({ title: '', description: '', rewardPoints: 50, deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16) });
         setAttachments([]);
         setSelectedUsers([]);
-        setSubmissionConfig({ inputType: 'file', customFields: [] });
+        setSubmissionConfig({ inputType: 'file', customFields: [], taskType: 'general' });
         fetchData();
       } else {
         toast.error(res.message || 'Deployment protocol failure');
@@ -442,6 +444,25 @@ const AssignmentManagement = () => {
                             value={form.deadline} 
                             onChange={(e) => setForm({ ...form, deadline: e.target.value })} 
                         />
+                    </div>
+
+                    {/* Task Type Selector */}
+                    <div style={{ marginBottom: '8px' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
+                        Task Type
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {[{ v: 'general', l: 'General' }, { v: 'blog', l: '📝 Blog' }, { v: 'software', l: '💻 Software' }, { v: 'media', l: '🎬 Media' }, { v: 'other', l: 'Other' }].map(opt => (
+                          <button key={opt.v} type="button"
+                            onClick={() => setSubmissionConfig(prev => ({ ...prev, taskType: opt.v }))}
+                            style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid', borderColor: submissionConfig.taskType === opt.v ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.07)', background: submissionConfig.taskType === opt.v ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)', color: submissionConfig.taskType === opt.v ? 'var(--blue-light)' : 'var(--gray-400)', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}>
+                            {opt.l}
+                          </button>
+                        ))}
+                      </div>
+                      {submissionConfig.taskType === 'blog' && (
+                        <p style={{ fontSize: '0.75rem', color: 'var(--blue-light)', marginTop: '8px' }}>ℹ Users will submit a blog post via the Blog Editor page.</p>
+                      )}
                     </div>
 
                     <div className="file-upload-zone">

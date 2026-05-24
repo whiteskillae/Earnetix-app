@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic, BarChart2 } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic, BarChart2, BookOpen } from 'lucide-react';
 
 import logo from '../../assets/logo.svg';
 
@@ -20,6 +20,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { to: '/dashboard?tab=assignments', label: 'Direct Tasks', icon: Award },
       { to: '/dashboard?tab=tasks', label: 'Tasks', icon: ListTodo },
       { to: '/dashboard?tab=submissions', label: 'Submissions', icon: FileText },
+      { to: '/dashboard?tab=blogs', label: 'Blogs', icon: BookOpen },
       { to: '/dashboard?tab=withdrawals', label: 'Payments', icon: Wallet },
       { to: '/dashboard?tab=users', label: 'Users', icon: Users },
       { to: '/dashboard?tab=skills', label: 'Skills', icon: Target },
@@ -30,6 +31,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/missions', label: 'My Missions', icon: Award, badgeKey: 'missions' },
       { to: '/tasks', label: 'Tasks', icon: ListTodo, badgeKey: 'tasks' },
+      { to: '/blog', label: 'Blog', icon: BookOpen },
       { to: '/withdraw', label: 'Withdraw', icon: Wallet },
       { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },

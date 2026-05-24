@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock, File, Eye, Target, TrendingUp, AlertCircle } from 'lucide-react';
+import { Zap, Upload, Image, FileText, Search, CheckCircle, Clock, File, Eye, Target, TrendingUp, AlertCircle, BookOpen } from 'lucide-react';
 import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
 const TasksPage = () => {
   const { request } = useApi();
   const { isKycVerified, kycStatus } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -235,6 +237,11 @@ const TasksPage = () => {
                   <p style={{ fontSize: '0.85rem', color: 'var(--gray-400)', lineHeight: 1.6, marginBottom: '20px' }}>{task.description}</p>
                   
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                    {task.taskType && task.taskType !== 'general' && (
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, color: task.taskType === 'blog' ? '#8b5cf6' : task.taskType === 'media' ? '#ec4899' : 'var(--blue-light)', background: task.taskType === 'blog' ? 'rgba(139,92,246,0.1)' : task.taskType === 'media' ? 'rgba(236,72,153,0.1)' : 'rgba(59,130,246,0.1)', padding: '3px 10px', borderRadius: '8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        {task.taskType === 'blog' ? '📝 Blog' : task.taskType === 'software' ? '💻 Software' : task.taskType === 'media' ? '🎬 Media' : task.taskType}
+                      </span>
+                    )}
                     {getRequirements(task.inputType).map(r => (
                         <span key={r} style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', border: '1px solid var(--glass-border)', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
                           {r}
@@ -260,15 +267,27 @@ const TasksPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-                  <button 
-                    className="btn-premium btn-primary-new"
-                    style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
-                    disabled={isApproved || isPending || (isRejected && !canResubmit)}
-                  >
-                    {isApproved ? <CheckCircle size={18} /> : isPending ? <Clock size={18} /> : <Upload size={18} />}
-                    {isApproved ? 'COMPLETED' : isPending ? 'IN REVIEW' : 'DO TASK'}
-                  </button>
+                  {task.taskType === 'blog' ? (
+                    <button
+                      className="btn-premium btn-primary-new"
+                      style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }}
+                      onClick={() => navigate(`/blog/create/${task._id}?type=public`)}
+                      disabled={isApproved || isPending}
+                    >
+                      {isApproved ? <CheckCircle size={18} /> : isPending ? <Clock size={18} /> : <BookOpen size={18} />}
+                      {isApproved ? 'BLOG SUBMITTED' : isPending ? 'IN REVIEW' : 'WRITE BLOG'}
+                    </button>
+                  ) : (
+                    <button 
+                      className="btn-premium btn-primary-new"
+                      style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
+                      disabled={isApproved || isPending || (isRejected && !canResubmit)}
+                    >
+                      {isApproved ? <CheckCircle size={18} /> : isPending ? <Clock size={18} /> : <Upload size={18} />}
+                      {isApproved ? 'COMPLETED' : isPending ? 'IN REVIEW' : 'DO TASK'}
+                    </button>
+                  )}
                   <button 
                     className="btn-premium"
                     style={{ 

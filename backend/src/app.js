@@ -22,6 +22,7 @@ const assignedTaskRoutes = require('./routes/assignedTaskRoutes');
 const kycRoutes = require('./routes/kycRoutes');
 const withdrawalRoutes = require('./routes/withdrawalRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
+const blogRoutes = require('./routes/blogRoutes');
 
 const app = express();
 app.set('trust proxy', true);
@@ -130,6 +131,7 @@ app.use('/api/assigned-tasks', assignedTaskRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/admin/gallery', galleryRoutes);
+app.use('/api/blogs', blogRoutes);
 
 // 404
 app.use((req, res) => {

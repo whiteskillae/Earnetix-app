@@ -11,6 +11,11 @@ const assignedTaskSchema = new mongoose.Schema({
     required: [true, 'Task description is required'],
     trim: true,
   },
+  taskType: {
+    type: String,
+    enum: ['general', 'blog', 'software', 'media', 'other'],
+    default: 'general',
+  },
   priority: {
     type: String,
     enum: ['low', 'medium', 'high', 'urgent'],

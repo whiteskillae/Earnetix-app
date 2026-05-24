@@ -19,6 +19,11 @@ const taskSchema = new mongoose.Schema({
     min: 1,
     max: 10000,
   },
+  taskType: {
+    type: String,
+    enum: ['general', 'blog', 'software', 'media', 'other'],
+    default: 'general',
+  },
   inputType: {
     type: String,
     enum: ['text', 'image', 'file', 'link', 'text_image', 'text_link', 'all'],
