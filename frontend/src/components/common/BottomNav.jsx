@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListTodo, Award, User, Shield, Wallet } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Award, User, Shield, Wallet, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const BottomNav = () => {
@@ -14,6 +14,7 @@ const BottomNav = () => {
     { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
     { to: '/missions', label: 'Missions', icon: Award },
     { to: '/tasks', label: 'Campaigns', icon: ListTodo },
+    { to: '/more', label: 'More', icon: MoreHorizontal },
     { to: '/profile', label: 'Profile', icon: User },
   ];
 

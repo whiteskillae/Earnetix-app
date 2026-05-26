@@ -24,16 +24,19 @@ const TasksPage = () => {
   const [search, setSearch] = useState('');
   const [mySubs, setMySubs] = useState([]);
   const [editingSubId, setEditingSubId] = useState(null);
+  const [myBlogs, setMyBlogs] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tasksRes, subsRes] = await Promise.all([
+        const [tasksRes, subsRes, blogsRes] = await Promise.all([
           request('get', '/tasks'),
-          request('get', '/submissions/my?limit=100')
+          request('get', '/submissions/my?limit=100'),
+          request('get', '/blogs/my').catch(() => ({ success: false, data: [] }))
         ]);
         if (tasksRes.success) setTasks(tasksRes.data.tasks);
         if (subsRes.success) setMySubs(subsRes.data.submissions);
+        if (blogsRes.success) setMyBlogs(blogsRes.data || []);
       } catch (err) {
         toast.error('Sector data retrieval failed.');
       } finally {
@@ -267,17 +270,32 @@ const TasksPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-                  {task.taskType === 'blog' ? (
-                    <button
-                      className="btn-premium btn-primary-new"
-                      style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }}
-                      onClick={() => navigate(`/blog/create/${task._id}?type=public`)}
-                      disabled={isApproved || isPending}
-                    >
-                      {isApproved ? <CheckCircle size={18} /> : isPending ? <Clock size={18} /> : <BookOpen size={18} />}
-                      {isApproved ? 'BLOG SUBMITTED' : isPending ? 'IN REVIEW' : 'WRITE BLOG'}
-                    </button>
-                  ) : (
+                  {task.taskType === 'blog' ? (() => {
+                    // Check blog submission status
+                    const userBlog = myBlogs.find(b => b.taskId === task._id || b.taskId?._id === task._id);
+                    const blogApproved = userBlog?.status === 'approved';
+                    const blogPending = userBlog?.status === 'pending';
+                    const blogRejected = userBlog?.status === 'rejected';
+                    const blogBlocked = userBlog?.status === 'blocked';
+                    const hasBlog = !!userBlog;
+                    return (
+                      <button
+                        className="btn-premium btn-primary-new"
+                        style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: blogApproved ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : blogPending ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : blogRejected ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }}
+                        onClick={() => {
+                          if (blogRejected && userBlog) {
+                            navigate(`/blog/create?edit=${userBlog._id}`);
+                          } else if (!hasBlog) {
+                            navigate(`/blog/create?taskId=${task._id}&type=public`);
+                          }
+                        }}
+                        disabled={blogApproved || blogPending || blogBlocked}
+                      >
+                        {blogApproved ? <CheckCircle size={18} /> : blogPending ? <Clock size={18} /> : blogRejected ? <AlertCircle size={18} /> : <BookOpen size={18} />}
+                        {blogApproved ? 'BLOG APPROVED' : blogPending ? 'IN REVIEW' : blogRejected ? 'RESUBMIT BLOG' : blogBlocked ? 'BLOCKED' : 'WRITE BLOG'}
+                      </button>
+                    );
+                  })() : (
                     <button 
                       className="btn-premium btn-primary-new"
                       style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}

@@ -64,13 +64,25 @@ const createBlog = async (req, res, next) => {
       parsedPages = typeof pages === 'string' ? JSON.parse(pages) : (Array.isArray(pages) ? pages : []);
     } catch { parsedPages = []; }
 
+    // Handle inline images
+    let finalContent = content;
+    let finalPages = parsedPages;
+    if (req.files && req.files.inlineImages) {
+      for (const file of req.files.inlineImages) {
+        const result = await uploadToCloudinary(file.buffer, 'earnetix/blogs/inline', file.originalname);
+        const localUrlRegex = new RegExp(`local:${file.originalname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+        finalContent = finalContent.replace(localUrlRegex, result.url);
+        finalPages = finalPages.map(p => p.replace(localUrlRegex, result.url));
+      }
+    }
+
     const blog = await Blog.create({
       userId: req.user._id,
       taskId,
       taskType,
       title: title.trim(),
-      content,
-      pages: parsedPages,
+      content: finalContent,
+      pages: finalPages,
       coverImage,
       coverImagePublicId,
       excerpt: makeExcerpt(content),
@@ -95,20 +107,33 @@ const updateBlog = async (req, res, next) => {
     if (!blog) return res.status(404).json({ success: false, message: 'Blog not found.' });
 
     if (blog.status === 'blocked') return res.status(403).json({ success: false, message: 'This blog has been permanently blocked.' });
-    if (blog.status === 'approved') return res.status(400).json({ success: false, message: 'Approved blogs cannot be edited. Delete and resubmit.' });
-    if (blog.status === 'pending') return res.status(400).json({ success: false, message: 'Blog is currently under review. Wait for admin response.' });
-    if (blog.rejectionCount >= 2) return res.status(403).json({ success: false, message: 'Maximum resubmissions reached. Blog is permanently blocked.' });
+    if (blog.status === 'approved') return res.status(403).json({ success: false, message: 'Approved blogs cannot be edited.' });
+    if (blog.status === 'rejected' && blog.rejectionCount >= 2) {
+      return res.status(403).json({ success: false, message: 'Maximum resubmissions reached. Blog is permanently blocked.' });
+    }
 
     const { title, content, pages, wordCount } = req.body;
-    
-    if (title) blog.title = title.trim();
-    if (content) {
-      blog.content = content;
-      blog.excerpt = makeExcerpt(content);
-      blog.wordCount = parseInt(wordCount) || countWords(content);
-    }
+    let parsedPages = blog.pages;
     if (pages) {
-      try { blog.pages = typeof pages === 'string' ? JSON.parse(pages) : pages; } catch {}
+      try { parsedPages = typeof pages === 'string' ? JSON.parse(pages) : pages; } catch {}
+    }
+
+    let finalContent = content || blog.content;
+    if (req.files && req.files.inlineImages) {
+      for (const file of req.files.inlineImages) {
+        const result = await uploadToCloudinary(file.buffer, 'earnetix/blogs/inline', file.originalname);
+        const localUrlRegex = new RegExp(`local:${file.originalname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+        finalContent = finalContent.replace(localUrlRegex, result.url);
+        parsedPages = parsedPages.map(p => p.replace(localUrlRegex, result.url));
+      }
+    }
+
+    if (title) blog.title = title.trim();
+    if (finalContent) {
+      blog.content = finalContent;
+      blog.excerpt = makeExcerpt(finalContent);
+      blog.wordCount = parseInt(wordCount) || countWords(finalContent);
+      blog.pages = parsedPages;
     }
 
     // Handle new cover image
@@ -140,7 +165,12 @@ const deleteBlog = async (req, res, next) => {
   try {
     const blog = await Blog.findOne({ _id: req.params.id, userId: req.user._id });
     if (!blog) return res.status(404).json({ success: false, message: 'Blog not found.' });
-    if (blog.status === 'approved') return res.status(400).json({ success: false, message: 'Approved blogs cannot be deleted. Contact admin.' });
+    if (blog.status === 'blocked') return res.status(403).json({ success: false, message: 'This blog has been permanently blocked and cannot be deleted.' });
+    if (blog.status === 'approved') return res.status(403).json({ success: false, message: 'Approved blogs cannot be deleted.' });
+
+    if (blog.taskType === 'assigned') {
+      await AssignedTask.findByIdAndUpdate(blog.taskId, { status: 'accepted' });
+    }
 
     // Cleanup Cloudinary
     if (blog.coverImagePublicId) {
@@ -164,7 +194,7 @@ const getPublicBlogs = async (req, res, next) => {
       .sort({ publishedAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select('title excerpt coverImage userId publishedAt wordCount createdAt');
+      .select('title excerpt coverImage userId publishedAt wordCount createdAt likesCount likes');
 
     const total = await Blog.countDocuments({ status: 'approved' });
 
@@ -195,11 +225,39 @@ const getMyBlogs = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// ─── USER: Toggle Like on Blog ────────────────────────────────────
+const toggleLikeBlog = async (req, res, next) => {
+  try {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ success: false, message: 'Blog not found.' });
+    if (blog.status !== 'approved') return res.status(403).json({ success: false, message: 'Only approved blogs can be liked.' });
+
+    const userId = req.user._id;
+    const alreadyLiked = blog.likes.some(id => id.toString() === userId.toString());
+
+    if (alreadyLiked) {
+      blog.likes = blog.likes.filter(id => id.toString() !== userId.toString());
+      blog.likesCount = Math.max(0, (blog.likesCount || 0) - 1);
+    } else {
+      blog.likes.push(userId);
+      blog.likesCount = (blog.likesCount || 0) + 1;
+    }
+
+    await blog.save();
+
+    res.json({
+      success: true,
+      data: { liked: !alreadyLiked, likesCount: blog.likesCount },
+      message: alreadyLiked ? 'Blog unliked' : 'Blog liked!',
+    });
+  } catch (error) { next(error); }
+};
+
 // ─── ADMIN: Get All Blogs ─────────────────────────────────────────
 const adminGetAllBlogs = async (req, res, next) => {
   try {
     const { status } = req.query;
-    const filter = status ? { status } : {};
+    const filter = status && status !== 'all' ? { status } : {};
     const blogs = await Blog.find(filter)
       .populate('userId', 'name username uid email avatar')
       .sort({ createdAt: -1 });
@@ -271,40 +329,42 @@ const adminRejectBlog = async (req, res, next) => {
     blog.reviewedAt = new Date();
 
     if (blog.rejectionCount >= 2) {
-      // Permanently block
+      // Permanently block after 2 rejections
       blog.status = 'blocked';
-      // Block the assigned task too
       if (blog.taskType === 'assigned') {
         await AssignedTask.findByIdAndUpdate(blog.taskId, { status: 'rejected', rejectionReason: reason });
       }
-      await blog.save();
 
-      // Announce block
       await Announcement.create({
         title: '❌ Blog Permanently Blocked',
-        content: `Your blog "${blog.title}" has been rejected for the 2nd time and is now permanently blocked. Reason: ${reason}. This task has been closed.`,
+        content: `Your blog "${blog.title}" has been permanently blocked after ${blog.rejectionCount} rejections. Reason: ${reason}`,
         priority: 'high',
         targetUsers: [blog.userId],
         createdBy: req.user._id,
       });
+    } else {
+      // First rejection — allow resubmission
+      blog.status = 'rejected';
+      if (blog.taskType === 'assigned') {
+        await AssignedTask.findByIdAndUpdate(blog.taskId, { status: 'rejected', rejectionReason: reason });
+      }
 
-      return res.json({ success: true, message: 'Blog blocked after 2nd rejection.', data: blog });
+      await Announcement.create({
+        title: '⚠️ Blog Needs Revision',
+        content: `Your blog "${blog.title}" needs revision. Reason: ${reason}. You have ${2 - blog.rejectionCount} resubmission(s) remaining.`,
+        priority: 'high',
+        targetUsers: [blog.userId],
+        createdBy: req.user._id,
+      });
     }
 
-    // First rejection — allow resubmit
-    blog.status = 'rejected';
     await blog.save();
 
-    // Send targeted rejection announcement
-    await Announcement.create({
-      title: '⚠️ Blog Rejected',
-      content: `Your blog "${blog.title}" was rejected (Attempt ${blog.rejectionCount}/2). Reason: ${reason}. You can edit and resubmit it. After 2 rejections it will be permanently blocked.`,
-      priority: 'high',
-      targetUsers: [blog.userId],
-      createdBy: req.user._id,
+    res.json({
+      success: true,
+      message: blog.rejectionCount >= 2 ? 'Blog permanently blocked.' : 'Blog rejected. User can resubmit.',
+      data: blog,
     });
-
-    res.json({ success: true, message: `Blog rejected (${blog.rejectionCount}/2). User notified.`, data: blog });
   } catch (error) { next(error); }
 };
 
@@ -352,6 +412,7 @@ module.exports = {
   getPublicBlogs,
   getBlogById,
   getMyBlogs,
+  toggleLikeBlog,
   adminGetAllBlogs,
   adminApproveBlog,
   adminRejectBlog,

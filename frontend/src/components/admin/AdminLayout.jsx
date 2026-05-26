@@ -14,7 +14,8 @@ import {
   Award,
   Image,
   Activity,
-  BarChart2
+  BarChart2,
+  BookOpen
 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -47,6 +48,7 @@ const AdminLayout = ({ children }) => {
     { id: 'reports', label: 'Intelligence', icon: <Shield size={20} /> },
     { id: 'announcements', label: 'Broadcasting', icon: <Megaphone size={20} /> },
     { id: 'gallery', label: 'Gallery', icon: <Image size={20} /> },
+    { id: 'blogs', label: 'Blogs Review', icon: <BookOpen size={20} /> },
     { id: 'logs', label: 'Activity Logs', icon: <Activity size={20} /> },
   ];
 

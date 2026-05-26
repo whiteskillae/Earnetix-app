@@ -9,6 +9,7 @@ import BottomNav from './components/common/BottomNav';
 import MobileHeader from './components/common/MobileHeader';
 import Loader from './components/common/Loader';
 import KeepAlive from './components/common/KeepAlive';
+import ErrorBoundaryFallback from './components/common/ErrorBoundary';
 
 // Lazy loaded pages to optimize bundle size
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -28,6 +29,9 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogEditorPage = lazy(() => import('./pages/BlogEditorPage'));
+const MorePage = lazy(() => import('./pages/MorePage'));
+const PatchNotesPage = lazy(() => import('./pages/PatchNotesPage'));
+const RulesPage = lazy(() => import('./pages/RulesPage'));
 import { ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -140,6 +144,9 @@ const AppRoutes = () => (
       <Route path="/announcements" element={<ProtectedRoute><AppLayout><AnnouncementsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/leaderboard" element={<ProtectedRoute><AppLayout><LeaderboardPage /></AppLayout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><AppLayout><ProfilePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/more" element={<ProtectedRoute><AppLayout><MorePage /></AppLayout></ProtectedRoute>} />
+      <Route path="/updates" element={<ProtectedRoute><AppLayout><PatchNotesPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/rules" element={<ProtectedRoute><AppLayout><RulesPage /></AppLayout></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><AppLayout><ReportPage /></AppLayout></ProtectedRoute>} />
       <Route path="/missions" element={<ProtectedRoute><AppLayout><MissionsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/withdraw" element={<ProtectedRoute><AppLayout><WithdrawalPage /></AppLayout></ProtectedRoute>} />
@@ -161,26 +168,28 @@ const AppRoutes = () => (
 
 const App = () => (
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-    <BrowserRouter>
-      <AuthProvider>
-        <KeepAlive />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#1A1A1A',
-              color: '#fff',
-              border: '1px solid #2A2A2A',
-              borderRadius: '10px',
-              fontSize: '0.9rem',
-            },
-            success: { iconTheme: { primary: '#00D166', secondary: '#fff' } },
-            error: { iconTheme: { primary: '#FF4D4F', secondary: '#fff' } },
-          }}
-        />
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundaryFallback>
+      <BrowserRouter>
+        <AuthProvider>
+          <KeepAlive />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#1A1A1A',
+                color: '#fff',
+                border: '1px solid #2A2A2A',
+                borderRadius: '10px',
+                fontSize: '0.9rem',
+              },
+              success: { iconTheme: { primary: '#00D166', secondary: '#fff' } },
+              error: { iconTheme: { primary: '#FF4D4F', secondary: '#fff' } },
+            }}
+          />
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundaryFallback>
   </GoogleOAuthProvider>
 );
 

@@ -40,7 +40,7 @@ const AdminPage = () => {
 
   // Modals state
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', rewardPoints: 10, inputType: 'image' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', rewardPoints: 10, taskType: 'general', inputType: 'image', attachments: [] });
   const [editingTask, setEditingTask] = useState(null);
 
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -260,10 +260,14 @@ const AdminPage = () => {
     formData.append('title', taskForm.title.trim());
     formData.append('description', taskForm.description.trim());
     formData.append('rewardPoints', Math.floor(Number(taskForm.rewardPoints)));
-    formData.append('inputType', taskForm.inputType);
+    
+    // Auto-set inputType to text if blog
+    const finalInputType = taskForm.taskType === 'blog' ? 'text' : taskForm.inputType;
+    formData.append('inputType', finalInputType);
     formData.append('taskType', taskForm.taskType || 'general');
     
-    if (taskForm.attachments) {
+    // Only append attachments if not blog
+    if (taskForm.attachments && taskForm.taskType !== 'blog') {
       taskForm.attachments.forEach(file => {
         formData.append('attachments', file);
       });
@@ -468,40 +472,46 @@ const AdminPage = () => {
           <div className="form-group"><label>Task Instructions</label><textarea className="form-input" rows="4" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} required /></div>
           <div className="grid-2">
             <div className="form-group"><label>Points Reward</label><input type="number" className="form-input" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
-            <div className="form-group"><label>Submission Type</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}>
-              <option value="image">Screenshot Only</option>
-              <option value="link">Link/URL Only</option>
-              <option value="text">Text Response Only</option>
-              <option value="file">File Upload Only</option>
-              <option value="text_link">Text + Link</option>
-              <option value="text_image">Text + Screenshot</option>
-              <option value="text_file">Text + File</option>
-              <option value="image_file">Screenshot + File</option>
-              <option value="all">Full Evidence (Text+Img+File+Link)</option>
-            </select></div>
+            {taskForm.taskType !== 'blog' && (
+              <div className="form-group"><label>Submission Type (User Evidence)</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}>
+                <option value="image">Screenshot Only</option>
+                <option value="link">Link/URL Only</option>
+                <option value="text">Text Response Only</option>
+                <option value="file">File Upload Only</option>
+                <option value="text_link">Text + Link</option>
+                <option value="text_image">Text + Screenshot</option>
+                <option value="text_file">Text + File</option>
+                <option value="image_file">Screenshot + File</option>
+                <option value="all">Full Evidence (Text+Img+File+Link)</option>
+              </select></div>
+            )}
           </div>
           <div className="form-group">
             <label>Task Type</label>
             <select className="form-input" value={taskForm.taskType || 'general'} onChange={(e) => setTaskForm({ ...taskForm, taskType: e.target.value })}>
               <option value="general">General</option>
               <option value="blog">📝 Blog</option>
+              <option value="video">🎥 Video</option>
               <option value="software">💻 Software</option>
               <option value="media">🎬 Media</option>
+              <option value="graphic_design">🎨 Graphic Design</option>
               <option value="other">Other</option>
             </select>
             {(taskForm.taskType === 'blog') && (
-              <p style={{ fontSize: '0.78rem', color: 'var(--blue-light)', marginTop: '6px' }}>ℹ Users will submit a blog post via the Blog Editor page.</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--blue-light)', marginTop: '6px' }}>ℹ Users will submit a blog post via the Blog Editor page. No evidence attachment configuration is needed.</p>
             )}
           </div>
-          <div className="form-group">
-            <label>Task Attachments</label>
-            <input 
-              type="file" 
-              multiple 
-              className="form-input" 
-              onChange={(e) => setTaskForm({ ...taskForm, attachments: Array.from(e.target.files) })} 
-            />
-          </div>
+          {taskForm.taskType !== 'blog' && (
+            <div className="form-group">
+              <label>Task Attachments</label>
+              <input 
+                type="file" 
+                multiple 
+                className="form-input" 
+                onChange={(e) => setTaskForm({ ...taskForm, attachments: Array.from(e.target.files) })} 
+              />
+            </div>
+          )}
           <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Update Task' : 'Create Task'}</button>
         </form>
       </Modal>
@@ -564,26 +574,50 @@ const AdminPage = () => {
         </form>
       </Modal>
 
-      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title="Submission Verification">
+      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title={previewSub?.isBlogPreview ? 'Blog Preview' : 'Submission Verification'}>
         {previewSub && (
           <div className="preview-content">
-            <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
-              <p style={{ fontSize: '0.9rem' }}><strong>Agent:</strong> {previewSub.userId?.name}</p>
-              <p style={{ fontSize: '0.9rem' }}><strong>Objective:</strong> {previewSub.taskId?.title}</p>
-            </div>
-            {previewSub.textContent && <div className="proof-section"><h5>Text Evidence:</h5><div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem' }}>{previewSub.textContent}</div></div>}
-            {previewSub.linkUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Submission Link:</h5><a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all' }}>{previewSub.linkUrl}</a></div>}
-            {previewSub.imageUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Screenshot Proof:</h5><img src={previewSub.imageUrl} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} /></div>}
-            {previewSub.fileUrl && (
-              <div className="proof-section" style={{ marginTop: '20px' }}>
-                <h5>File Archive:</h5>
-                <a href={getDownloadableUrl(previewSub.fileUrl)} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
-                  <Upload size={16} /> Inspect File
-                </a>
-              </div>
+            {previewSub.isBlogPreview ? (
+              <>
+                <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
+                  <p style={{ fontSize: '0.9rem' }}><strong>Author:</strong> {previewSub.userId?.name}</p>
+                  <p style={{ fontSize: '0.9rem' }}><strong>Blog Title:</strong> {previewSub.title}</p>
+                  <p style={{ fontSize: '0.8rem', color: '#8b5cf6' }}>📝 Blog Submission · {previewSub.wordCount || '—'} words</p>
+                </div>
+                {previewSub.coverImage && (
+                  <div className="proof-section" style={{ marginBottom: '20px' }}>
+                    <h5>Cover Image:</h5>
+                    <img src={previewSub.coverImage} alt="Cover" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', maxHeight: '300px', objectFit: 'cover' }} />
+                  </div>
+                )}
+                <div className="proof-section">
+                  <h5>Blog Content:</h5>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '12px', fontSize: '0.9rem', lineHeight: 1.7, maxHeight: '400px', overflow: 'auto' }}>
+                    <div dangerouslySetInnerHTML={{ __html: previewSub.content }} />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
+                  <p style={{ fontSize: '0.9rem' }}><strong>Agent:</strong> {previewSub.userId?.name}</p>
+                  <p style={{ fontSize: '0.9rem' }}><strong>Objective:</strong> {previewSub.taskId?.title}</p>
+                </div>
+                {previewSub.textContent && <div className="proof-section"><h5>Text Evidence:</h5><div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem' }}>{previewSub.textContent}</div></div>}
+                {previewSub.linkUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Submission Link:</h5><a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all' }}>{previewSub.linkUrl}</a></div>}
+                {previewSub.imageUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Screenshot Proof:</h5><img src={previewSub.imageUrl} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} /></div>}
+                {previewSub.fileUrl && (
+                  <div className="proof-section" style={{ marginTop: '20px' }}>
+                    <h5>File Archive:</h5>
+                    <a href={getDownloadableUrl(previewSub.fileUrl)} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
+                      <Upload size={16} /> Inspect File
+                    </a>
+                  </div>
+                )}
+              </>
             )}
             <div className="preview-meta" style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', opacity: 0.5, fontSize: '0.75rem' }}>
-              <span>Attempt ID: {previewSub._id.slice(-8)}</span>
+              <span>ID: {previewSub._id.slice(-8)}</span>
               <span>Logged: {new Date(previewSub.createdAt).toLocaleString()}</span>
             </div>
           </div>

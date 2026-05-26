@@ -452,7 +452,7 @@ const AssignmentManagement = () => {
                         Task Type
                       </label>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {[{ v: 'general', l: 'General' }, { v: 'blog', l: '📝 Blog' }, { v: 'software', l: '💻 Software' }, { v: 'media', l: '🎬 Media' }, { v: 'other', l: 'Other' }].map(opt => (
+                        {[{ v: 'general', l: 'General' }, { v: 'blog', l: '📝 Blog' }, { v: 'video', l: '🎥 Video' }, { v: 'software', l: '💻 Software' }, { v: 'media', l: '🎬 Media' }, { v: 'graphic_design', l: '🎨 Graphic Design' }, { v: 'other', l: 'Other' }].map(opt => (
                           <button key={opt.v} type="button"
                             onClick={() => setSubmissionConfig(prev => ({ ...prev, taskType: opt.v }))}
                             style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid', borderColor: submissionConfig.taskType === opt.v ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.07)', background: submissionConfig.taskType === opt.v ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)', color: submissionConfig.taskType === opt.v ? 'var(--blue-light)' : 'var(--gray-400)', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}>

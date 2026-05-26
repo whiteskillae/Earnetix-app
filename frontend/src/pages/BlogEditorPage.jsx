@@ -4,11 +4,55 @@ import { useApi } from '../hooks/useApi';
 import toast from 'react-hot-toast';
 import {
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight,
-  AlignJustify, List, ListOrdered, Link, Image, Film, FileText as FileIcon,
-  Plus, Minus, Eye, EyeOff, Upload, X, ChevronDown, Separator, Type,
+  AlignJustify, List, ListOrdered, Link, Image, Film,
+  Plus, Minus, Eye, Upload, X, ChevronDown, Trash2, Move,
   Palette, Highlighter, Send, Save, ArrowLeft, BookOpen, Clock, Hash,
-  Crop, Move, ExternalLink
 } from 'lucide-react';
+
+// ─── Local IndexedDB for Draft Images ──────────────────────────────
+const DB_NAME = 'BlogDraftsDB';
+const STORE_NAME = 'draft_images';
+
+const initDB = () => new Promise((resolve, reject) => {
+  const req = indexedDB.open(DB_NAME, 1);
+  req.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
+  req.onsuccess = () => resolve(req.result);
+  req.onerror = () => reject(req.error);
+});
+
+const saveImageToIDB = async (id, file) => {
+  const db = await initDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put({ id, file });
+    tx.oncomplete = () => resolve();
+  });
+};
+
+const getImageFromIDB = async (id) => {
+  const db = await initDB();
+  return new Promise((resolve) => {
+    const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(id);
+    req.onsuccess = () => resolve(req.result?.file);
+  });
+};
+
+const getAllImagesFromIDB = async () => {
+  const db = await initDB();
+  return new Promise((resolve) => {
+    const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+  });
+};
+
+const clearIDB = async () => {
+  const db = await initDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).clear();
+    tx.oncomplete = () => resolve();
+  });
+};
 
 // ─── Color Picker Component ───────────────────────────────────────
 const ColorPicker = ({ value, onChange, title }) => {
@@ -240,14 +284,24 @@ const BlogEditorPage = () => {
   const [pendingImages, setPendingImages] = useState([]); // files to upload on publish
   const [savedAt, setSavedAt] = useState(null);
   const [wordCount, setWordCount] = useState(0);
+  const [tasksLoading, setTasksLoading] = useState(true);
 
   // ── Load blog tasks ────────────────────────────────────────────
   useEffect(() => {
     const loadBlogTasks = async () => {
+      setTasksLoading(true);
       try {
         const res = await request('get', '/blogs/tasks');
-        if (res.success) setBlogTasks(res.data);
+        if (res.success) {
+          setBlogTasks(res.data);
+          // Auto-open task selector if no taskId in URL and not editing
+          const total = (res.data.publicTasks?.length || 0) + (res.data.assignedTasks?.length || 0);
+          if (!taskId && !editBlogId && total > 0) {
+            setShowTaskSelector(true);
+          }
+        }
       } catch {}
+      setTasksLoading(false);
     };
     loadBlogTasks();
   }, []);
@@ -273,7 +327,9 @@ const BlogEditorPage = () => {
         if (res.success) {
           const blog = res.data;
           setTitle(blog.title);
-          setPages(blog.pages?.length > 0 ? blog.pages : [blog.content]);
+          const loadedPages = blog.pages?.length > 0 ? blog.pages : [blog.content];
+          setPages(loadedPages);
+          if (editorRef.current) editorRef.current.innerHTML = loadedPages[0] || '';
           if (blog.coverImage) setCoverPreview(blog.coverImage);
           setSelectedTask({ _id: blog.taskId, taskType: blog.taskType });
         }
@@ -298,6 +354,43 @@ const BlogEditorPage = () => {
     setWordCount(wc);
   }, [pages]);
 
+  // ── IDB Image Rehydration ──────────────────────────────────────
+  useEffect(() => {
+    const rehydrateImages = async () => {
+      const allDraftImages = await getAllImagesFromIDB();
+      if (!allDraftImages.length) return;
+      
+      setPages(prevPages => {
+        let changed = false;
+        const newPages = prevPages.map(pageHtml => {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = pageHtml;
+          const pendingImgs = tempDiv.querySelectorAll('img[data-pending="true"]');
+          pendingImgs.forEach(img => {
+            const localId = img.getAttribute('data-local-id');
+            const found = allDraftImages.find(i => i.id === localId);
+            if (found && found.file) {
+              const objUrl = URL.createObjectURL(found.file);
+              // don't revoke here because it's needed for the editor
+              img.src = objUrl;
+              changed = true;
+            }
+          });
+          return changed ? tempDiv.innerHTML : pageHtml;
+        });
+        
+        if (changed && editorRef.current) {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = newPages[currentPage];
+          editorRef.current.innerHTML = tempDiv.innerHTML;
+        }
+        return newPages;
+      });
+    };
+    
+    setTimeout(rehydrateImages, 500);
+  }, [editBlogId]);
+
   // ── Editor command helpers ─────────────────────────────────────
   const exec = useCallback((cmd, value = null) => {
     document.execCommand(cmd, false, value);
@@ -315,16 +408,12 @@ const BlogEditorPage = () => {
     }
   }, [currentPage]);
 
-  const loadPageContent = useCallback((pageIdx) => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = pages[pageIdx] || '';
-    }
-  }, [pages]);
-
   const switchPage = (idx) => {
     saveCurrentPageContent();
     setCurrentPage(idx);
-    setTimeout(() => loadPageContent(idx), 10);
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.innerHTML = pages[idx] || '';
+    }, 10);
   };
 
   const addPage = () => {
@@ -345,18 +434,23 @@ const BlogEditorPage = () => {
     setPages(newPages);
     const newIdx = Math.min(idx, newPages.length - 1);
     setCurrentPage(newIdx);
-    setTimeout(() => loadPageContent(newIdx), 10);
+    setTimeout(() => {
+      if (editorRef.current) editorRef.current.innerHTML = newPages[newIdx] || '';
+    }, 10);
   };
 
   // ── Insert image into editor ───────────────────────────────────
-  const handleInsertImage = ({ src, alt, file }) => {
+  const handleInsertImage = async ({ src, alt, file }) => {
+    const localId = file ? `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` : null;
+    const wrapperHTML = (imgSrc) => `<span class="resizer-wrap" style="display:inline-block; resize:both; overflow:hidden; max-width:100%; width:300px; border:2px solid transparent; border-radius:8px; margin:8px; vertical-align:middle; transition:border-color 0.2s;"><img src="${imgSrc}" alt="${alt || 'Image'}" ${localId ? `data-pending="true" data-local-id="${localId}"` : ''} style="width:100%; height:100%; object-fit:cover; display:block; cursor:pointer;" /></span>&nbsp;`;
     if (file) {
       setPendingImages(prev => [...prev, file]);
-      // Use blob URL temporarily in editor; will replace with Cloudinary URL on publish
+      // Save to IndexedDB for persistence
+      try { await saveImageToIDB(localId, file); } catch {}
       const blobUrl = URL.createObjectURL(file);
-      exec('insertHTML', `<img src="${blobUrl}" alt="${alt}" data-pending="true" style="max-width:100%;border-radius:12px;margin:12px 0;cursor:pointer;" />`);
+      exec('insertHTML', wrapperHTML(blobUrl));
     } else {
-      exec('insertHTML', `<img src="${src}" alt="${alt}" style="max-width:100%;border-radius:12px;margin:12px 0;" />`);
+      exec('insertHTML', wrapperHTML(src));
     }
   };
 
@@ -396,13 +490,46 @@ const BlogEditorPage = () => {
     try {
       const formData = new FormData();
       formData.append('title', title.trim());
-      formData.append('content', allContent);
-      formData.append('pages', JSON.stringify(pages));
+
+      // Replace blob URLs in content/pages with local:id placeholders before sending
+      const allDraftImages = await getAllImagesFromIDB();
+      let processedContent = allContent;
+      let processedPages = [...pages];
+
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = allContent;
+      const pendingImgs = Array.from(tempDiv.querySelectorAll('img[data-pending="true"]'));
+      const imageFiles = [];
+
+      for (const img of pendingImgs) {
+        const localId = img.getAttribute('data-local-id');
+        if (!localId) continue;
+        const draftImg = allDraftImages.find(item => item.id === localId);
+        if (draftImg && draftImg.file) {
+          imageFiles.push({ id: localId, file: draftImg.file });
+          // Replace blob src with local:id placeholder in content
+          const blobSrc = img.getAttribute('src');
+          if (blobSrc) {
+            const escaped = blobSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escaped, 'g');
+            processedContent = processedContent.replace(regex, `local:${localId}`);
+            processedPages = processedPages.map(p => p.replace(regex, `local:${localId}`));
+          }
+        }
+      }
+
+      formData.append('content', processedContent);
+      formData.append('pages', JSON.stringify(processedPages));
       formData.append('taskId', selectedTask._id);
       formData.append('taskType', selectedTask.taskType);
       formData.append('wordCount', wordCount);
 
       if (coverImage) formData.append('coverImage', coverImage);
+
+      for (const { id, file } of imageFiles) {
+        const newFile = new File([file], `local:${id}`, { type: file.type || 'image/jpeg' });
+        formData.append('inlineImages', newFile);
+      }
 
       let res;
       if (editBlogId) {
@@ -414,6 +541,7 @@ const BlogEditorPage = () => {
       if (res.success) {
         toast.success(editBlogId ? 'Blog resubmitted for review!' : 'Blog published! Pending admin review.');
         localStorage.removeItem('blog_draft');
+        await clearIDB();
         navigate('/blog');
       }
     } catch (err) {
@@ -430,6 +558,40 @@ const BlogEditorPage = () => {
   };
 
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  const totalBlogTasks = (blogTasks.publicTasks?.length || 0) + (blogTasks.assignedTasks?.length || 0);
+
+  // ── Gate: loading ─────────────────────────────────────────────
+  if (tasksLoading && !editBlogId) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', background: 'var(--dark)', color: 'var(--gray-400)' }}>
+        <span className="spin-dot" style={{ width: '40px', height: '40px', borderWidth: '3px' }} />
+        <p style={{ fontWeight: 700 }}>Loading blog tasks...</p>
+        <style>{`.spin-dot { display: inline-block; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // ── Gate: no blog tasks available ─────────────────────────────
+  if (!tasksLoading && totalBlogTasks === 0 && !editBlogId) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', background: 'var(--dark)', padding: '40px', textAlign: 'center' }}>
+        <BookOpen size={64} style={{ opacity: 0.15 }} />
+        <h2 style={{ margin: 0, fontWeight: 900, color: 'white' }}>No Blog Tasks Available</h2>
+        <p style={{ color: 'var(--gray-400)', maxWidth: '420px', lineHeight: 1.7 }}>
+          You can only write a blog when the admin has created a <strong style={{ color: 'white' }}>Blog-type task</strong> or assigned a <strong style={{ color: 'white' }}>Blog mission</strong> to you.
+        </p>
+        <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Check back later or contact your admin.</p>
+        <button
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'var(--gray-300)', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' }}
+          onClick={() => navigate('/blog')}
+        >
+          <ArrowLeft size={18} /> Back to Blogs
+        </button>
+        <style>{`.spin-dot { display: inline-block; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="blog-editor-wrapper">
@@ -607,16 +769,102 @@ const BlogEditorPage = () => {
           </div>
 
           {/* Editor Area */}
-          <div
-            ref={editorRef}
-            className="blog-editor-area"
-            contentEditable
-            suppressContentEditableWarning
-            data-placeholder="Start writing your blog..."
-            onInput={saveCurrentPageContent}
-            onBlur={saveCurrentPageContent}
-            dangerouslySetInnerHTML={{ __html: pages[currentPage] || '' }}
-          />
+          <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div
+              ref={editorRef}
+              className="blog-editor-area"
+              contentEditable
+              suppressContentEditableWarning
+              data-placeholder="Start writing your blog..."
+              onInput={saveCurrentPageContent}
+              onBlur={saveCurrentPageContent}
+              onClick={(e) => {
+                if (!editorRef.current) return;
+                
+                // Clear all selection
+                const wraps = editorRef.current.querySelectorAll('.resizer-wrap');
+                wraps.forEach(w => {
+                  w.classList.remove('selected');
+                  // Remove old controls if they exist to clean up
+                  const controls = w.querySelectorAll('.img-controls, .resize-handle, .drag-handle');
+                  controls.forEach(c => c.remove());
+                });
+                
+                let targetWrap = null;
+                if (e.target.tagName === 'IMG' && e.target.parentElement?.classList.contains('resizer-wrap')) {
+                  targetWrap = e.target.parentElement;
+                } else if (e.target.classList?.contains('resizer-wrap')) {
+                  targetWrap = e.target;
+                }
+                
+                if (targetWrap) {
+                  targetWrap.classList.add('selected');
+                  
+                  // Inject controls
+                  if (!targetWrap.querySelector('.img-controls')) {
+                    const controls = document.createElement('div');
+                    controls.className = 'img-controls';
+                    controls.innerHTML = '<button class="img-btn del" title="Delete Image">🗑️</button>';
+                    
+                    const dragHandle = document.createElement('div');
+                    dragHandle.className = 'drag-handle';
+                    dragHandle.innerHTML = '✋';
+                    dragHandle.draggable = true;
+                    
+                    const resizeHandle = document.createElement('div');
+                    resizeHandle.className = 'resize-handle br';
+                    
+                    controls.querySelector('.del').onclick = () => {
+                      targetWrap.remove();
+                      saveCurrentPageContent();
+                    };
+                    
+                    // Drag logic
+                    dragHandle.ondragstart = (ev) => {
+                      ev.dataTransfer.setData('text/html', targetWrap.outerHTML);
+                      ev.dataTransfer.effectAllowed = 'move';
+                      setTimeout(() => targetWrap.classList.add('dragging'), 0);
+                    };
+                    dragHandle.ondragend = () => {
+                      targetWrap.classList.remove('dragging');
+                    };
+                    
+                    // Resize logic
+                    let startX, startW;
+                    resizeHandle.onmousedown = (ev) => {
+                      ev.preventDefault();
+                      startX = ev.clientX;
+                      startW = targetWrap.offsetWidth;
+                      document.onmousemove = (e) => {
+                        const newW = startW + (e.clientX - startX);
+                        if (newW > 50) targetWrap.style.width = newW + 'px';
+                      };
+                      document.onmouseup = () => {
+                        document.onmousemove = null;
+                        document.onmouseup = null;
+                        saveCurrentPageContent();
+                      };
+                    };
+                    
+                    targetWrap.appendChild(controls);
+                    targetWrap.appendChild(dragHandle);
+                    targetWrap.appendChild(resizeHandle);
+                  }
+                }
+              }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const html = e.dataTransfer.getData('text/html');
+                if (html && html.includes('resizer-wrap')) {
+                  const dragging = editorRef.current.querySelector('.resizer-wrap.dragging');
+                  if (dragging) dragging.remove();
+                  document.execCommand('insertHTML', false, html);
+                  saveCurrentPageContent();
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -743,22 +991,6 @@ const BlogEditorPage = () => {
         .blog-modal-box { background: rgba(15,15,22,0.99); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 28px; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 40px 80px rgba(0,0,0,0.7); animation: modalIn 0.25s cubic-bezier(0.175,0.885,0.32,1.275); }
         @keyframes modalIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .blog-modal-header { display: flex; align-items: center; justify-content: space-between; }
-        .blog-modal-header h3 { margin: 0; font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-        .blog-modal-header button { background: none; border: none; color: var(--gray-400); cursor: pointer; padding: 4px; }
-        .blog-modal-tabs { display: flex; gap: 8px; }
-        .blog-modal-tabs button { padding: 8px 20px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; color: var(--gray-400); font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-        .blog-modal-tabs button.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.3); color: var(--blue-light); }
-        .blog-modal-input { padding: 12px 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; color: white; font-size: 0.9rem; outline: none; width: 100%; box-sizing: border-box; transition: border-color 0.2s; }
-        .blog-modal-input:focus { border-color: rgba(59,130,246,0.4); }
-        .btn-blog-primary { padding: 14px; background: var(--blue-gradient); border: none; border-radius: 14px; color: white; font-size: 0.9rem; font-weight: 800; cursor: pointer; transition: all 0.2s; width: 100%; }
-        .btn-blog-primary:hover { filter: brightness(1.1); }
-        .blog-upload-zone { border: 2px dashed rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer; color: var(--gray-500); font-size: 0.85rem; text-align: center; transition: all 0.2s; min-height: 140px; justify-content: center; }
-        .blog-upload-zone:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.02); }
-
-        /* Task Selector */
-        .blog-task-select-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; cursor: pointer; transition: all 0.2s; }
-        .blog-task-select-card:hover { background: rgba(59,130,246,0.05); border-color: rgba(59,130,246,0.2); transform: translateY(-2px); }
-
         /* Preview */
         .blog-preview-overlay { position: fixed; inset: 0; z-index: 9500; background: rgba(0,0,0,0.95); overflow-y: auto; }
         .blog-preview-container { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
@@ -773,6 +1005,36 @@ const BlogEditorPage = () => {
         .blog-preview-content img { max-width: 100%; border-radius: 16px; margin: 20px 0; }
         .blog-preview-content h1, .blog-preview-content h2, .blog-preview-content h3 { color: white; margin: 32px 0 16px; }
         .blog-preview-content a { color: var(--blue-light); }
+
+        /* Advanced Image Handling */
+        .resizer-wrap { position: relative; display: inline-block; vertical-align: middle; margin: 8px; transition: all 0.2s; user-select: none; max-width: 100%; border: 2px solid transparent; border-radius: 8px; }
+        .resizer-wrap.selected { border-color: var(--blue-light); }
+        .resizer-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; pointer-events: none; }
+        
+        .img-controls { position: absolute; top: -16px; right: -16px; display: none; gap: 8px; z-index: 10; background: rgba(0,0,0,0.8); padding: 4px; border-radius: 12px; backdrop-filter: blur(4px); }
+        .resizer-wrap.selected .img-controls { display: flex; }
+        .img-btn { background: rgba(255,255,255,0.1); border: none; width: 28px; height: 28px; border-radius: 8px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .img-btn.del:hover { background: rgba(239,68,68,0.8); }
+        
+        .resize-handle { position: absolute; width: 16px; height: 16px; background: var(--blue); border: 2px solid white; border-radius: 50%; z-index: 10; display: none; }
+        .resizer-wrap.selected .resize-handle { display: block; }
+        .resize-handle.br { bottom: -8px; right: -8px; cursor: nwse-resize; }
+        
+        .drag-handle { position: absolute; top: -16px; left: -16px; display: none; width: 32px; height: 32px; background: rgba(0,0,0,0.8); border-radius: 12px; align-items: center; justify-content: center; cursor: grab; z-index: 10; color: white; }
+        .resizer-wrap.selected .drag-handle { display: flex; }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+          .blog-editor-topbar { padding: 12px; flex-direction: column; align-items: stretch; gap: 12px; height: auto; }
+          .blog-editor-title-wrap { text-align: center; }
+          .blog-topbar-actions { justify-content: center; }
+          .blog-editor-layout { display: flex; flex-direction: column-reverse; }
+          .blog-editor-sidebar-left { border-right: none; border-top: 1px solid rgba(255,255,255,0.05); }
+          .blog-toolbar { padding: 8px; gap: 4px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+          .blog-title-input { font-size: 1.5rem; padding: 16px; }
+          .blog-editor-area { padding: 16px; font-size: 1.05rem; }
+          .blog-preview-overlay { padding: 16px; }
+        }
       `}</style>
     </div>
   );

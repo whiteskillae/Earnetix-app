@@ -224,7 +224,7 @@ const MissionsPage = () => {
                   )}
                   {(m.status === 'accepted' || m.status === 'in_progress') && !isPastDeadline && (
                     m.taskType === 'blog' ? (
-                      <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }} onClick={() => navigate(`/blog/create/${m._id}?type=assigned`)}>
+                      <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }} onClick={() => navigate(`/blog/create?taskId=${m._id}&type=assigned`)}>
                         <BookOpen size={20} /> WRITE BLOG POST
                       </button>
                     ) : (

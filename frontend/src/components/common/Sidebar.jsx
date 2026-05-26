@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useApi } from '../../hooks/useApi';
-import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic, BarChart2, BookOpen } from 'lucide-react';
+import { Menu, X, LayoutDashboard, ListTodo, User, Shield, LogOut, Zap, Bell, Clock, Users, Trophy, Award, Target, Wallet, FileText, BadgeCheck, Mic, BarChart2, BookOpen, MoreHorizontal } from 'lucide-react';
 
 import logo from '../../assets/logo.svg';
 
@@ -35,6 +35,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       { to: '/withdraw', label: 'Withdraw', icon: Wallet },
       { to: '/leaderboard', label: 'Leaderboard', icon: Trophy },
       { to: '/announcements', label: 'Updates', icon: Bell },
+      { to: '/more', label: 'More', icon: MoreHorizontal },
       { to: '/profile', label: 'Profile', icon: User },
     ];
   }

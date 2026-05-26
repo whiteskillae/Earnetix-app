@@ -191,11 +191,7 @@ const BlogManagement = () => {
                     </button>
                   </>
                 )}
-                {blog.status === 'rejected' && blog.rejectionCount < 2 && (
-                  <button className="blog-mgmt-btn reject" onClick={() => { setRejectTargetId(blog._id); setShowRejectModal(true); }} disabled={actionLoading}>
-                    <XCircle size={16} /> Re-Reject
-                  </button>
-                )}
+
                 {blog.status !== 'blocked' && (
                   <button className="blog-mgmt-btn block" onClick={() => handleBlock(blog._id)}>
                     <Ban size={16} /> Block

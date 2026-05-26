@@ -13,7 +13,7 @@ const assignedTaskSchema = new mongoose.Schema({
   },
   taskType: {
     type: String,
-    enum: ['general', 'blog', 'software', 'media', 'other'],
+    enum: ['general', 'blog', 'video', 'software', 'media', 'graphic_design', 'other'],
     default: 'general',
   },
   priority: {
