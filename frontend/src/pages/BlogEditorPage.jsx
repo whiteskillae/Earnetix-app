@@ -444,7 +444,7 @@ const BlogEditorPage = () => {
   // ── Insert image into editor ───────────────────────────────────
   const handleInsertImage = async ({ src, alt, file }) => {
     const localId = file ? `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}` : null;
-    const wrapperHTML = (imgSrc) => `<span class="resizer-wrap" style="display:inline-block; resize:both; overflow:hidden; max-width:100%; width:300px; border:2px solid transparent; border-radius:8px; margin:8px; vertical-align:middle; transition:border-color 0.2s;"><img src="${imgSrc}" alt="${alt || 'Image'}" ${localId ? `data-pending="true" data-local-id="${localId}"` : ''} style="width:100%; height:100%; object-fit:cover; display:block; cursor:pointer;" /></span>&nbsp;`;
+    const wrapperHTML = (imgSrc) => `<span class="resizer-wrap" style="position:relative; display:inline-block; max-width:100%; width:300px; border:2px solid transparent; border-radius:8px; margin:8px; vertical-align:middle; transition:border-color 0.2s;"><img src="${imgSrc}" alt="${alt || 'Image'}" ${localId ? `data-pending="true" data-local-id="${localId}"` : ''} style="width:100%; height:100%; object-fit:cover; display:block; cursor:pointer;" /></span>&nbsp;`;
     if (file) {
       setPendingImages(prev => [...prev, file]);
       // Save to IndexedDB for persistence
@@ -509,13 +509,13 @@ const BlogEditorPage = () => {
         const draftImg = allDraftImages.find(item => item.id === localId);
         if (draftImg && draftImg.file) {
           imageFiles.push({ id: localId, file: draftImg.file });
-          // Replace blob src with local:id placeholder in content
+          // Replace blob src with placeholder in content
           const blobSrc = img.getAttribute('src');
           if (blobSrc) {
             const escaped = blobSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(escaped, 'g');
-            processedContent = processedContent.replace(regex, `local:${localId}`);
-            processedPages = processedPages.map(p => p.replace(regex, `local:${localId}`));
+            processedContent = processedContent.replace(regex, `placeholder_${localId}`);
+            processedPages = processedPages.map(p => p.replace(regex, `placeholder_${localId}`));
           }
         }
       }
@@ -529,7 +529,7 @@ const BlogEditorPage = () => {
       if (coverImage) formData.append('coverImage', coverImage);
 
       for (const { id, file } of imageFiles) {
-        const newFile = new File([file], `local:${id}`, { type: file.type || 'image/jpeg' });
+        const newFile = new File([file], `${id}`, { type: file.type || 'image/jpeg' });
         formData.append('inlineImages', newFile);
       }
 
@@ -555,8 +555,9 @@ const BlogEditorPage = () => {
 
   // ── Get full preview HTML ──────────────────────────────────────
   const getPreviewHTML = () => {
-    saveCurrentPageContent();
-    return pages.join('<hr style="border:none;border-top:2px solid rgba(255,255,255,0.1);margin:48px 0;" />');
+    const tempPages = [...pages];
+    if (editorRef.current) tempPages[currentPage] = editorRef.current.innerHTML;
+    return tempPages.join('<hr style="border:none;border-top:2px solid rgba(255,255,255,0.1);margin:48px 0;" />');
   };
 
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
@@ -806,7 +807,12 @@ const BlogEditorPage = () => {
                   if (!targetWrap.querySelector('.img-controls')) {
                     const controls = document.createElement('div');
                     controls.className = 'img-controls';
-                    controls.innerHTML = '<button class="img-btn del" title="Delete Image">🗑️</button>';
+                    controls.innerHTML = `
+                      <button class="img-btn align" data-align="left" title="Float Left">⬅️</button>
+                      <button class="img-btn align" data-align="center" title="Center">↔️</button>
+                      <button class="img-btn align" data-align="right" title="Float Right">➡️</button>
+                      <button class="img-btn del" title="Delete Image">🗑️</button>
+                    `;
                     
                     const dragHandle = document.createElement('div');
                     dragHandle.className = 'drag-handle';
@@ -820,6 +826,27 @@ const BlogEditorPage = () => {
                       targetWrap.remove();
                       saveCurrentPageContent();
                     };
+                    
+                    controls.querySelectorAll('.align').forEach(btn => {
+                      btn.onclick = (ev) => {
+                        ev.preventDefault();
+                        const align = btn.getAttribute('data-align');
+                        if (align === 'left') {
+                          targetWrap.style.display = 'inline-block';
+                          targetWrap.style.float = 'left';
+                          targetWrap.style.margin = '8px 16px 8px 0';
+                        } else if (align === 'right') {
+                          targetWrap.style.display = 'inline-block';
+                          targetWrap.style.float = 'right';
+                          targetWrap.style.margin = '8px 0 8px 16px';
+                        } else {
+                          targetWrap.style.display = 'block';
+                          targetWrap.style.float = 'none';
+                          targetWrap.style.margin = '8px auto';
+                        }
+                        saveCurrentPageContent();
+                      };
+                    });
                     
                     // Drag logic
                     dragHandle.ondragstart = (ev) => {

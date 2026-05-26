@@ -72,7 +72,7 @@ const createBlog = async (req, res, next) => {
     if (req.files && req.files.inlineImages) {
       for (const file of req.files.inlineImages) {
         const result = await uploadToCloudinary(file.buffer, 'earnetix/blogs/inline', file.originalname);
-        const localUrlRegex = new RegExp(`local:${file.originalname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+        const localUrlRegex = new RegExp(`placeholder_${file.originalname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
         finalContent = finalContent.replace(localUrlRegex, result.url);
         finalPages = finalPages.map(p => p.replace(localUrlRegex, result.url));
       }
@@ -124,7 +124,7 @@ const updateBlog = async (req, res, next) => {
     if (req.files && req.files.inlineImages) {
       for (const file of req.files.inlineImages) {
         const result = await uploadToCloudinary(file.buffer, 'earnetix/blogs/inline', file.originalname);
-        const localUrlRegex = new RegExp(`local:${file.originalname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+        const localUrlRegex = new RegExp(`placeholder_${file.originalname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
         finalContent = finalContent.replace(localUrlRegex, result.url);
         parsedPages = parsedPages.map(p => p.replace(localUrlRegex, result.url));
       }
