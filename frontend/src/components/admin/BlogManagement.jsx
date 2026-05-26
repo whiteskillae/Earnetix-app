@@ -3,7 +3,7 @@ import { useApi } from '../../hooks/useApi';
 import toast from 'react-hot-toast';
 import {
   BookOpen, CheckCircle, XCircle, Eye, Ban, Clock, Filter,
-  User, Calendar, Hash, AlertCircle, ChevronDown, X, Globe
+  User, Calendar, Hash, AlertCircle, ChevronDown, X, Globe, Trash2
 } from 'lucide-react';
 
 const statusColors = {
