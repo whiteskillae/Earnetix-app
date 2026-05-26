@@ -182,14 +182,14 @@ const TasksPage = () => {
           <div className="flex-between" style={{ marginBottom: '8px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)' }}>DAILY QUOTA</span>
               <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--green)' }}>
-                 {mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/8
+                 {mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length + myBlogs.filter(b => new Date(b.createdAt).toDateString() === new Date().toDateString()).length}/8
               </span>
           </div>
           <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
              <div style={{ 
                 height: '100%', 
                 background: 'var(--green-gradient)', 
-                width: `${Math.min((mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length / 8) * 100, 100)}%`,
+                width: `${Math.min(((mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length + myBlogs.filter(b => new Date(b.createdAt).toDateString() === new Date().toDateString()).length) / 8) * 100, 100)}%`,
                 transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
              }}></div>
           </div>

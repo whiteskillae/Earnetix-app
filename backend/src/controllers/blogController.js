@@ -370,16 +370,17 @@ const adminRejectBlog = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// ─── ADMIN: Block Blog ────────────────────────────────────────────
-const adminBlockBlog = async (req, res, next) => {
+// ─── ADMIN: Delete Blog ─────────────────────────────────────────────
+const adminDeleteBlog = async (req, res, next) => {
   try {
-    const blog = await Blog.findByIdAndUpdate(
-      req.params.id,
-      { status: 'blocked', reviewedBy: req.user._id, reviewedAt: new Date() },
-      { new: true }
-    );
+    const blog = await Blog.findByIdAndDelete(req.params.id);
     if (!blog) return res.status(404).json({ success: false, message: 'Blog not found.' });
-    res.json({ success: true, message: 'Blog blocked.', data: blog });
+
+    if (blog.coverImagePublicId) {
+      try { await deleteFromCloudinary(blog.coverImagePublicId); } catch {}
+    }
+
+    res.json({ success: true, message: 'Blog deleted successfully.' });
   } catch (error) { next(error); }
 };
 
@@ -421,6 +422,6 @@ module.exports = {
   adminGetAllBlogs,
   adminApproveBlog,
   adminRejectBlog,
-  adminBlockBlog,
+  adminDeleteBlog,
   getBlogTasks,
 };

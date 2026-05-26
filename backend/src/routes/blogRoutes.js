@@ -15,7 +15,7 @@ const {
   adminGetAllBlogs,
   adminApproveBlog,
   adminRejectBlog,
-  adminBlockBlog,
+  adminDeleteBlog,
   getBlogTasks,
 } = require('../controllers/blogController');
 
@@ -36,10 +36,9 @@ router.post('/', auth, upload.fields([{ name: 'coverImage', maxCount: 1 }, { nam
 router.put('/:id', auth, upload.fields([{ name: 'coverImage', maxCount: 1 }, { name: 'inlineImages', maxCount: 20 }]), updateBlog);
 router.delete('/:id', auth, deleteBlog);
 
-// ─── ADMIN ROUTES ─────────────────────────────────────────────────
 router.get('/admin/all', auth, adminGuard, adminGetAllBlogs);
 router.put('/admin/:id/approve', auth, adminGuard, adminApproveBlog);
 router.put('/admin/:id/reject', auth, adminGuard, adminRejectBlog);
-router.put('/admin/:id/block', auth, adminGuard, adminBlockBlog);
+router.delete('/admin/:id', auth, adminGuard, adminDeleteBlog);
 
 module.exports = router;

@@ -82,16 +82,16 @@ const BlogManagement = () => {
     setActionLoading(false);
   };
 
-  const handleBlock = async (id) => {
-    if (!window.confirm('Permanently block this blog?')) return;
+  const handleDelete = async (id) => {
+    if (!window.confirm('Permanently delete this blog? This action cannot be undone.')) return;
     try {
-      const res = await request('put', `/blogs/admin/${id}/block`);
+      const res = await request('delete', `/blogs/admin/${id}`);
       if (res.success) {
-        toast.success('Blog blocked');
+        toast.success('Blog deleted permanently');
         fetchBlogs();
         if (selectedBlog?._id === id) setSelectedBlog(null);
       }
-    } catch { toast.error('Block failed'); }
+    } catch { toast.error('Delete failed'); }
   };
 
   const filtered = filterStatus === 'all' ? blogs : blogs;
@@ -191,12 +191,9 @@ const BlogManagement = () => {
                     </button>
                   </>
                 )}
-
-                {blog.status !== 'blocked' && (
-                  <button className="blog-mgmt-btn block" onClick={() => handleBlock(blog._id)}>
-                    <Ban size={16} /> Block
-                  </button>
-                )}
+                <button className="blog-mgmt-btn delete" onClick={() => handleDelete(blog._id)}>
+                  <Trash2 size={16} /> Delete
+                </button>
               </div>
             </div>
           ))}
@@ -291,8 +288,8 @@ const BlogManagement = () => {
         .blog-mgmt-btn.approve:hover:not(:disabled) { background: rgba(16,185,129,0.15); }
         .blog-mgmt-btn.reject { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #ef4444; }
         .blog-mgmt-btn.reject:hover:not(:disabled) { background: rgba(239,68,68,0.15); }
-        .blog-mgmt-btn.block { background: rgba(107,114,128,0.08); border-color: rgba(107,114,128,0.2); color: #9ca3af; }
-        .blog-mgmt-btn.block:hover { background: rgba(107,114,128,0.15); }
+        .blog-mgmt-btn.delete { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #ef4444; }
+        .blog-mgmt-btn.delete:hover { background: rgba(239,68,68,0.15); }
         .blog-modal-overlay-admin { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .blog-modal-admin { background: rgba(12,12,18,0.99); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 28px; width: 100%; max-width: 560px; box-shadow: 0 40px 80px rgba(0,0,0,0.7); animation: modalIn 0.25s ease; }
         @keyframes modalIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }

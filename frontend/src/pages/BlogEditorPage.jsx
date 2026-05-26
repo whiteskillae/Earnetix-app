@@ -1020,6 +1020,23 @@ const BlogEditorPage = () => {
         .blog-modal-box { background: rgba(15,15,22,0.99); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 28px; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 40px 80px rgba(0,0,0,0.7); animation: modalIn 0.25s cubic-bezier(0.175,0.885,0.32,1.275); }
         @keyframes modalIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .blog-modal-header { display: flex; align-items: center; justify-content: space-between; }
+        .blog-modal-header h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.1rem; color: white; }
+        .blog-modal-header button { background: rgba(255,255,255,0.05); border: none; padding: 6px; border-radius: 8px; color: var(--gray-400); cursor: pointer; transition: 0.2s; }
+        .blog-modal-header button:hover { background: rgba(239,68,68,0.2); color: #ef4444; }
+        
+        .blog-modal-tabs { display: flex; gap: 8px; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 12px; }
+        .blog-modal-tabs button { flex: 1; padding: 8px; background: transparent; border: none; border-radius: 8px; color: var(--gray-400); font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .blog-modal-tabs button.active { background: rgba(255,255,255,0.1); color: white; }
+        
+        .blog-upload-zone { border: 2px dashed rgba(255,255,255,0.15); border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--gray-400); background: rgba(255,255,255,0.02); }
+        .blog-upload-zone:hover { border-color: var(--blue); background: rgba(59,130,246,0.05); color: white; }
+        
+        .blog-modal-input { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; outline: none; transition: 0.2s; font-size: 0.95rem; }
+        .blog-modal-input:focus { border-color: var(--blue); background: rgba(59,130,246,0.05); }
+        
+        .btn-blog-primary { width: 100%; padding: 14px; background: var(--blue-gradient); border: none; border-radius: 12px; color: white; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+        .btn-blog-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(59,130,246,0.4); }
+
         /* Preview */
         .blog-preview-overlay { position: fixed; inset: 0; z-index: 9500; background: rgba(0,0,0,0.95); overflow-y: auto; }
         .blog-preview-container { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
