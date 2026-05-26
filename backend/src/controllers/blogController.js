@@ -27,14 +27,16 @@ const createBlog = async (req, res, next) => {
 
     // Verify task exists and is blog type
     let task;
+    const isBlogTask = (t) => t && (t.taskType === 'blog' || (t.title && t.title.toLowerCase().includes('blog')));
+    
     if (taskType === 'public') {
       task = await Task.findById(taskId);
       if (!task) return res.status(404).json({ success: false, message: 'Task not found.' });
-      if (task.taskType !== 'blog') return res.status(400).json({ success: false, message: 'This task does not accept blog submissions.' });
+      if (!isBlogTask(task)) return res.status(400).json({ success: false, message: 'This task does not accept blog submissions.' });
     } else {
       task = await AssignedTask.findOne({ _id: taskId, assignedUsers: req.user._id });
       if (!task) return res.status(404).json({ success: false, message: 'Assigned task not found.' });
-      if (task.taskType !== 'blog') return res.status(400).json({ success: false, message: 'This mission does not accept blog submissions.' });
+      if (!isBlogTask(task)) return res.status(400).json({ success: false, message: 'This mission does not accept blog submissions.' });
     }
 
     // Check for existing blog for this task (only one allowed)

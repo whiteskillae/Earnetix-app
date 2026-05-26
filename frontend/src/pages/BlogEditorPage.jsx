@@ -256,8 +256,10 @@ const TaskSelectorModal = ({ tasks, onSelect, onClose }) => {
 
 // ─── Main Blog Editor ──────────────────────────────────────────────
 const BlogEditorPage = () => {
-  const { taskId } = useParams();
+  const { taskId: pathTaskId } = useParams();
   const [searchParams] = useSearchParams();
+  const queryTaskId = searchParams.get('taskId');
+  const taskId = pathTaskId || queryTaskId;
   const editBlogId = searchParams.get('edit');
   const presetTaskType = searchParams.get('type') || 'public';
   const navigate = useNavigate();
