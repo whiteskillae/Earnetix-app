@@ -72,6 +72,7 @@ const createAndAssignTask = async (req, res, next) => {
       AssignedTask.create({
         title: title.trim(),
         description: description.trim(),
+        taskType: req.body.taskType || 'general',
         priority: req.body.priority || 'medium',
         deadline: req.body.deadline ? new Date(req.body.deadline) : undefined,
         rewardPoints: Number(rewardPoints),

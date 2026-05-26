@@ -270,7 +270,7 @@ const TasksPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-                  {task.taskType === 'blog' ? (() => {
+                  {(task.taskType === 'blog' || (task.title && task.title.toLowerCase().includes('blog'))) ? (() => {
                     // Check blog submission status
                     const userBlog = myBlogs.find(b => b.taskId === task._id || b.taskId?._id === task._id);
                     const blogApproved = userBlog?.status === 'approved';

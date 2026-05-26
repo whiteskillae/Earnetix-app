@@ -158,6 +158,7 @@ const MissionsPage = () => {
             const status = getStatusInfo(m.status, m.deadline);
             const inputType = m.submissionConfig?.inputType || 'file';
             const isPastDeadline = new Date(m.deadline) < new Date();
+            const isBlogTask = m.taskType === 'blog' || (m.title && m.title.toLowerCase().includes('blog'));
             
             return (
               <div key={m._id} className="premium-card slide-up" style={{ 
@@ -179,9 +180,14 @@ const MissionsPage = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
                          <Clock size={12} color="var(--gray-600)" />
                          <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 700 }}>DUE: {new Date(m.deadline).toLocaleDateString()}</span>
-                         {m.taskType && m.taskType !== 'general' && (
-                           <span style={{ fontSize: '0.6rem', fontWeight: 900, color: m.taskType === 'blog' ? '#8b5cf6' : m.taskType === 'media' ? '#ec4899' : 'var(--blue-light)', background: m.taskType === 'blog' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)', padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
-                             {m.taskType === 'blog' ? '📝 Blog' : m.taskType === 'software' ? '💻 Software' : m.taskType === 'media' ? '🎬 Media' : m.taskType}
+                         {isBlogTask && (
+                           <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                             📝 Blog
+                           </span>
+                         )}
+                         {!isBlogTask && m.taskType && m.taskType !== 'general' && (
+                           <span style={{ fontSize: '0.6rem', fontWeight: 900, color: m.taskType === 'media' ? '#ec4899' : 'var(--blue-light)', background: 'rgba(59,130,246,0.1)', padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                             {m.taskType === 'software' ? '💻 Software' : m.taskType === 'media' ? '🎬 Media' : m.taskType}
                            </span>
                          )}
                       </div>
@@ -223,7 +229,7 @@ const MissionsPage = () => {
                     </>
                   )}
                   {(m.status === 'accepted' || m.status === 'in_progress') && !isPastDeadline && (
-                    m.taskType === 'blog' ? (
+                    isBlogTask ? (
                       <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }} onClick={() => navigate(`/blog/create?taskId=${m._id}&type=assigned`)}>
                         <BookOpen size={20} /> WRITE BLOG POST
                       </button>
