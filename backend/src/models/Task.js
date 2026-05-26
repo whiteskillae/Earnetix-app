@@ -31,7 +31,7 @@ const taskSchema = new mongoose.Schema({
   },
   allowedExtensions: {
     type: [String],
-    default: ['jpg', 'jpeg', 'png', 'webp'],
+    default: ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'],
   },
   maxFileSize: {
     type: Number,

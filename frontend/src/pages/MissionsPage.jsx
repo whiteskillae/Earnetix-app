@@ -305,6 +305,7 @@ const MissionsPage = () => {
                             type="file" 
                             id="mission-files" 
                             multiple 
+                            accept={selected?.allowedExtensions ? selected.allowedExtensions.map(ext => `.${ext}`).join(',') : ".jpg,.jpeg,.png,.webp,.mp3,.mp4,.docx,.pdf,.txt,.zip"}
                             style={{ display: 'none' }}
                             onChange={(e) => setSubmissionFiles([...submissionFiles, ...Array.from(e.target.files)])}
                         />

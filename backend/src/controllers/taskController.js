@@ -71,7 +71,7 @@ const createTask = async (req, res, next) => {
 
     const task = await Task.create({ 
       ...req.body, 
-      allowedExtensions: allowedExtensions || ['jpg', 'jpeg', 'png', 'webp'],
+      allowedExtensions: allowedExtensions || ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'],
       attachments, 
       createdBy: req.user._id 
     });

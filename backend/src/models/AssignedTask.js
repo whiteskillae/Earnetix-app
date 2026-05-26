@@ -59,7 +59,7 @@ const assignedTaskSchema = new mongoose.Schema({
       required: { type: Boolean, default: true }
     }],
     maxFileSize: { type: Number, default: 5 * 1024 * 1024 }, // 5MB default
-    allowedExtensions: { type: [String], default: ['jpg', 'jpeg', 'png', 'pdf', 'zip', 'txt'] }
+    allowedExtensions: { type: [String], default: ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'] }
   },
   submissions: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

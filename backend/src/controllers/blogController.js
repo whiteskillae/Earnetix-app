@@ -387,12 +387,15 @@ const adminBlockBlog = async (req, res, next) => {
 const getBlogTasks = async (req, res, next) => {
   try {
     // Public blog tasks
-    const publicTasks = await Task.find({ taskType: 'blog', isActive: true }).select('_id title description rewardPoints');
+    const publicTasks = await Task.find({
+      $or: [{ taskType: 'blog' }, { title: { $regex: /blog/i } }],
+      isActive: true
+    }).select('_id title description rewardPoints');
     
     // Assigned blog missions
     const assignedTasks = await AssignedTask.find({
       assignedUsers: req.user._id,
-      taskType: 'blog',
+      $or: [{ taskType: 'blog' }, { title: { $regex: /blog/i } }],
       status: { $in: ['pending', 'accepted', 'in_progress', 'rejected'] }
     }).select('_id title description rewardPoints status');
 

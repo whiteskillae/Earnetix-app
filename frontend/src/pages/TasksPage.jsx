@@ -419,6 +419,7 @@ const TasksPage = () => {
                   }}
                 >
                   <input id="other-file-input" type="file" style={{ display: 'none' }}
+                    accept={selected?.allowedExtensions ? selected.allowedExtensions.map(ext => `.${ext}`).join(',') : ".jpg,.jpeg,.png,.webp,.mp3,.mp4,.docx,.pdf,.txt,.zip"}
                     onChange={handleFileChange} required />
                   {otherFile ? (
                     <div style={{ textAlign: 'center' }}>
