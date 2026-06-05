@@ -117,28 +117,7 @@ app.use('/api', apiLimiter);
 const analyticsTracker = require('./middleware/analyticsTracker');
 app.use('/api', analyticsTracker);
 
-// ─── OVERLOAD PROTECTION ───────────────────────────────
-let isOverloaded = false;
-let lastCheck = Date.now();
 
-// Simple event loop lag monitor
-setInterval(() => {
-  const now = Date.now();
-  const lag = now - lastCheck - 100; // 100ms interval
-  lastCheck = now;
-  // If lag is > 200ms, the event loop is severely blocked
-  isOverloaded = lag > 200; 
-}, 100);
-
-app.use((req, res, next) => {
-  if (isOverloaded && !req.originalUrl.startsWith('/api/admin')) {
-    return res.status(503).json({
-      success: false,
-      message: 'Server is experiencing high traffic. Please try again later.'
-    });
-  }
-  next();
-});
 
 // ─── ROUTES ────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
