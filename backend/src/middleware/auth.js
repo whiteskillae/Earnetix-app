@@ -26,7 +26,7 @@ const auth = async (req, res, next) => {
 
     // Use lean() for massive performance boost, and only select necessary fields
     const user = await User.findById(decoded.userId)
-      .select('isBlocked blockedUntil role')
+      .select('isBlocked blockedUntil role isProfileComplete')
       .lean();
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found.' });
