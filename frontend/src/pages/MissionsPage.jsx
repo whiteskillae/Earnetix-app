@@ -24,6 +24,7 @@ const MissionsPage = () => {
   const [submissionLink, setSubmissionLink] = useState('');
   const [submissionFiles, setSubmissionFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchMissions();
@@ -71,7 +72,7 @@ const MissionsPage = () => {
 
     // ── Frontend validation before API call ──────────────
     const it = selected.submissionConfig?.inputType || 'file';
-    const hasText = submission.trim().length > 0;
+    const hasText = submissionText.trim().length > 0;
     const hasFiles = submissionFiles.length > 0;
 
     if ((it === 'text') && !hasText) {
@@ -96,7 +97,16 @@ const MissionsPage = () => {
         formData.append('files', file);
       });
 
-      const res = await request('post', `/assigned-tasks/${selected._id}/submit`, formData);
+      const config = {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+          }
+        }
+      };
+
+      const res = await request('post', `/assigned-tasks/${selected._id}/submit`, formData, config);
 
       if (res.success) {
         toast.success('Evidence logged for clearance');
@@ -104,6 +114,7 @@ const MissionsPage = () => {
         setSubmissionText('');
         setSubmissionLink('');
         setSubmissionFiles([]);
+        setUploadProgress(0);
         fetchMissions();
       }
     } catch (err) {
@@ -378,8 +389,21 @@ const MissionsPage = () => {
                     </p>
                   </div>
                 ) : (
-                  <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '64px', marginTop: '16px', borderRadius: '20px', fontSize: '1.1rem' }} disabled={submitting}>
-                      {submitting ? 'SYNCHRONIZING...' : 'FINALIZE MISSION LOG'}
+                  <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '64px', marginTop: '16px', borderRadius: '20px', fontSize: '1.1rem', position: 'relative', overflow: 'hidden' }} disabled={submitting}>
+                      {submitting && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          height: '100%',
+                          width: `${uploadProgress}%`,
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          transition: 'width 0.3s ease'
+                        }} />
+                      )}
+                      <span style={{ position: 'relative', zIndex: 1 }}>
+                        {submitting ? `UPLOADING... ${uploadProgress}%` : 'FINALIZE MISSION LOG'}
+                      </span>
                   </button>
                 )}
              </div>

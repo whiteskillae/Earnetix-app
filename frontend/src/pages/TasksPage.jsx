@@ -16,6 +16,7 @@ const TasksPage = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [textContent, setTextContent] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -94,6 +95,7 @@ const TasksPage = () => {
     setLinkUrl('');
     setImageFile(null);
     setOtherFile(null);
+    setUploadProgress(0);
     setShowModal(true);
   };
 
@@ -111,10 +113,19 @@ const TasksPage = () => {
       if (otherFile) formData.append('files', otherFile);
 
       let res;
+      const config = {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+          }
+        }
+      };
+
       if (editingSubId) {
-        res = await request('put', `/submissions/${editingSubId}/resubmit`, formData);
+        res = await request('put', `/submissions/${editingSubId}/resubmit`, formData, config);
       } else {
-        res = await request('post', '/submissions', formData);
+        res = await request('post', '/submissions', formData, config);
       }
       
       if (res.success) {
@@ -434,8 +445,21 @@ const TasksPage = () => {
                 </p>
               </div>
             ) : (
-              <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '60px', marginTop: '12px' }} disabled={submitting}>
-                {submitting ? 'SYNCHRONIZING...' : 'SUBMIT INTEL'}
+              <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '60px', marginTop: '12px', position: 'relative', overflow: 'hidden' }} disabled={submitting}>
+                {submitting && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    height: '100%',
+                    width: `${uploadProgress}%`,
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                )}
+                <span style={{ position: 'relative', zIndex: 1 }}>
+                  {submitting ? `UPLOADING... ${uploadProgress}%` : 'SUBMIT INTEL'}
+                </span>
               </button>
             )}
 

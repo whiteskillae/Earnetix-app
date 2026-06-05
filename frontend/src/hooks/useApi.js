@@ -14,7 +14,11 @@ export const useApi = () => {
       let message = error.response?.data?.message || 'Something went wrong';
       const errors = error.response?.data?.errors;
       
-      if (errors && Array.isArray(errors)) {
+      if (error.response?.status === 413) {
+        message = 'Payload Too Large: The file you are trying to upload exceeds the maximum allowed size.';
+      } else if (error.response?.status === 415) {
+        message = 'Unsupported Media Type: The uploaded file format is not allowed.';
+      } else if (errors && Array.isArray(errors)) {
         message = errors.map(e => e.message || e).join('; ');
       } else if (error.response?.data?.error) {
         message = error.response.data.error;
