@@ -75,7 +75,7 @@ const TaskManagement = ({ tasks, onCreateTask, onEditTask, onDeleteTask, onBulkD
 
               <div className="flex-between" style={{ marginBottom: '16px', marginLeft: '24px' }}>
                  <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px', color: '#3b82f6' }}>
-                    {task.inputType.includes('image') ? <ImageIcon size={20} /> : task.inputType.includes('file') ? <FileCode size={20} /> : <FileText size={20} />}
+                    {(task.submissionConfig?.inputType || task.inputType || '').includes('image') ? <ImageIcon size={20} /> : (task.submissionConfig?.inputType || task.inputType || '').includes('file') ? <FileCode size={20} /> : <FileText size={20} />}
                  </div>
                  <span className="points-badge" style={{ fontSize: '0.9rem', padding: '6px 12px' }}>+{task.rewardPoints} CR</span>
               </div>
@@ -92,7 +92,6 @@ const TaskManagement = ({ tasks, onCreateTask, onEditTask, onDeleteTask, onBulkD
               </div>
 
               <div className="flex-between">
-                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Type: {task.inputType}</span>
                  <div className="flex-gap">
                     <button className="btn-icon" onClick={() => onEditTask(task)}><Edit size={16} /></button>
                     <button className="btn-icon danger" onClick={() => onDeleteTask(task._id)}><Trash2 size={16} /></button>

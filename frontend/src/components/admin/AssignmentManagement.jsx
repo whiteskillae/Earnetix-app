@@ -408,25 +408,27 @@ const AssignmentManagement = () => {
                         />
                     </div>
 
-                    <div className="form-field-wrap">
-                        <CheckSquare size={18} className="field-icon" />
-                        <select 
-                            className="minimal-input select-custom" 
-                            value={submissionConfig.inputType}
-                            onChange={(e) => setSubmissionConfig({ ...submissionConfig, inputType: e.target.value })}
-                        >
-                            <option value="file">Evidence: Single File</option>
-                            <option value="multiple_files">Evidence: Multiple Files</option>
-                            <option value="text">Evidence: Text Report</option>
-                            <option value="image">Evidence: Screenshot/Image</option>
-                            <option value="link">Evidence: URL/Link</option>
-                            <option value="text_file">Evidence: Text + File</option>
-                            <option value="text_image">Evidence: Text + Screenshot</option>
-                            <option value="text_link">Evidence: Text + Link</option>
-                            <option value="image_file">Evidence: Screenshot + File</option>
-                            <option value="all">Evidence: Full Evidence (Text+Img+File+Link)</option>
-                        </select>
-                    </div>
+                    {submissionConfig.taskType !== 'blog' && (
+                      <div className="form-field-wrap">
+                          <CheckSquare size={18} className="field-icon" />
+                          <select 
+                              className="minimal-input select-custom" 
+                              value={submissionConfig.inputType}
+                              onChange={(e) => setSubmissionConfig({ ...submissionConfig, inputType: e.target.value })}
+                          >
+                              <option value="file">Evidence: Single File</option>
+                              <option value="multiple_files">Evidence: Multiple Files</option>
+                              <option value="text">Evidence: Text Report</option>
+                              <option value="image">Evidence: Screenshot/Image</option>
+                              <option value="link">Evidence: URL/Link</option>
+                              <option value="text_file">Evidence: Text + File</option>
+                              <option value="text_image">Evidence: Text + Screenshot</option>
+                              <option value="text_link">Evidence: Text + Link</option>
+                              <option value="image_file">Evidence: Screenshot + File</option>
+                              <option value="all">Evidence: Full Evidence (Text+Img+File+Link)</option>
+                          </select>
+                      </div>
+                    )}
                     
                     <div className="points-box">
                         <Award size={24} />
@@ -454,7 +456,7 @@ const AssignmentManagement = () => {
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         {[{ v: 'general', l: 'General' }, { v: 'blog', l: '📝 Blog' }, { v: 'video', l: '🎥 Video' }, { v: 'software', l: '💻 Software' }, { v: 'media', l: '🎬 Media' }, { v: 'graphic_design', l: '🎨 Graphic Design' }, { v: 'other', l: 'Other' }].map(opt => (
                           <button key={opt.v} type="button"
-                            onClick={() => setSubmissionConfig(prev => ({ ...prev, taskType: opt.v }))}
+                            onClick={() => setSubmissionConfig(prev => ({ ...prev, taskType: opt.v, inputType: opt.v === 'blog' ? 'link' : prev.inputType }))}
                             style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid', borderColor: submissionConfig.taskType === opt.v ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.07)', background: submissionConfig.taskType === opt.v ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)', color: submissionConfig.taskType === opt.v ? 'var(--blue-light)' : 'var(--gray-400)', fontSize: '0.82rem', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s' }}>
                             {opt.l}
                           </button>

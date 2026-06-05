@@ -1,7 +1,5 @@
-import { CheckCircle, XCircle, Eye, Search, Filter, CheckSquare, Square, Trash2, BookOpen } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { useApi } from '../../hooks/useApi';
-import toast from 'react-hot-toast';
+import { CheckCircle, XCircle, Eye, Search, Filter, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 const SubmissionReview = ({ 
   submissions, filter, setFilter, subType, setSubType, 
@@ -9,36 +7,6 @@ const SubmissionReview = ({
   onBulkApprove, onBulkReject 
 }) => {
   const [selectedIds, setSelectedIds] = useState([]);
-  const { request } = useApi();
-  const [blogSubmissions, setBlogSubmissions] = useState([]);
-  const [blogFilter, setBlogFilter] = useState('pending');
-
-  // Fetch blog submissions when in blogs subtype
-  useEffect(() => {
-    if (subType === 'blogs') fetchBlogSubmissions();
-  }, [subType, blogFilter]);
-
-  const fetchBlogSubmissions = async () => {
-    try {
-      const res = await request('get', `/blogs/admin/all?status=${blogFilter}`);
-      if (res.success) setBlogSubmissions(res.data);
-    } catch { setBlogSubmissions([]); }
-  };
-
-  const handleBlogApprove = async (id) => {
-    try {
-      await request('put', `/blogs/admin/${id}/approve`);
-      toast.success('Blog approved & points awarded');
-      fetchBlogSubmissions();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Approval failed');
-    }
-  };
-
-  const handleBlogReject = (id) => {
-    // Reuse the existing reject modal
-    onReject(id);
-  };
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => 
@@ -47,11 +15,10 @@ const SubmissionReview = ({
   };
 
   const selectAll = () => {
-    const items = subType === 'blogs' ? blogSubmissions : submissions;
-    if (selectedIds.length === items.length) {
+    if (selectedIds.length === submissions.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(items.map(s => s._id));
+      setSelectedIds(submissions.map(s => s._id));
     }
   };
 
@@ -67,24 +34,19 @@ const SubmissionReview = ({
     setSelectedIds([]);
   };
 
-  const activeFilter = subType === 'blogs' ? blogFilter : filter;
-  const setActiveFilter = subType === 'blogs' ? setBlogFilter : setFilter;
-  const displayItems = subType === 'blogs' ? blogSubmissions : submissions;
-
   return (
     <div className="glass-panel">
       <div className="view-filters" style={{ flexWrap: 'wrap', gap: '20px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="filter-group">
-            {['public', 'individual', 'blogs'].map(t => (
+            {['public', 'individual'].map(t => (
               <button 
                 key={t} 
                 className={subType === t ? 'active' : ''} 
                 style={{ padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}
                 onClick={() => { setSubType(t); setSelectedIds([]); }}
               >
-                {t === 'blogs' && <BookOpen size={14} />}
-                {t === 'public' ? 'Public' : t === 'individual' ? 'Individual' : 'Blogs'}
+                {t === 'public' ? 'Public' : 'Individual'}
               </button>
             ))}
           </div>
@@ -93,8 +55,8 @@ const SubmissionReview = ({
             {['pending', 'approved', 'rejected'].map(f => (
               <button 
                 key={f} 
-                className={activeFilter === f ? 'active' : ''} 
-                onClick={() => { setActiveFilter(f); setSelectedIds([]); }}
+                className={filter === f ? 'active' : ''} 
+                onClick={() => { setFilter(f); setSelectedIds([]); }}
               >
                 {f.toUpperCase()}
               </button>
@@ -103,7 +65,7 @@ const SubmissionReview = ({
         </div>
 
         <div style={{ display: 'flex', gap: '12px' }}>
-          {selectedIds.length > 0 && activeFilter === 'pending' && subType !== 'blogs' && (
+          {selectedIds.length > 0 && filter === 'pending' && (
             <>
               <button className="btn btn-success" onClick={handleBulkApproveClick} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
                 <CheckCircle size={14} /> Bulk Approve ({selectedIds.length})
@@ -122,11 +84,11 @@ const SubmissionReview = ({
             <tr>
               <th style={{ width: '40px' }}>
                 <button onClick={selectAll} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
-                  {selectedIds.length === displayItems.length && displayItems.length > 0 ? <CheckSquare size={18} color="var(--blue)" /> : <Square size={18} />}
+                  {selectedIds.length === submissions.length && submissions.length > 0 ? <CheckSquare size={18} color="var(--blue)" /> : <Square size={18} />}
                 </button>
               </th>
               <th>Contributor</th>
-              <th>{subType === 'blogs' ? 'Blog Title' : 'Task Objective'}</th>
+              <th>Task Objective</th>
               <th>Value</th>
               <th>Timestamp</th>
               <th>Status</th>
@@ -134,14 +96,13 @@ const SubmissionReview = ({
             </tr>
           </thead>
           <tbody>
-            {displayItems.map(s => {
-              const isBlog = subType === 'blogs';
-              const name = isBlog ? (s.userId?.name || 'Unknown') : (s.userId?.name || 'Deleted User');
-              const email = isBlog ? (s.userId?.email || '') : (s.userId?.email || '');
-              const title = isBlog ? s.title : (s.taskId?.title || 'Unknown Task');
-              const points = isBlog ? '—' : `+${s.taskId?.rewardPoints || 0}`;
+            {submissions.map(s => {
+              const name = s.userId?.name || 'Deleted User';
+              const email = s.userId?.email || '';
+              const title = s.taskId?.title || 'Unknown Task';
+              const points = `+${s.taskId?.rewardPoints || 0}`;
               const status = s.status;
-              const date = new Date(isBlog ? (s.publishedAt || s.createdAt) : s.createdAt).toLocaleString();
+              const date = new Date(s.createdAt).toLocaleString();
 
               return (
                 <tr key={s._id} className="fade-in" style={{ background: selectedIds.includes(s._id) ? 'rgba(59, 130, 246, 0.05)' : 'transparent' }}>
@@ -158,7 +119,6 @@ const SubmissionReview = ({
                   </td>
                   <td>
                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{title}</div>
-                     {isBlog && <div style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: 700, marginTop: '4px' }}>📝 Blog Submission</div>}
                   </td>
                   <td>
                      <span className="points-badge">{points}</span>
@@ -175,23 +135,6 @@ const SubmissionReview = ({
                   </td>
                   <td className="text-right">
                     <div className="flex-gap" style={{ justifyContent: 'flex-end' }}>
-                      {isBlog ? (
-                        <>
-                          <button className="btn-icon" onClick={() => onPreview({ ...s, isBlogPreview: true })} title="View Blog">
-                            <Eye size={16} />
-                          </button>
-                          {status === 'pending' && (
-                            <>
-                              <button className="btn-icon success" onClick={() => handleBlogApprove(s._id)} title="Approve Blog">
-                                <CheckCircle size={16} />
-                              </button>
-                              <button className="btn-icon danger" onClick={() => handleBlogReject(s._id)} title="Reject Blog">
-                                <XCircle size={16} />
-                              </button>
-                            </>
-                          )}
-                        </>
-                      ) : (
                         <>
                           <button className="btn-icon" onClick={() => onPreview(s)} title="Inspect Proof">
                             <Eye size={16} />
@@ -207,7 +150,6 @@ const SubmissionReview = ({
                             </>
                           )}
                         </>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -216,10 +158,10 @@ const SubmissionReview = ({
           </tbody>
         </table>
         
-        {displayItems.length === 0 && (
+        {submissions.length === 0 && (
           <div className="text-center" style={{ padding: '60px', color: '#64748b' }}>
             <div style={{ opacity: 0.1, marginBottom: '16px' }}><Search size={48} style={{ margin: '0 auto' }} /></div>
-            <p>No {subType === 'blogs' ? 'blog submissions' : 'submissions'} found for the selected filter.</p>
+            <p>No submissions found for the selected filter.</p>
           </div>
         )}
       </div>

@@ -64,7 +64,12 @@ const ProtectedRoute = ({ children, adminOnly = false, isOnboarding = false }) =
 const GuestRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Loader text="Loading..." />;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user && !user.isBlocked) return <Navigate to="/dashboard" replace />;
+  if (user && user.isBlocked) {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+    window.location.reload();
+  }
   return children;
 };
 

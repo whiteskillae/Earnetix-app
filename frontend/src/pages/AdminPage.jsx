@@ -573,51 +573,50 @@ const AdminPage = () => {
         </form>
       </Modal>
 
-      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title={previewSub?.isBlogPreview ? 'Blog Preview' : 'Submission Verification'}>
+      <Modal isOpen={showPreview} onClose={() => setShowPreview(false)} title="Submission Verification">
         {previewSub && (
           <div className="preview-content">
-            {previewSub.isBlogPreview ? (
-              <>
-                <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
-                  <p style={{ fontSize: '0.9rem' }}><strong>Author:</strong> {previewSub.userId?.name}</p>
-                  <p style={{ fontSize: '0.9rem' }}><strong>Blog Title:</strong> {previewSub.title}</p>
-                  <p style={{ fontSize: '0.8rem', color: '#8b5cf6' }}>📝 Blog Submission · {previewSub.wordCount || '—'} words</p>
+            <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
+              <p style={{ fontSize: '0.9rem' }}><strong>Agent:</strong> {previewSub.userId?.name}</p>
+              <p style={{ fontSize: '0.9rem' }}><strong>Objective:</strong> {previewSub.taskId?.title}</p>
+            </div>
+            
+            {previewSub.textContent && (
+              <div className="proof-section">
+                <h5>Text Evidence:</h5>
+                <div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem' }}>
+                  {previewSub.textContent}
                 </div>
-                {previewSub.coverImage && (
-                  <div className="proof-section" style={{ marginBottom: '20px' }}>
-                    <h5>Cover Image:</h5>
-                    <img src={previewSub.coverImage} alt="Cover" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', maxHeight: '300px', objectFit: 'cover' }} />
-                  </div>
-                )}
-                <div className="proof-section">
-                  <h5>Blog Content:</h5>
-                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '12px', fontSize: '0.9rem', lineHeight: 1.7, maxHeight: '400px', overflow: 'auto' }}>
-                    <div dangerouslySetInnerHTML={{ __html: previewSub.content }} />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
-                  <p style={{ fontSize: '0.9rem' }}><strong>Agent:</strong> {previewSub.userId?.name}</p>
-                  <p style={{ fontSize: '0.9rem' }}><strong>Objective:</strong> {previewSub.taskId?.title}</p>
-                </div>
-                {previewSub.textContent && <div className="proof-section"><h5>Text Evidence:</h5><div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem' }}>{previewSub.textContent}</div></div>}
-                {previewSub.linkUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Submission Link:</h5><a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all' }}>{previewSub.linkUrl}</a></div>}
-                {previewSub.attachments && previewSub.attachments.map((file, idx) => (
-                  <div key={idx} className="proof-section" style={{ marginTop: '20px' }}>
-                    {file.resourceType === 'image' ? (
-                      <><h5>Screenshot Proof:</h5><img src={file.url} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} /></>
-                    ) : (
-                      <><h5>File Archive:</h5>
-                      <a href={getDownloadableUrl(file.url)} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
-                        <Upload size={16} /> Inspect {file.originalName || 'File'}
-                      </a></>
-                    )}
-                  </div>
-                ))}
-              </>
+              </div>
             )}
+            
+            {previewSub.linkUrl && (
+              <div className="proof-section" style={{ marginTop: '20px' }}>
+                <h5>Submission Link:</h5>
+                <a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all' }}>
+                  {previewSub.linkUrl}
+                </a>
+              </div>
+            )}
+            
+            {previewSub.attachments && previewSub.attachments.map((file, idx) => (
+              <div key={idx} className="proof-section" style={{ marginTop: '20px' }}>
+                {file.resourceType === 'image' ? (
+                  <>
+                    <h5>Screenshot Proof:</h5>
+                    <img src={file.url} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} />
+                  </>
+                ) : (
+                  <>
+                    <h5>File Archive:</h5>
+                    <a href={file.url} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
+                      <Upload size={16} /> Inspect {file.originalName || 'File'}
+                    </a>
+                  </>
+                )}
+              </div>
+            ))}
+            
             <div className="preview-meta" style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', opacity: 0.5, fontSize: '0.75rem' }}>
               <span>ID: {previewSub._id.slice(-8)}</span>
               <span>Logged: {new Date(previewSub.createdAt).toLocaleString()}</span>

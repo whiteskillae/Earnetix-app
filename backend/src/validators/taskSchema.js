@@ -15,6 +15,9 @@ const createTaskSchema = z.object({
       required: z.boolean().optional()
     })).optional()
   }).optional(),
+  inputType: z.enum(['text', 'image', 'file', 'link', 'text_link', 'text_image', 'text_file', 'image_file', 'multiple_files', 'custom', 'all']).optional(),
+  allowedExtensions: z.union([z.string(), z.array(z.string())]).optional(),
+  maxFileSize: z.coerce.number().int().min(1).max(50 * 1024 * 1024).optional(),
   maxSubmissionsPerUser: z.coerce.number().int().min(1).max(20).optional(),
   taskType: z.string().optional(),
 });
