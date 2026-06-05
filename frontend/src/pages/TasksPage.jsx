@@ -107,8 +107,8 @@ const TasksPage = () => {
       if (textContent) formData.append('textContent', textContent);
       if (linkUrl) formData.append('linkUrl', linkUrl);
       
-      if (imageFile) formData.append('image', imageFile);
-      if (otherFile) formData.append('file', otherFile);
+      if (imageFile) formData.append('files', imageFile);
+      if (otherFile) formData.append('files', otherFile);
 
       let res;
       if (editingSubId) {

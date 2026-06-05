@@ -231,9 +231,6 @@ const AssignmentManagement = () => {
             <h2 className="title">Mission Dispatch</h2>
             <p className="subtitle">Search, target, and deploy missions instantly.</p>
         </div>
-        <button className={`btn-history ${showHistory ? 'active' : ''}`} onClick={() => setShowHistory(!showHistory)}>
-            <List size={18} /> {showHistory ? 'Hide Logs' : 'View History'}
-        </button>
       </div>
 
       <div className="search-section-wrap">
@@ -269,7 +266,7 @@ const AssignmentManagement = () => {
       <div className="discovery-results grid-layout">
         <div className="results-main">
             {/* Related Expertise */}
-            {(searchResults.skills.length > 0 && !showHistory) && (
+            {(searchResults.skills.length > 0) && (
                 <section className="results-group">
                     <h4 className="group-label"><Layers size={14} /> Related Expertise</h4>
                     <div className="skills-grid">
@@ -287,8 +284,7 @@ const AssignmentManagement = () => {
             )}
 
             {/* Targeted Agents */}
-            {!showHistory && (
-                <section className="results-group">
+            <section className="results-group">
                     <div className="flex-between" style={{ marginBottom: '20px' }}>
                         <h4 className="group-label" style={{ margin: 0 }}><Users size={14} /> Matching Units</h4>
                         {searchResults.users.length > 0 && (
@@ -347,23 +343,30 @@ const AssignmentManagement = () => {
                         )}
                     </div>
                 </section>
-            )}
 
-            {showHistory && (
-                <section className="results-group fade-in">
-                    <h4 className="group-label"><Clock size={14} /> Mission Deployment History</h4>
-                    <div className="history-list glass-panel">
-                        {tasks.map(t => (
-                            <div key={t._id} className="history-item">
-                                <div className="h-info">
-                                    <div className="h-title">{t.title}</div>
-                                    <div className="h-meta">{t.assignedUsers[0]?.name} • {new Date(t.createdAt).toLocaleDateString()}</div>
+            <section className="results-group fade-in" style={{ gridColumn: '1 / -1', marginTop: '40px' }}>
+                <h4 className="group-label"><Target size={14} /> Active & Past Missions</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+                    {tasks.map(t => (
+                        <div key={t._id} className="glass-panel" style={{ padding: '24px', position: 'relative', border: '1px solid var(--glass-border)', transition: 'var(--transition)' }}>
+                            <div className="flex-between" style={{ marginBottom: '16px' }}>
+                                <div style={{ padding: '8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px', color: '#3b82f6' }}>
+                                    <Target size={20} />
                                 </div>
-                                <div className="h-status-points">
-                                  <div className={`h-status ${t.status}`}>{t.status.toUpperCase()}</div>
-                                  <div className="h-points">+{t.rewardPoints}</div>
+                                <span className="points-badge" style={{ fontSize: '0.9rem', padding: '6px 12px' }}>+{t.rewardPoints} CR</span>
+                            </div>
+                            <h4 style={{ fontSize: '1.1rem', marginBottom: '12px' }}>{t.title}</h4>
+                            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '16px', lineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                {t.description || 'No description provided.'}
+                            </p>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', marginBottom: '24px' }}>
+                                Assigned to: {t.assignedUsers?.map(u => u.name).join(', ') || 'Unknown'}
+                            </div>
+                            <div className="flex-between">
+                                <div className={`h-status ${t.status}`} style={{ fontSize: '0.7rem', fontWeight: 900, padding: '6px 12px', borderRadius: '8px', textTransform: 'uppercase' }}>
+                                    {t.status.replace('_', ' ')}
                                 </div>
-                                <div className="h-actions" style={{ display: 'flex', gap: '8px' }}>
+                                <div className="flex-gap">
                                     <button className="btn-icon" title="Edit" onClick={() => setEditForm({ ...t, deadline: t.deadline ? new Date(t.deadline).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16) })}>
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                                     </button>
@@ -372,10 +375,15 @@ const AssignmentManagement = () => {
                                     </button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </section>
-            )}
+                        </div>
+                    ))}
+                    {tasks.length === 0 && (
+                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--gray-500)', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '20px' }}>
+                            No missions have been deployed yet.
+                        </div>
+                    )}
+                </div>
+            </section>
         </div>
 
         {/* Dispatch Panel - Only visible when users selected */}

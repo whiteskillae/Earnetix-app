@@ -578,9 +578,20 @@ const AdminPage = () => {
             {previewSub.textContent && (
               <div className="proof-section">
                 <h5>Text Evidence:</h5>
-                <div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem' }}>
+                <div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
                   {previewSub.textContent}
                 </div>
+                {/* Extract and display any URLs found in the text */}
+                {(previewSub.textContent.match(/(https?:\/\/[^\s]+)/g) || []).map((url, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '12px', marginTop: '12px' }}>
+                    <a href={url} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all', flex: 1 }}>
+                      {url}
+                    </a>
+                    <a href={url} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      Open URL <ExternalLink size={14} style={{ marginLeft: '4px' }} />
+                    </a>
+                  </div>
+                ))}
               </div>
             )}
             
