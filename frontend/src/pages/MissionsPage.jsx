@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
@@ -13,6 +14,7 @@ import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
 const MissionsPage = () => {
   const { request } = useApi();
+  const { isProfileComplete, isKycVerified, kycStatus } = useAuth();
   const navigate = useNavigate();
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -358,9 +360,28 @@ const MissionsPage = () => {
                   </div>
                 )}
 
-                <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '64px', marginTop: '16px', borderRadius: '20px', fontSize: '1.1rem' }} disabled={submitting}>
-                    {submitting ? 'SYNCHRONIZING...' : 'FINALIZE MISSION LOG'}
-                </button>
+                {!isProfileComplete ? (
+                  <div style={{ background: 'rgba(59, 130, 246, 0.06)', border: '1px solid rgba(59, 130, 246, 0.15)', borderRadius: '16px', padding: '16px', textAlign: 'center', marginTop: '16px' }}>
+                    <p style={{ color: 'var(--blue)', fontWeight: 700, fontSize: '0.85rem', margin: '0 0 4px' }}>⚠ Profile Setup Required</p>
+                    <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 12px' }}>
+                      Complete your profile details in the dashboard to submit evidence.
+                    </p>
+                    <button type="button" className="btn-premium btn-primary-new" onClick={() => navigate('/profile')} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
+                      GO TO PROFILE
+                    </button>
+                  </div>
+                ) : !isKycVerified ? (
+                  <div style={{ background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '16px', padding: '16px', textAlign: 'center', marginTop: '16px' }}>
+                    <p style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem', margin: '0 0 4px' }}>⚠ KYC Verification Required</p>
+                    <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0 }}>
+                      {kycStatus === 'pending' ? 'Your identity is being verified (1-3 days).' : 'Complete identity verification to submit evidence.'}
+                    </p>
+                  </div>
+                ) : (
+                  <button type="submit" className="btn-premium btn-primary-new btn-block" style={{ height: '64px', marginTop: '16px', borderRadius: '20px', fontSize: '1.1rem' }} disabled={submitting}>
+                      {submitting ? 'SYNCHRONIZING...' : 'FINALIZE MISSION LOG'}
+                  </button>
+                )}
              </div>
           </form>
         )}

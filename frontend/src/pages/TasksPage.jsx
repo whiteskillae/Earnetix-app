@@ -10,7 +10,7 @@ import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
 const TasksPage = () => {
   const { request } = useApi();
-  const { isKycVerified, kycStatus } = useAuth();
+  const { isKycVerified, kycStatus, isProfileComplete } = useAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -416,7 +416,17 @@ const TasksPage = () => {
             )}
 
 
-            {!isKycVerified ? (
+            {!isProfileComplete ? (
+              <div style={{ background: 'rgba(59, 130, 246, 0.06)', border: '1px solid rgba(59, 130, 246, 0.15)', borderRadius: '16px', padding: '16px', textAlign: 'center', marginTop: '12px' }}>
+                <p style={{ color: 'var(--blue)', fontWeight: 700, fontSize: '0.85rem', margin: '0 0 4px' }}>⚠ Profile Setup Required</p>
+                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 12px' }}>
+                  Complete your profile details in the dashboard to submit evidence.
+                </p>
+                <button type="button" className="btn-premium btn-primary-new" onClick={() => navigate('/profile')} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
+                  GO TO PROFILE
+                </button>
+              </div>
+            ) : !isKycVerified ? (
               <div style={{ background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '16px', padding: '16px', textAlign: 'center', marginTop: '12px' }}>
                 <p style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem', margin: '0 0 4px' }}>⚠ KYC Verification Required</p>
                 <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0 }}>
