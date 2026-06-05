@@ -113,43 +113,34 @@ const hashFileFromDisk = (filePath) => {
  *
  * Returns: { url, publicId, hash, bytes, format, resourceType }
  */
-const uploadToCloudinaryFromDisk = (filePath, folder = 'earnetix/submissions', originalName = 'file') => {
-  return new Promise(async (resolve, reject) => {
-    let hash;
-    try {
-      hash = await hashFileFromDisk(filePath);
-    } catch (err) {
-      return reject(new Error(`Failed to hash file: ${err.message}`));
-    }
+const uploadToCloudinaryFromDisk = async (filePath, folder = 'earnetix/submissions', originalName = 'file') => {
+  let hash;
+  try {
+    hash = await hashFileFromDisk(filePath);
+  } catch (err) {
+    throw new Error(`Failed to hash file: ${err.message}`);
+  }
 
-    const resource_type = getResourceType(originalName);
+  const resource_type = getResourceType(originalName);
 
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder, resource_type },
-      (error, result) => {
-        if (error) {
-          logger.error(`Cloudinary upload failed: ${error.message}`);
-          return reject(new Error('File upload failed. Please try again.'));
-        }
-        resolve({
-          url: result.secure_url,
-          publicId: result.public_id,
-          hash,
-          bytes: result.bytes,
-          format: result.format,
-          resourceType: result.resource_type,
-        });
-      }
-    );
-
-    // Stream from disk to Cloudinary — zero RAM footprint
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.on('error', (err) => {
-      logger.error(`File read stream error: ${err.message}`);
-      reject(new Error('Failed to read file for upload'));
+  try {
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder,
+      resource_type
     });
-    fileStream.pipe(uploadStream);
-  });
+    
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      hash,
+      bytes: result.bytes,
+      format: result.format,
+      resourceType: result.resource_type,
+    };
+  } catch (error) {
+    logger.error(`Cloudinary upload failed: ${error.message || error}`);
+    throw new Error(`File upload failed with Cloudinary. Please try again.`);
+  }
 };
 
 /**

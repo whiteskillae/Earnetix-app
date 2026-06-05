@@ -49,12 +49,8 @@ const uploadSubmissionFiles = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split('.').pop().toLowerCase();
-    const ALLOWED = ['png', 'jpg', 'jpeg', 'webp', 'pdf'];
     if (BLOCKED.includes(ext)) {
       return cb(new Error(`File type .${ext} is not allowed for security reasons`), false);
-    }
-    if (!ALLOWED.includes(ext)) {
-      return cb(new Error(`File type .${ext} is not allowed. Please upload PNG, JPG, WEBP, or PDF.`), false);
     }
     cb(null, true);
   },
