@@ -1,35 +1,5 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const crypto = require('crypto');
-
-// ─── TEMP DIRECTORY SETUP ─────────────────────────────────
-// Using disk storage eliminates the RAM exhaustion risk of memoryStorage().
-// A 5MB file on disk costs ~0MB RAM. 200 concurrent uploads on memory = 1GB RAM → OOM.
-// On disk = negligible RAM footprint.
-const TEMP_DIR = path.join(process.cwd(), 'tmp', 'uploads');
-
-// Ensure temp directory exists on module load
-try {
-  fs.mkdirSync(TEMP_DIR, { recursive: true });
-} catch (err) {
-  console.error(`Failed to create temp upload directory: ${err.message}`);
-}
-
-// ─── DISK STORAGE CONFIGURATION ───────────────────────────
-const diskStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Ensure directory exists for each request (safety check)
-    fs.mkdirSync(TEMP_DIR, { recursive: true });
-    cb(null, TEMP_DIR);
-  },
-  filename: (req, file, cb) => {
-    // Cryptographic unique filename prevents collisions and path traversal
-    const uniqueId = crypto.randomUUID();
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${uniqueId}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 
 // ─── SHARED BLOCKED EXTENSIONS ────────────────────────────
 const BLOCKED = [
@@ -45,7 +15,7 @@ const BLOCKED = [
 
 // ─── SUBMISSION UPLOADS (User Evidence) ────────────────
 const uploadSubmissionFiles = multer({
-  storage: diskStorage,
+  storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split('.').pop().toLowerCase();
@@ -69,7 +39,7 @@ const submissionUpload = (req, res, next) => {
 
 // ─── TASK ATTACHMENT UPLOADS (Admin) ───────────────────
 const taskAttachmentUpload = multer({
-  storage: diskStorage,
+  storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB per attachment
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split('.').pop().toLowerCase();
@@ -80,23 +50,8 @@ const taskAttachmentUpload = multer({
   },
 }).array('attachments', 5);
 
-// ─── TEMP FILE CLEANUP UTILITY ────────────────────────────
-// Call this after processing req.files to clean up temp files
 const cleanupTempFiles = (files) => {
-  if (!files) return;
-  
-  const fileList = Array.isArray(files) ? files : Object.values(files).flat();
-  
-  for (const file of fileList) {
-    if (file.path) {
-      fs.unlink(file.path, (err) => {
-        // Silently ignore cleanup errors — file may already be deleted
-        if (err && err.code !== 'ENOENT') {
-          console.error(`[Cleanup] Failed to delete temp file ${file.path}: ${err.message}`);
-        }
-      });
-    }
-  }
+  // No-op for memory storage
 };
 
-module.exports = { submissionUpload, taskAttachmentUpload, cleanupTempFiles, TEMP_DIR };
+module.exports = { submissionUpload, taskAttachmentUpload, cleanupTempFiles };

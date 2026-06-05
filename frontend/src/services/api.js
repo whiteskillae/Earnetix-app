@@ -56,7 +56,7 @@ api.interceptors.response.use(
     if (status === 429) {
       showServerErrorToast('High traffic detected. Please try again later.');
     } else if (status >= 500) {
-      showServerErrorToast('Server is experiencing high traffic or is temporarily down. Please try again later.');
+      showServerErrorToast('Server error encountered. Please try again later.');
     }
 
     // If we get a 401, try to refresh the token regardless of the specific error code

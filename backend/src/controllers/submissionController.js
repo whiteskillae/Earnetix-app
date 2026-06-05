@@ -70,8 +70,12 @@ const submitProof = async (req, res, next) => {
 
     // ─── HASH BEFORE UPLOAD (dedup optimization) ─────────
     let fileHash = null;
-    if (req.files && req.files.length > 0 && req.files[0].path) {
-      fileHash = await hashFileFromDisk(req.files[0].path);
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+      try {
+        if (file.path) fileHash = await hashFileFromDisk(file.path);
+        else if (file.buffer) fileHash = hashFileBuffer(file.buffer);
+      } catch (err) { /* ignore */ }
     }
     if (textContent) fileHash = fileHash || hashText(textContent);
     if (linkUrl) fileHash = fileHash || hashText(linkUrl);
@@ -230,8 +234,15 @@ const resubmit = async (req, res, next) => {
       throw uploadError;
     }
 
-    if (req.files && req.files.length > 0 && req.files[0].path) {
-      fileHash = await hashFileFromDisk(req.files[0].path);
+    if (req.files && req.files.length > 0) {
+      const file = req.files[0];
+      try {
+        if (file.path) {
+          fileHash = await hashFileFromDisk(file.path);
+        } else if (file.buffer) {
+          fileHash = hashFileBuffer(file.buffer);
+        }
+      } catch (err) { /* ignore */ }
     }
     if (textContent) fileHash = fileHash || hashText(textContent);
     if (linkUrl) fileHash = fileHash || hashText(linkUrl);
