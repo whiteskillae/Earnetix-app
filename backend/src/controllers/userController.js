@@ -4,7 +4,11 @@ const cache = require('../services/cacheService');
 // ─── GET PROFILE ───────────────────────────────────────
 const getProfile = async (req, res, next) => {
   try {
-    res.json({ success: true, data: req.user });
+    const user = await User.findById(req.user._id).select('-passwordHash -otp -refreshToken').lean();
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.json({ success: true, data: user });
   } catch (error) {
     next(error);
   }
