@@ -276,7 +276,7 @@ const MissionsPage = () => {
              </div>
 
              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {(selected.submissionConfig?.inputType.includes('text') || selected.submissionConfig?.inputType === 'all' || selected.submissionConfig?.inputType === 'custom') && (
+                {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('text') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all' || (selected?.submissionConfig?.inputType || selected?.inputType) === 'custom') && (
                   <div className="form-group">
                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gray-500)', marginBottom: '8px', display: 'block' }}>OPERATIONAL REPORT</label>
                     <textarea 
@@ -291,7 +291,7 @@ const MissionsPage = () => {
                   </div>
                 )}
 
-                {(selected.submissionConfig?.inputType.includes('file') || selected.submissionConfig?.inputType.includes('image') || selected.submissionConfig?.inputType === 'multiple_files' || selected.submissionConfig?.inputType === 'all') && (
+                {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('file') || (selected?.submissionConfig?.inputType || selected?.inputType || '').includes('image') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'multiple_files' || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
                   <div className="form-group">
                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gray-500)', marginBottom: '8px', display: 'block' }}>VISUAL/DATA EVIDENCE</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -334,7 +334,7 @@ const MissionsPage = () => {
                   </div>
                 )}
 
-                {(selected.submissionConfig?.inputType.includes('link') || selected.submissionConfig?.inputType === 'all') && (
+                {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('link') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
                   <div className="form-group">
                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gray-500)', marginBottom: '8px', display: 'block' }}>EXTERNAL LINK/URL</label>
                     <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', padding: '0 20px', borderRadius: '16px' }}>

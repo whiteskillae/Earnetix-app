@@ -317,7 +317,7 @@ const TasksPage = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {(selected?.inputType.includes('text') || selected?.inputType === 'all') && (
+            {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('text') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
               <div className="form-group">
                 <label>Textual Report</label>
                 <textarea 
@@ -331,7 +331,7 @@ const TasksPage = () => {
               </div>
             )}
 
-            {(selected?.inputType.includes('link') || selected?.inputType === 'all') && (
+            {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('link') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
               <div className="form-group">
                 <label>Evidence Link (URL)</label>
                 <input 
@@ -345,7 +345,7 @@ const TasksPage = () => {
               </div>
             )}
 
-            {(selected?.inputType.includes('image') || selected?.inputType === 'all') && (
+            {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('image') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
               <div className="form-group">
                 <label>Visual Evidence (Screenshot)</label>
                 <div 
@@ -375,7 +375,7 @@ const TasksPage = () => {
               </div>
             )}
 
-            {(selected?.inputType.includes('file') || selected?.inputType === 'all') && (
+            {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('file') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
               <div className="form-group">
                 <label>Documentary Evidence (File/Archive)</label>
                 <div 

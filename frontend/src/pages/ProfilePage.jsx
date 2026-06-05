@@ -178,7 +178,7 @@ const ProfilePage = () => {
          <div className="user-info-section" style={{ display: 'flex', alignItems: 'flex-start', gap: '32px', flexWrap: 'wrap' }}>
             <div className="avatar-container" style={{ position: 'relative' }}>
               <div className="user-avatar-wrap" style={{ width: '120px', height: '120px', fontSize: '3rem', borderRadius: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', background: 'var(--blue-gradient)' }}>
-                {user?.name?.charAt(0).toUpperCase()}
+                {(user?.name?.charAt(0) || 'U').toUpperCase()}
               </div>
               <button 
                 onClick={() => setIsEditModalOpen(true)}

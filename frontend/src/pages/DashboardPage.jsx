@@ -78,8 +78,8 @@ const DashboardPage = () => {
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
             <button className="btn-icon" style={{ borderRadius: '14px', width: '48px', height: '48px' }} onClick={() => navigate('/announcements')}><Bell size={22} /></button>
-            <div className="user-avatar-wrap" style={{ width: '48px', height: '48px', borderRadius: '14px', cursor: 'pointer' }} onClick={() => navigate('/profile')}>
-              {user?.name?.charAt(0).toUpperCase()}
+            <div className="user-avatar-wrap" style={{ width: '48px', height: '48px', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 'bold' }} onClick={() => navigate('/profile')}>
+              {(user?.name?.charAt(0) || 'U').toUpperCase()}
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ const DashboardPage = () => {
                       </div>
                       <div style={{ flex: 1 }}>
                         <h4 style={{ fontSize: '0.9rem', margin: 0 }}>{task.title}</h4>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)' }}>{task.inputType.toUpperCase()}</p>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--gray-500)' }}>{(task.submissionConfig?.inputType || task.inputType || '').toUpperCase()}</p>
                       </div>
                       <div style={{ fontWeight: 900, color: 'var(--green)', fontSize: '0.9rem' }}>+{task.rewardPoints}</div>
                     </div>
