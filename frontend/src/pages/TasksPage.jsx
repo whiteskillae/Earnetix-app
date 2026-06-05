@@ -154,6 +154,7 @@ const TasksPage = () => {
 
   const getRequirements = (type) => {
     const reqs = [];
+    if (!type) return reqs;
     if (type.includes('text') || type === 'all') reqs.push('TEXT');
     if (type.includes('image') || type === 'all') reqs.push('SCREENSHOT');
     if (type.includes('link') || type === 'all') reqs.push('URL/LINK');
@@ -320,28 +321,36 @@ const TasksPage = () => {
             {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('text') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
               <div className="form-group">
                 <label>Textual Report</label>
-                <textarea 
-                  className="form-input" 
-                  placeholder="Enter detailed report or required text..."
-                  rows={4} 
-                  value={textContent} 
-                  onChange={(e) => setTextContent(e.target.value)} 
-                  required 
-                />
+                <div style={{ position: 'relative' }}>
+                  <textarea 
+                    className="form-input" 
+                    placeholder="Enter detailed report or required text..."
+                    rows={4} 
+                    value={textContent} 
+                    onChange={(e) => setTextContent(e.target.value)} 
+                    required 
+                    style={{ paddingRight: '70px' }}
+                  />
+                  <button type="button" onClick={() => navigator.clipboard.readText().then(t => setTextContent(textContent + t))} style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--blue)', color: 'white', border: 'none', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}>Paste</button>
+                </div>
               </div>
             )}
 
             {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('link') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all') && (
               <div className="form-group">
                 <label>Evidence Link (URL)</label>
-                <input 
-                  type="url"
-                  className="form-input" 
-                  placeholder="https://..."
-                  value={linkUrl} 
-                  onChange={(e) => setLinkUrl(e.target.value)} 
-                  required 
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="url"
+                    className="form-input" 
+                    placeholder="https://..."
+                    value={linkUrl} 
+                    onChange={(e) => setLinkUrl(e.target.value)} 
+                    required 
+                    style={{ paddingRight: '70px' }}
+                  />
+                  <button type="button" onClick={() => navigator.clipboard.readText().then(t => setLinkUrl(t))} style={{ position: 'absolute', top: '50%', right: '8px', transform: 'translateY(-50%)', background: 'var(--blue)', color: 'white', border: 'none', borderRadius: '6px', padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}>Paste</button>
+                </div>
               </div>
             )}
 

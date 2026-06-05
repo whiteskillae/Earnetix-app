@@ -18,7 +18,8 @@ const MissionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [submission, setSubmission] = useState('');
+  const [submissionText, setSubmissionText] = useState('');
+  const [submissionLink, setSubmissionLink] = useState('');
   const [submissionFiles, setSubmissionFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -87,7 +88,8 @@ const MissionsPage = () => {
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append('submissionContent', submission);
+      const combinedSubmission = [submissionText, submissionLink].filter(Boolean).join('\n\nLink: ');
+      formData.append('submissionContent', combinedSubmission);
       submissionFiles.forEach(file => {
         formData.append('files', file);
       });
@@ -97,7 +99,8 @@ const MissionsPage = () => {
       if (res.success) {
         toast.success('Evidence logged for clearance');
         setShowModal(false);
-        setSubmission('');
+        setSubmissionText('');
+        setSubmissionLink('');
         setSubmissionFiles([]);
         fetchMissions();
       }
@@ -128,13 +131,12 @@ const MissionsPage = () => {
 
   const getRequirements = (type) => {
     const reqs = [];
-    if (!type) return ['EVIDENCE'];
-    if (type.includes('text') || type === 'all') reqs.push('TEXT REPORT');
-    if (type.includes('image') || type === 'all') reqs.push('SCREENSHOT');
+    if (!type) return reqs;
+    if (type.includes('text') || type === 'custom' || type === 'all') reqs.push('TEXTUAL REPORT');
+    if (type.includes('image') || type === 'all') reqs.push('VISUAL EVIDENCE');
     if (type.includes('link') || type === 'all') reqs.push('URL/LINK');
-    if (type.includes('file') || type === 'all') reqs.push('DATA FILE');
-    if (type === 'multiple_files') reqs.push('MULTIPLE FILES');
-    return reqs.length > 0 ? reqs : ['EVIDENCE'];
+    if (type.includes('file') || type === 'multiple_files' || type === 'all') reqs.push('DOCUMENTATION');
+    return reqs;
   };
 
   if (loading) return <Loader text="Syncing Strategic Assignments..." />;
@@ -279,15 +281,18 @@ const MissionsPage = () => {
                 {((selected?.submissionConfig?.inputType || selected?.inputType || '').includes('text') || (selected?.submissionConfig?.inputType || selected?.inputType) === 'all' || (selected?.submissionConfig?.inputType || selected?.inputType) === 'custom') && (
                   <div className="form-group">
                     <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--gray-500)', marginBottom: '8px', display: 'block' }}>OPERATIONAL REPORT</label>
+                    <div style={{ position: 'relative' }}>
                     <textarea 
                       className="form-input" 
                       rows="6" 
                       placeholder="Detail the execution of this mission..."
-                      value={submission}
-                      onChange={(e) => setSubmission(e.target.value)}
+                      value={submissionText}
+                      onChange={(e) => setSubmissionText(e.target.value)}
                       required
-                      style={{ borderRadius: '20px', padding: '20px' }}
+                      style={{ borderRadius: '20px', padding: '20px', paddingRight: '80px' }}
                     />
+                    <button type="button" onClick={() => navigator.clipboard.readText().then(t => setSubmissionText(submissionText + t))} style={{ position: 'absolute', top: '16px', right: '16px', background: 'var(--blue)', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}>Paste</button>
+                  </div>
                   </div>
                 )}
 
@@ -344,10 +349,11 @@ const MissionsPage = () => {
                             className="form-input" 
                             style={{ border: 'none', background: 'none', flex: 1, height: '54px' }}
                             placeholder="https://..."
-                            value={submission}
-                            onChange={(e) => setSubmission(e.target.value)}
+                            value={submissionLink}
+                            onChange={(e) => setSubmissionLink(e.target.value)}
                             required
                         />
+                        <button type="button" onClick={() => navigator.clipboard.readText().then(t => setSubmissionLink(t))} style={{ background: 'var(--blue)', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 700 }}>Paste</button>
                     </div>
                   </div>
                 )}

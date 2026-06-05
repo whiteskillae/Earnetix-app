@@ -9,7 +9,7 @@ const MorePage = () => {
     {
       title: 'Information & Updates',
       items: [
-        { id: 'website', icon: Globe, label: 'Official Website', desc: 'Visit earnitix.com', route: 'https://earnitix.com', color: '#0ea5e9', external: true },
+        { id: 'website', icon: Globe, label: 'Official Website', desc: 'Visit earnetix.com', route: 'https://earnetix.com', color: '#0ea5e9', external: true },
         { id: 'updates', icon: Bell, label: 'Patch Notes & Updates', desc: 'See what is new in Earnetix', route: '/updates', color: '#3b82f6' },
         { id: 'rules', icon: FileText, label: 'How to Play & Rules', desc: 'Guidelines and task rules', route: '/rules', color: '#10b981' },
       ]

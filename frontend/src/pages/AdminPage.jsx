@@ -4,7 +4,7 @@ import { useApi } from '../hooks/useApi';
 import Modal from '../components/common/Modal';
 import Loader from '../components/common/Loader';
 import toast from 'react-hot-toast';
-import { Bell, Plus, Upload, Eye, Zap, Trash2, Edit } from 'lucide-react';
+import { Bell, Plus, Upload, Eye, Zap, Trash2, Edit, ExternalLink } from 'lucide-react';
 
 import AdminLayout from '../components/admin/AdminLayout';
 import AdminDashboard from '../components/admin/AdminDashboard';
@@ -261,13 +261,11 @@ const AdminPage = () => {
     formData.append('description', taskForm.description.trim());
     formData.append('rewardPoints', Math.floor(Number(taskForm.rewardPoints)));
     
-    // Auto-set inputType to link if blog
-    const finalInputType = taskForm.taskType === 'blog' ? 'link' : taskForm.inputType;
-    formData.append('inputType', finalInputType);
+    formData.append('inputType', taskForm.inputType);
     formData.append('taskType', taskForm.taskType || 'general');
     
-    // Only append attachments if not blog
-    if (taskForm.attachments && taskForm.taskType !== 'blog') {
+    // Only append attachments
+    if (taskForm.attachments) {
       taskForm.attachments.forEach(file => {
         formData.append('attachments', file);
       });
@@ -471,7 +469,7 @@ const AdminPage = () => {
           <div className="form-group"><label>Task Instructions</label><textarea className="form-input" rows="4" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} required /></div>
           <div className="grid-2">
             <div className="form-group"><label>Points Reward</label><input type="number" className="form-input" value={taskForm.rewardPoints} onChange={(e) => setTaskForm({ ...taskForm, rewardPoints: e.target.value })} required /></div>
-            {taskForm.taskType !== 'blog' && (
+
               <div className="form-group"><label>Submission Type (User Evidence)</label><select className="form-input" value={taskForm.inputType} onChange={(e) => setTaskForm({ ...taskForm, inputType: e.target.value })}>
                 <option value="image">Screenshot Only</option>
                 <option value="link">Link/URL Only</option>
@@ -483,24 +481,21 @@ const AdminPage = () => {
                 <option value="image_file">Screenshot + File</option>
                 <option value="all">Full Evidence (Text+Img+File+Link)</option>
               </select></div>
-            )}
           </div>
           <div className="form-group">
             <label>Task Type</label>
             <select className="form-input" value={taskForm.taskType || 'general'} onChange={(e) => setTaskForm({ ...taskForm, taskType: e.target.value })}>
               <option value="general">General</option>
-              <option value="blog">📝 Blog</option>
+
               <option value="video">🎥 Video</option>
               <option value="software">💻 Software</option>
               <option value="media">🎬 Media</option>
               <option value="graphic_design">🎨 Graphic Design</option>
               <option value="other">Other</option>
             </select>
-            {(taskForm.taskType === 'blog') && (
-              <p style={{ fontSize: '0.78rem', color: 'var(--blue-light)', marginTop: '6px' }}>ℹ Users will submit a URL link to their published blog post. No attachment configuration needed.</p>
-            )}
+
           </div>
-          {taskForm.taskType !== 'blog' && (
+
             <div className="form-group">
               <label>Task Attachments</label>
               <input 
@@ -510,7 +505,6 @@ const AdminPage = () => {
                 onChange={(e) => setTaskForm({ ...taskForm, attachments: Array.from(e.target.files) })} 
               />
             </div>
-          )}
           <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 16 }}>{editingTask ? 'Update Task' : 'Create Task'}</button>
         </form>
       </Modal>
@@ -593,9 +587,14 @@ const AdminPage = () => {
             {previewSub.linkUrl && (
               <div className="proof-section" style={{ marginTop: '20px' }}>
                 <h5>Submission Link:</h5>
-                <a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all' }}>
-                  {previewSub.linkUrl}
-                </a>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '12px' }}>
+                  <a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all', flex: 1 }}>
+                    {previewSub.linkUrl}
+                  </a>
+                  <a href={previewSub.linkUrl} target="_blank" rel="noreferrer" className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    Open URL <ExternalLink size={14} style={{ marginLeft: '4px' }} />
+                  </a>
+                </div>
               </div>
             )}
             

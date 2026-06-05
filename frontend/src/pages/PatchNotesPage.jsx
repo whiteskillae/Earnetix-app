@@ -18,6 +18,19 @@ const PatchNotesPage = () => {
       ]
     },
     {
+      version: 'v3.2.0',
+      date: 'June 2026',
+      title: 'Major UX & System Stability Overhaul',
+      changes: [
+        { type: 'feature', icon: Zap, color: '#3b82f6', text: 'Enhanced UI for Task/Mission submission with Quick Paste features and cleaner UI styling.' },
+        { type: 'feature', icon: Star, color: '#facc15', text: 'Added direct "Open URL" verification buttons for Admins to easily review external link proofs.' },
+        { type: 'fix', icon: ShieldCheck, color: '#10b981', text: 'Fixed critical loop bug causing users to be redirected to the Onboarding/Login page incorrectly.' },
+        { type: 'fix', icon: ShieldCheck, color: '#10b981', text: 'Resolved application crash on Tasks page caused by missing InputType properties.' },
+        { type: 'fix', icon: ShieldCheck, color: '#10b981', text: 'Completely removed deprecated Blog systems and constraints from Admin task creation.' },
+        { type: 'fix', icon: ShieldCheck, color: '#10b981', text: 'Fixed crash scenarios relating to user name or missing task configurations.' }
+      ]
+    },
+    {
       version: 'v3.0.0',
       date: 'April 2026',
       title: 'Global Launch',
