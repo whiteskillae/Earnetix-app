@@ -162,7 +162,8 @@ const getMyWithdrawals = async (req, res, next) => {
   try {
     const withdrawals = await Withdrawal.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
-      .limit(20);
+      .limit(20)
+      .lean();
 
     res.json({ success: true, data: withdrawals });
   } catch (error) {
@@ -181,7 +182,8 @@ const getAllWithdrawals = async (req, res, next) => {
       .populate('userId', 'name email points frozenPoints kycStatus country')
       .populate('processedBy', 'name email')
       .sort({ createdAt: -1 })
-      .limit(200);
+      .limit(200)
+      .lean();
 
     res.json({ success: true, data: withdrawals });
   } catch (error) {

@@ -24,18 +24,20 @@ const taskSchema = new mongoose.Schema({
     enum: ['general', 'blog', 'video', 'software', 'media', 'graphic_design', 'other'],
     default: 'general',
   },
-  inputType: {
-    type: String,
-    enum: ['text', 'image', 'file', 'link', 'text_image', 'text_link', 'all'],
-    required: [true, 'Input type is required'],
-  },
-  allowedExtensions: {
-    type: [String],
-    default: ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'],
-  },
-  maxFileSize: {
-    type: Number,
-    default: 5 * 1024 * 1024, // 5MB
+  submissionConfig: {
+    inputType: {
+      type: String,
+      enum: ['text', 'image', 'file', 'link', 'multiple_files', 'text_image', 'text_file', 'text_link', 'custom', 'all'],
+      default: 'file'
+    },
+    customFields: [{
+      label: String,
+      fieldType: { type: String, enum: ['text', 'textarea', 'file', 'image', 'url'] },
+      placeholder: String,
+      required: { type: Boolean, default: true }
+    }],
+    maxFileSize: { type: Number, default: 5 * 1024 * 1024 }, // 5MB default
+    allowedExtensions: { type: [String], default: ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'] }
   },
   maxSubmissionsPerUser: {
     type: Number,

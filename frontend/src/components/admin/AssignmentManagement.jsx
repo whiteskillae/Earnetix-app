@@ -74,7 +74,7 @@ const AssignmentManagement = () => {
     try {
       const [tRes, uRes, cRes] = await Promise.all([
         request('get', '/assigned-tasks'),
-        request('get', '/admin/users?limit=1000'),
+        request('get', '/admin/users?limit=50000000'),
         request('get', '/skill-categories')
       ]);
       if (tRes.success) setTasks(tRes.data);

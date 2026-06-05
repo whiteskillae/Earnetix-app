@@ -1,11 +1,19 @@
+const mongoose = require('mongoose');
 const Submission = require('../models/Submission');
 const Task = require('../models/Task');
 const AdminLog = require('../models/AdminLog');
-const { validateFile, uploadToCloudinary, deleteFromCloudinary } = require('../services/uploadService');
-const { hashFileBuffer, hashText } = require('../utils/hashFile');
+const { validateFile, uploadMultipleToCloudinary, deleteFromCloudinary, rollbackUploads } = require('../services/uploadService');
+const { hashFileFromDisk } = require('../services/uploadService');
+const { hashText } = require('../utils/hashFile');
 const { checkDailyLimit } = require('../services/taskService');
+const { cleanupTempFiles } = require('../middleware/uploadMiddleware');
+const { isFileSafe } = require('../services/fileSecurityService');
+const logger = require('../utils/logger');
 
 const submitProof = async (req, res, next) => {
+  // Track temp files for cleanup regardless of success/failure
+  const filesToCleanup = req.files;
+
   try {
     const { taskId, textContent, linkUrl } = req.body;
     if (!taskId) return res.status(400).json({ success: false, message: 'Task ID is required' });
@@ -34,28 +42,44 @@ const submitProof = async (req, res, next) => {
     }
 
     // Handle files
-    const imageFile = req.files?.image?.[0];
-    const otherFile = req.files?.file?.[0];
+    let hasImage = false;
+    let hasFile = false;
 
-    // Global allowed extensions
     const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
     const allowedFiles = task.allowedExtensions && task.allowedExtensions.length > 0 ? task.allowedExtensions : ['*'];
 
-    // Validate files BEFORE any upload
-    if (imageFile) validateFile(imageFile, allowedImages, task.maxFileSize);
-    if (otherFile) validateFile(otherFile, allowedFiles, task.maxFileSize);
+    if (req.files) {
+      for (const file of req.files) {
+        const ext = file.originalname.split('.').pop().toLowerCase();
+        if (allowedImages.includes(ext)) {
+          hasImage = true;
+          validateFile(file, allowedImages, task.maxFileSize);
+        } else {
+          hasFile = true;
+          validateFile(file, allowedFiles, task.maxFileSize);
+        }
+        
+        if (file.path) {
+          const safety = await isFileSafe(file.path, file.originalname, task.maxFileSize);
+          if (!safety.safe) {
+            return res.status(400).json({ success: false, message: safety.reason });
+          }
+        }
+      }
+    }
 
     // ─── HASH BEFORE UPLOAD (dedup optimization) ─────────
-    // Compute hashes from buffers locally — no Cloudinary API call yet
     let fileHash = null;
-    if (imageFile) fileHash = hashFileBuffer(imageFile.buffer);
-    if (otherFile && !fileHash) fileHash = hashFileBuffer(otherFile.buffer);
+    if (req.files && req.files.length > 0 && req.files[0].path) {
+      fileHash = await hashFileFromDisk(req.files[0].path);
+    }
     if (textContent) fileHash = fileHash || hashText(textContent);
     if (linkUrl) fileHash = fileHash || hashText(linkUrl);
 
     // Check for duplicates BEFORE uploading to Cloudinary
     if (fileHash) {
-      const dup = await Submission.findOne({ fileHash, status: { $in: ['pending', 'approved'] } });
+      // Scoped to userId and taskId to prevent global hash collisions
+      const dup = await Submission.findOne({ fileHash, userId, taskId, status: { $in: ['pending', 'approved'] } });
       if (dup) {
         return res.status(409).json({ success: false, message: 'Duplicate submission detected' });
       }
@@ -64,8 +88,6 @@ const submitProof = async (req, res, next) => {
     // Dynamic Validation based on inputType (before upload to catch early)
     const it = task.inputType;
     const hasText = !!textContent;
-    const hasImage = !!imageFile;
-    const hasFile = !!otherFile;
     const hasLink = !!linkUrl;
 
     if (it.includes('text') && !hasText) return res.status(400).json({ success: false, message: 'Text response is required' });
@@ -76,28 +98,48 @@ const submitProof = async (req, res, next) => {
     if (it === 'all' && (!hasText || !hasImage || !hasFile || !hasLink)) return res.status(400).json({ success: false, message: 'Full evidence required: Text + Image + File + Link' });
 
     // ─── NOW UPLOAD (only after all validation + dedup passes) ───
-    let imageUrl = null, imagePublicId = null, fileUrl = null, filePublicId = null;
+    const uploadedAssets = []; // Track for rollback
+    const attachments = [];
 
-    if (imageFile) {
-      const r = await uploadToCloudinary(imageFile.buffer, 'earnetix/submissions', imageFile.originalname);
-      imageUrl = r.url; imagePublicId = r.publicId;
+    try {
+      if (req.files && req.files.length > 0) {
+        const results = await uploadMultipleToCloudinary(req.files, 'earnetix/submissions', 3);
+        for (const r of results) {
+          if (r.success) {
+            attachments.push({
+              url: r.result.url,
+              publicId: r.result.publicId,
+              resourceType: r.result.resourceType,
+              originalName: r.file.originalname
+            });
+            uploadedAssets.push({ publicId: r.result.publicId, resourceType: r.result.resourceType });
+          } else {
+            throw new Error(`Upload failed for ${r.file.originalname}: ${r.error}`);
+          }
+        }
+      }
+    } catch (uploadError) {
+      // Upload failed — rollback any already-uploaded files
+      await rollbackUploads(uploadedAssets);
+      throw uploadError;
     }
 
-    if (otherFile) {
-      const r = await uploadToCloudinary(otherFile.buffer, 'earnetix/submissions', otherFile.originalname);
-      fileUrl = r.url; filePublicId = r.publicId;
+    // ─── DB SAVE WITH ROLLBACK ───────────────────────────
+    let submission;
+    try {
+      submission = await Submission.create({ 
+        userId, taskId, textContent, linkUrl,
+        attachments, fileHash 
+      });
+    } catch (dbError) {
+      // DB save failed — rollback Cloudinary uploads to prevent orphans
+      await rollbackUploads(uploadedAssets);
+      throw dbError;
     }
 
-    const submission = await Submission.create({ 
-      userId, taskId, textContent, linkUrl,
-      imageUrl, imagePublicId, 
-      fileUrl, filePublicId, 
-      fileHash 
-    });
-
-    // Create System Log
-    await AdminLog.create({
-      userId,
+    // Create System Log (non-critical — fire and forget)
+    AdminLog.create({
+      adminId: userId,
       action: 'task_submitted',
       targetType: 'submission',
       targetId: submission._id,
@@ -107,6 +149,10 @@ const submitProof = async (req, res, next) => {
 
     res.status(201).json({ success: true, message: 'Proof submitted successfully', data: submission });
   } catch (error) { next(error); }
+  finally {
+    // ALWAYS clean up temp files, even on errors
+    cleanupTempFiles(filesToCleanup);
+  }
 };
 
 const getMySubmissions = async (req, res, next) => {
@@ -115,13 +161,15 @@ const getMySubmissions = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 20;
     const filter = { userId: req.user._id };
     if (req.query.status) filter.status = req.query.status;
-    const submissions = await Submission.find(filter).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit).populate('taskId', 'title rewardPoints inputType');
+    const submissions = await Submission.find(filter).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit).populate('taskId', 'title rewardPoints inputType').lean();
     const total = await Submission.countDocuments(filter);
     res.json({ success: true, data: { submissions, pagination: { page, limit, total, pages: Math.ceil(total / limit) } } });
   } catch (error) { next(error); }
 };
 
 const resubmit = async (req, res, next) => {
+  const filesToCleanup = req.files;
+
   try {
     const submission = await Submission.findOne({ _id: req.params.id, userId: req.user._id });
     if (!submission) return res.status(404).json({ success: false, message: 'Submission not found' });
@@ -130,58 +178,107 @@ const resubmit = async (req, res, next) => {
     const task = await Task.findById(submission.taskId);
     if (!task || !task.isActive) return res.status(404).json({ success: false, message: 'Task no longer active' });
 
-    // Delete old files
-    if (submission.imagePublicId) await deleteFromCloudinary(submission.imagePublicId);
-    if (submission.filePublicId) await deleteFromCloudinary(submission.filePublicId);
-
-    let imageUrl = null, imagePublicId = null, fileUrl = null, filePublicId = null, fileHash = null;
+    let fileHash = null;
     
-    const imageFile = req.files?.image?.[0];
-    const otherFile = req.files?.file?.[0];
-    const { textContent, linkUrl } = req.body;
-
+    // Files from .array('files', 5) middleware
     const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
     const allowedFiles = task.allowedExtensions && task.allowedExtensions.length > 0 ? task.allowedExtensions : ['*'];
 
-    if (imageFile) {
-      validateFile(imageFile, allowedImages, task.maxFileSize);
-      const r = await uploadToCloudinary(imageFile.buffer, 'earnetix/submissions', imageFile.originalname);
-      imageUrl = r.url; imagePublicId = r.publicId; fileHash = r.hash;
+    if (req.files) {
+      for (const file of req.files) {
+        const ext = file.originalname.split('.').pop().toLowerCase();
+        if (allowedImages.includes(ext)) {
+          validateFile(file, allowedImages, task.maxFileSize);
+        } else {
+          validateFile(file, allowedFiles, task.maxFileSize);
+        }
+        
+        if (file.path) {
+          const safety = await isFileSafe(file.path, file.originalname, task.maxFileSize);
+          if (!safety.safe) {
+            return res.status(400).json({ success: false, message: safety.reason });
+          }
+        }
+      }
     }
 
-    if (otherFile) {
-      validateFile(otherFile, allowedFiles, task.maxFileSize);
-      const r = await uploadToCloudinary(otherFile.buffer, 'earnetix/submissions', otherFile.originalname);
-      fileUrl = r.url; filePublicId = r.publicId; 
-      if (!fileHash) fileHash = r.hash;
+    const { textContent, linkUrl } = req.body;
+
+    // ─── UPLOAD NEW FILES FIRST (before deleting old ones) ───
+    const newUploadedAssets = [];
+    const newAttachments = [];
+
+    try {
+      if (req.files && req.files.length > 0) {
+        const results = await uploadMultipleToCloudinary(req.files, 'earnetix/submissions', 3);
+        for (const r of results) {
+          if (r.success) {
+            newAttachments.push({
+              url: r.result.url,
+              publicId: r.result.publicId,
+              resourceType: r.result.resourceType,
+              originalName: r.file.originalname
+            });
+            newUploadedAssets.push({ publicId: r.result.publicId, resourceType: r.result.resourceType });
+          } else {
+            throw new Error(`Upload failed for ${r.file.originalname}: ${r.error}`);
+          }
+        }
+      }
+    } catch (uploadError) {
+      await rollbackUploads(newUploadedAssets);
+      throw uploadError;
     }
 
+    if (req.files && req.files.length > 0 && req.files[0].path) {
+      fileHash = await hashFileFromDisk(req.files[0].path);
+    }
     if (textContent) fileHash = fileHash || hashText(textContent);
     if (linkUrl) fileHash = fileHash || hashText(linkUrl);
 
+    // Dedup check (exclude current submission)
     if (fileHash) {
-      const dup = await Submission.findOne({ _id: { $ne: submission._id }, fileHash, status: { $in: ['pending', 'approved'] } });
+      const dup = await Submission.findOne({ _id: { $ne: submission._id }, userId: req.user._id, taskId: task._id, fileHash, status: { $in: ['pending', 'approved'] } });
       if (dup) { 
-        if (imagePublicId) await deleteFromCloudinary(imagePublicId); 
-        if (filePublicId) await deleteFromCloudinary(filePublicId);
+        // Rollback new uploads before returning
+        await rollbackUploads(newUploadedAssets);
         return res.status(409).json({ success: false, message: 'Duplicate content' }); 
       }
     }
 
-    Object.assign(submission, {
-      textContent: textContent || submission.textContent,
-      linkUrl: linkUrl || submission.linkUrl,
-      imageUrl: imageUrl || submission.imageUrl,
-      imagePublicId: imagePublicId || submission.imagePublicId,
-      fileUrl: fileUrl || submission.fileUrl,
-      filePublicId: filePublicId || submission.filePublicId,
-      fileHash: fileHash || submission.fileHash,
-      status: 'pending', rejectionReason: null, canResubmit: false,
-      submissionCount: submission.submissionCount + 1, reviewedBy: null, reviewedAt: null,
-    });
-    await submission.save();
+    // ─── SAVE TO DB, THEN DELETE OLD FILES ───────────────
+    // Track old file IDs for deletion AFTER successful save
+    const oldAssets = submission.attachments ? submission.attachments.map(a => ({ publicId: a.publicId, resourceType: a.resourceType })) : [];
+
+    try {
+      Object.assign(submission, {
+        textContent: textContent || submission.textContent,
+        linkUrl: linkUrl || submission.linkUrl,
+        attachments: newAttachments.length > 0 ? newAttachments : submission.attachments,
+        fileHash: fileHash || submission.fileHash,
+        status: 'pending', rejectionReason: null, canResubmit: false,
+        submissionCount: submission.submissionCount + 1, reviewedBy: null, reviewedAt: null,
+      });
+      await submission.save();
+    } catch (dbError) {
+      // DB save failed — rollback NEW uploads, keep old files safe
+      await rollbackUploads(newUploadedAssets);
+      throw dbError;
+    }
+
+    // ─── NOW SAFE TO DELETE OLD FILES ────────────────────
+    // DB save succeeded — old files can be cleaned up
+    for (const old of oldAssets) {
+      deleteFromCloudinary(old.publicId, old.resourceType).catch(err => {
+        logger.error(`[Resubmit] Failed to cleanup old file ${old.publicId}: ${err.message}`);
+      });
+    }
+
     res.json({ success: true, message: 'Resubmitted', data: submission });
   } catch (error) { next(error); }
+  finally {
+    cleanupTempFiles(filesToCleanup);
+  }
 };
 
 module.exports = { submitProof, getMySubmissions, resubmit };

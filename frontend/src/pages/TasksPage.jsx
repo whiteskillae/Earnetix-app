@@ -24,19 +24,16 @@ const TasksPage = () => {
   const [search, setSearch] = useState('');
   const [mySubs, setMySubs] = useState([]);
   const [editingSubId, setEditingSubId] = useState(null);
-  const [myBlogs, setMyBlogs] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tasksRes, subsRes, blogsRes] = await Promise.all([
+        const [tasksRes, subsRes] = await Promise.all([
           request('get', '/tasks'),
-          request('get', '/submissions/my?limit=100'),
-          request('get', '/blogs/my').catch(() => ({ success: false, data: [] }))
+          request('get', '/submissions/my?limit=100')
         ]);
         if (tasksRes.success) setTasks(tasksRes.data.tasks);
         if (subsRes.success) setMySubs(subsRes.data.submissions);
-        if (blogsRes.success) setMyBlogs(blogsRes.data || []);
       } catch (err) {
         toast.error('Sector data retrieval failed.');
       } finally {
@@ -182,14 +179,14 @@ const TasksPage = () => {
           <div className="flex-between" style={{ marginBottom: '8px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-500)' }}>DAILY QUOTA</span>
               <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--green)' }}>
-                 {mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length + myBlogs.filter(b => new Date(b.createdAt).toDateString() === new Date().toDateString()).length}/8
+                 {mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length}/8
               </span>
           </div>
           <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
              <div style={{ 
                 height: '100%', 
                 background: 'var(--green-gradient)', 
-                width: `${Math.min(((mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length + myBlogs.filter(b => new Date(b.createdAt).toDateString() === new Date().toDateString()).length) / 8) * 100, 100)}%`,
+                width: `${Math.min(((mySubs.filter(s => new Date(s.createdAt).toDateString() === new Date().toDateString()).length) / 8) * 100, 100)}%`,
                 transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
              }}></div>
           </div>
@@ -270,42 +267,15 @@ const TasksPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-                  {(task.taskType === 'blog' || (task.title && task.title.toLowerCase().includes('blog'))) ? (() => {
-                    // Check blog submission status
-                    const userBlog = myBlogs.find(b => b.taskId === task._id || b.taskId?._id === task._id);
-                    const blogApproved = userBlog?.status === 'approved';
-                    const blogPending = userBlog?.status === 'pending';
-                    const blogRejected = userBlog?.status === 'rejected';
-                    const blogBlocked = userBlog?.status === 'blocked';
-                    const hasBlog = !!userBlog;
-                    return (
-                      <button
-                        className="btn-premium btn-primary-new"
-                        style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: blogApproved ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : blogPending ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : blogRejected ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }}
-                        onClick={() => {
-                          if (blogRejected && userBlog) {
-                            navigate(`/blog/create?edit=${userBlog._id}`);
-                          } else if (!hasBlog) {
-                            navigate(`/blog/create?taskId=${task._id}&type=public`);
-                          }
-                        }}
-                        disabled={blogApproved || blogPending || blogBlocked}
-                      >
-                        {blogApproved ? <CheckCircle size={18} /> : blogPending ? <Clock size={18} /> : blogRejected ? <AlertCircle size={18} /> : <BookOpen size={18} />}
-                        {blogApproved ? 'BLOG APPROVED' : blogPending ? 'IN REVIEW' : blogRejected ? 'RESUBMIT BLOG' : blogBlocked ? 'BLOCKED' : 'WRITE BLOG'}
-                      </button>
-                    );
-                  })() : (
-                    <button 
-                      className="btn-premium btn-primary-new"
-                      style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                      onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
-                      disabled={isApproved || isPending || (isRejected && !canResubmit)}
-                    >
-                      {isApproved ? <CheckCircle size={18} /> : isPending ? <Clock size={18} /> : <Upload size={18} />}
-                      {isApproved ? 'COMPLETED' : isPending ? 'IN REVIEW' : 'DO TASK'}
-                    </button>
-                  )}
+                  <button 
+                    className="btn-premium btn-primary-new"
+                    style={{ flex: 1, height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    onClick={() => openSubmit(task, isRejected ? userSub._id : null)}
+                    disabled={isApproved || isPending || (isRejected && !canResubmit)}
+                  >
+                    {isApproved ? <CheckCircle size={18} /> : isPending ? <Clock size={18} /> : <Upload size={18} />}
+                    {isApproved ? 'COMPLETED' : isPending ? 'IN REVIEW' : 'DO TASK'}
+                  </button>
                   <button 
                     className="btn-premium"
                     style={{ 

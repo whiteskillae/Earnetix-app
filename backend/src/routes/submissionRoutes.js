@@ -1,22 +1,11 @@
 const router = require('express').Router();
-const multer = require('multer');
 const rateLimit = require('express-rate-limit');
 const { submitProof, getMySubmissions, resubmit } = require('../controllers/submissionController');
 const auth = require('../middleware/auth');
+const { submissionUpload } = require('../middleware/uploadMiddleware');
 
-// Multer memory storage (buffer for hashing before Cloudinary upload)
-const BLOCKED = ['exe','bat','cmd','sh','msi','php','py','rb','apk','dll','js','jsx','ts','tsx','com','scr','vbs'];
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB hard limit
-  fileFilter: (req, file, cb) => {
-    const ext = file.originalname.split('.').pop().toLowerCase();
-    if (BLOCKED.includes(ext)) return cb(new Error(`File type .${ext} is not allowed`), false);
-    cb(null, true);
-  },
-});
-
-const uploadFields = upload.fields([{ name: 'image', maxCount: 1 }, { name: 'file', maxCount: 1 }]);
+// Multer now uses disk storage (defined in uploadMiddleware.js)
+// No longer buffers files in memory — prevents OOM on concurrent uploads
 
 // Upload throttle: max 20 submissions per 15 min per IP
 const uploadLimiter = rateLimit({
@@ -27,9 +16,11 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post('/', auth, uploadLimiter, uploadFields, submitProof);
+// Submission upload uses the shared submissionUpload middleware which handles
+// multer configuration for both 'image' and 'file' fields.
+// Note: submissionUpload uses .array('files', 5) — controllers access req.files.
+router.post('/', auth, uploadLimiter, submissionUpload, submitProof);
 router.get('/my', auth, getMySubmissions);
-router.put('/:id/resubmit', auth, uploadLimiter, uploadFields, resubmit);
+router.put('/:id/resubmit', auth, uploadLimiter, submissionUpload, resubmit);
 
 module.exports = router;
-

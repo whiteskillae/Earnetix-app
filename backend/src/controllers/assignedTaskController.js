@@ -1,10 +1,15 @@
 const AssignedTask = require('../models/AssignedTask');
 const User = require('../models/User');
-const { uploadToCloudinary } = require('../services/uploadService');
+const AdminLog = require('../models/AdminLog');
+const { uploadToCloudinary, uploadMultipleToCloudinary, rollbackUploads } = require('../services/uploadService');
 const { checkDailyLimit } = require('../services/taskService');
+const { cleanupTempFiles } = require('../middleware/uploadMiddleware');
+const logger = require('../utils/logger');
 
 // Admin: Create and Assign Task
 const createAndAssignTask = async (req, res, next) => {
+  const filesToCleanup = req.files;
+
   try {
     const { title, description, rewardPoints, assignedUsers, requiredSkills, submissionConfig } = req.body;
     
@@ -54,15 +59,17 @@ const createAndAssignTask = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Strategic Failure: No agents targeted for this mission.' });
     }
 
-    // Handle attachments (Briefing Files)
+    // Handle attachments (Briefing Files) — PARALLEL uploads
     const attachments = [];
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        try {
-          const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks', file.originalname);
-          attachments.push({ name: file.originalname, url: result.url });
-        } catch (uploadError) {
-          console.error('Cloudinary Upload Error:', uploadError);
+      const results = await uploadMultipleToCloudinary(req.files, 'earnetix/tasks', 3);
+      
+      for (const r of results) {
+        if (r.success) {
+          attachments.push({ name: r.file.originalname, url: r.result.url });
+        } else {
+          // Log but don't fail the entire operation for individual upload errors
+          logger.error(`Attachment upload failed for ${r.file?.originalname}: ${r.error}`);
         }
       }
     }
@@ -84,14 +91,29 @@ const createAndAssignTask = async (req, res, next) => {
       })
     ));
 
+    // Log admin action
+    AdminLog.create({
+      adminId: req.user._id,
+      action: 'create_task',
+      targetId: req.user._id,
+      targetType: 'assigned_task',
+      details: `Deployed ${tasks.length} missions: "${title}" with ${attachments.length} attachments`,
+      ip: req.ip,
+    }).catch(err => logger.error(`Failed to log task creation: ${err.message}`));
+
     res.status(201).json({ success: true, message: `${tasks.length} individual missions deployed`, data: tasks });
   } catch (error) { next(error); }
+  finally {
+    cleanupTempFiles(filesToCleanup);
+  }
 };
 
 // Admin: Get all assigned tasks
 const getAllAssignedTasks = async (req, res, next) => {
   try {
-    const tasks = await AssignedTask.find().populate('assignedUsers', 'name email').sort({ createdAt: -1 });
+    const tasks = await AssignedTask.find({ status: { $ne: 'archived' } })
+      .populate('assignedUsers', 'name email')
+      .sort({ createdAt: -1 });
     res.json({ success: true, data: tasks });
   } catch (error) { next(error); }
 };
@@ -100,7 +122,8 @@ const getAllAssignedTasks = async (req, res, next) => {
 const getMyAssignedTasks = async (req, res, next) => {
   try {
     const tasks = await AssignedTask.find({
-      assignedUsers: req.user._id
+      assignedUsers: req.user._id,
+      status: { $ne: 'archived' }
     }).sort({ deadline: 1 });
     res.json({ success: true, data: tasks });
   } catch (error) { next(error); }
@@ -127,6 +150,8 @@ const updateTaskStatus = async (req, res, next) => {
 
 // User: Submit Task for Review
 const submitAssignedTask = async (req, res, next) => {
+  const filesToCleanup = req.files;
+
   try {
     const { submissionContent, customData } = req.body;
     const task = await AssignedTask.findOne({
@@ -147,12 +172,14 @@ const submitAssignedTask = async (req, res, next) => {
 
     const it = task.submissionConfig?.inputType || 'file';
     
-    // Handle submission attachments
+    // Handle submission attachments — parallel upload
     const submissionAttachments = [];
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const result = await uploadToCloudinary(file.buffer, 'earnetix/submissions', file.originalname);
-        submissionAttachments.push(result.url);
+      const results = await uploadMultipleToCloudinary(req.files, 'earnetix/submissions', 3);
+      for (const r of results) {
+        if (r.success) {
+          submissionAttachments.push(r.result.url);
+        }
       }
     }
 
@@ -190,14 +217,31 @@ const submitAssignedTask = async (req, res, next) => {
     await task.save();
     res.json({ success: true, message: 'Evidence submitted for administrative review', data: task });
   } catch (error) { next(error); }
+  finally {
+    cleanupTempFiles(filesToCleanup);
+  }
 };
 
-// Admin: Delete Assigned Task
+// Admin: Delete Assigned Task — SOFT DELETE (preserves evidence)
 const deleteAssignedTask = async (req, res, next) => {
   try {
-    const task = await AssignedTask.findByIdAndDelete(req.params.id);
+    const task = await AssignedTask.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: 'Mission not found' });
-    res.json({ success: true, message: 'Mission successfully deleted' });
+
+    // Soft delete — preserves submission history and evidence
+    task.status = 'archived';
+    await task.save();
+
+    AdminLog.create({
+      adminId: req.user._id,
+      action: 'delete_task',
+      targetId: task._id,
+      targetType: 'assigned_task',
+      details: `Archived assigned task: ${task.title}`,
+      ip: req.ip,
+    }).catch(err => logger.error(`Failed to log task deletion: ${err.message}`));
+
+    res.json({ success: true, message: 'Mission archived successfully' });
   } catch (error) { next(error); }
 };
 

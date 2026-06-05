@@ -36,7 +36,7 @@ const assignedTaskSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'in_progress', 'under_review', 'completed', 'rejected', 'overdue'],
+    enum: ['pending', 'accepted', 'in_progress', 'under_review', 'completed', 'rejected', 'overdue', 'archived'],
     default: 'pending',
   },
   assignedUsers: [{
@@ -81,5 +81,9 @@ const assignedTaskSchema = new mongoose.Schema({
 assignedTaskSchema.index({ status: 1 });
 assignedTaskSchema.index({ assignedUsers: 1 });
 assignedTaskSchema.index({ deadline: 1 });
+// Compound indexes for common query patterns
+assignedTaskSchema.index({ status: 1, createdAt: -1 }); // Admin: filter by status, sort by newest
+assignedTaskSchema.index({ assignedUsers: 1, status: 1 }); // User: my tasks filtered by status
+assignedTaskSchema.index({ 'submissions.userId': 1 }); // Daily limit check query
 
 module.exports = mongoose.model('AssignedTask', assignedTaskSchema);

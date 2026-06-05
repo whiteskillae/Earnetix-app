@@ -229,15 +229,9 @@ const MissionsPage = () => {
                     </>
                   )}
                   {(m.status === 'accepted' || m.status === 'in_progress') && !isPastDeadline && (
-                    isBlogTask ? (
-                      <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' }} onClick={() => navigate(`/blog/create?taskId=${m._id}&type=assigned`)}>
-                        <BookOpen size={20} /> WRITE BLOG POST
-                      </button>
-                    ) : (
-                      <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px' }} onClick={() => { setSelected(m); setShowModal(true); }}>
-                        <Upload size={20} /> LOG EVIDENCE & CLAIM REWARD
-                      </button>
-                    )
+                    <button className="btn-premium btn-primary-new btn-block" style={{ height: '54px' }} onClick={() => { setSelected(m); setShowModal(true); }}>
+                      <Upload size={20} /> LOG EVIDENCE & CLAIM REWARD
+                    </button>
                   )}
                   {isPastDeadline && (m.status === 'pending' || m.status === 'accepted' || m.status === 'in_progress') && (
                     <div className="glass-panel" style={{ width: '100%', padding: '16px', textAlign: 'center', borderColor: 'var(--danger)', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '16px' }}>

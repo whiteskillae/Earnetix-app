@@ -46,7 +46,7 @@ const submitKyc = async (req, res, next) => {
       await deleteFromCloudinary(user.kycDocumentPublicId);
     }
 
-    const uploadResult = await uploadToCloudinary(docFile.buffer, 'earnetix/kyc', docFile.originalname);
+    const uploadResult = await uploadToCloudinary(docFile.path || docFile.buffer, 'earnetix/kyc', docFile.originalname);
 
     user.kycStatus = 'pending';
     user.kycDocumentUrl = uploadResult.url;
@@ -72,6 +72,11 @@ const submitKyc = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  } finally {
+    if (req.files) {
+      const { cleanupTempFiles } = require('../middleware/uploadMiddleware');
+      cleanupTempFiles(Object.values(req.files).flat());
+    }
   }
 };
 

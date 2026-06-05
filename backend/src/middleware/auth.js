@@ -24,7 +24,10 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid token.' });
     }
 
-    const user = await User.findById(decoded.userId).select('-passwordHash -otp -refreshToken');
+    // Use lean() for massive performance boost, and only select necessary fields
+    const user = await User.findById(decoded.userId)
+      .select('isBlocked blockedUntil role')
+      .lean();
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found.' });
     }

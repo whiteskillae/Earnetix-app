@@ -19,7 +19,7 @@ const GalleryManagement = () => {
   const [preview, setPreview] = useState(null);
   
   // Selection & Actions
-  const [selectedItems, setSelectedItems] = useState([]); // Array of { submissionId, fileField }
+  const [selectedItems, setSelectedItems] = useState([]); // Array of { submissionId, publicId }
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null, type: 'danger' });
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -43,14 +43,14 @@ const GalleryManagement = () => {
 
   useEffect(() => { fetchGallery(); }, [fetchGallery]);
 
-  const toggleSelect = (submissionId, fileField) => {
-    const key = `${submissionId}-${fileField}`;
-    const isSelected = selectedItems.some(i => `${i.submissionId}-${i.fileField}` === key);
+  const toggleSelect = (submissionId, publicId) => {
+    const key = `${submissionId}-${publicId}`;
+    const isSelected = selectedItems.some(i => `${i.submissionId}-${i.publicId}` === key);
     
     if (isSelected) {
-      setSelectedItems(prev => prev.filter(i => `${i.submissionId}-${i.fileField}` !== key));
+      setSelectedItems(prev => prev.filter(i => `${i.submissionId}-${i.publicId}` !== key));
     } else {
-      setSelectedItems(prev => [...prev, { submissionId, fileField }]);
+      setSelectedItems(prev => [...prev, { submissionId, publicId }]);
     }
   };
 
@@ -61,24 +61,24 @@ const GalleryManagement = () => {
       const all = [];
       items.forEach(item => {
         item.files.forEach(file => {
-          all.push({ submissionId: item._id, fileField: file.type === 'image' ? 'image' : 'file' });
+          all.push({ submissionId: item._id, publicId: file.publicId });
         });
       });
       setSelectedItems(all);
     }
   };
 
-  const handleDeleteSingle = (submissionId, fileField) => {
+  const handleDeleteSingle = (submissionId, publicId) => {
     setConfirmModal({
       open: true,
       title: 'Delete Intelligence Asset',
-      message: `Are you sure you want to permanently delete this ${fileField} from the secure cloud? This action is irreversible.`,
+      message: `Are you sure you want to permanently delete this asset from the secure cloud? This action is irreversible.`,
       type: 'danger',
       confirmText: 'Destroy Asset',
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          const res = await request('delete', `/admin/gallery/${submissionId}/${fileField}`);
+          const res = await request('delete', `/admin/gallery/${submissionId}/${encodeURIComponent(publicId)}`);
           if (res.success) {
             toast.success('Asset Destroyed');
             fetchGallery();
@@ -230,12 +230,12 @@ const GalleryManagement = () => {
             <div key={item._id} className="glass-panel" style={{ borderRadius: '16px', overflow: 'hidden', transition: 'var(--transition)', border: selectedItems.some(i => i.submissionId === item._id) ? '2px solid var(--blue)' : '1px solid var(--glass-border)' }}>
               {/* Preview Area */}
               {item.files.map((file, idx) => {
-                const isSelected = selectedItems.some(i => i.submissionId === item._id && i.fileField === (file.type === 'image' ? 'image' : 'file'));
+                const isSelected = selectedItems.some(i => i.submissionId === item._id && i.publicId === file.publicId);
                 return (
                   <div key={idx} style={{ position: 'relative' }}>
                     {/* Checkbox overlay */}
                     <div 
-                      onClick={() => toggleSelect(item._id, file.type === 'image' ? 'image' : 'file')}
+                      onClick={() => toggleSelect(item._id, file.publicId)}
                       style={{ 
                         position: 'absolute', top: '10px', left: '10px', zIndex: 5,
                         width: '24px', height: '24px', borderRadius: '6px', background: isSelected ? 'var(--blue)' : 'rgba(0,0,0,0.5)',
@@ -272,8 +272,8 @@ const GalleryManagement = () => {
                         style={{ background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'white' }}
                       ><Eye size={14} /></button>
                       <button
-                        onClick={() => handleDeleteSingle(item._id, file.type === 'image' ? 'image' : 'file')}
-                        style={{ background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'white' }}
+                        onClick={() => handleDeleteSingle(item._id, file.publicId)}
+                        style={{ background: 'rgba(248, 71, 71, 0.8)', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'white' }}
                       ><Trash2 size={14} /></button>
                     </div>
                   </div>

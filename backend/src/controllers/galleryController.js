@@ -16,10 +16,7 @@ const getGalleryItems = async (req, res, next) => {
 
     // Build filter — only items that have at least one file
     const filter = {
-      $or: [
-        { imageUrl: { $ne: null } },
-        { fileUrl: { $ne: null } },
-      ]
+      'attachments.0': { $exists: true }
     };
 
     if (status) filter.status = status;
@@ -46,16 +43,15 @@ const getGalleryItems = async (req, res, next) => {
 
     // Enrich items with file type info
     const enriched = items.map(item => {
-      const files = [];
-      if (item.imageUrl) {
-        const ext = item.imageUrl.split('.').pop().split('?')[0].toLowerCase();
-        files.push({ type: 'image', url: item.imageUrl, publicId: item.imagePublicId, ext });
-      }
-      if (item.fileUrl) {
-        const ext = item.fileUrl.split('.').pop().split('?')[0].toLowerCase();
-        const isVideo = ['mp4', 'mov', 'avi', 'mkv'].includes(ext);
-        files.push({ type: isVideo ? 'video' : 'document', url: item.fileUrl, publicId: item.filePublicId, ext });
-      }
+      const files = item.attachments ? item.attachments.map(a => {
+        const isVideo = ['mp4', 'mov', 'avi', 'mkv'].includes(a.resourceType);
+        return {
+           type: a.resourceType === 'image' ? 'image' : (a.resourceType === 'video' ? 'video' : 'document'),
+           url: a.url,
+           publicId: a.publicId,
+           ext: a.originalName ? a.originalName.split('.').pop().toLowerCase() : ''
+        };
+      }) : [];
       return {
         _id: item._id,
         uploader: item.userId,
@@ -91,31 +87,25 @@ const getGalleryItems = async (req, res, next) => {
  */
 const deleteGalleryItem = async (req, res, next) => {
   try {
-    const { submissionId, fileField } = req.params; // fileField: 'image' or 'file'
-
-    if (!['image', 'file'].includes(fileField)) {
-      return res.status(400).json({ success: false, message: 'Invalid file field. Use "image" or "file".' });
-    }
+    const { submissionId, fileField: encodedPublicId } = req.params; // we reused fileField route param for encoded publicId
+    const publicId = decodeURIComponent(encodedPublicId);
 
     const submission = await Submission.findById(submissionId);
     if (!submission) {
       return res.status(404).json({ success: false, message: 'Submission not found' });
     }
 
-    const publicIdField = fileField === 'image' ? 'imagePublicId' : 'filePublicId';
-    const urlField = fileField === 'image' ? 'imageUrl' : 'fileUrl';
-    const publicId = submission[publicIdField];
+    const attachmentIndex = submission.attachments ? submission.attachments.findIndex(a => a.publicId === publicId) : -1;
 
-    if (!publicId) {
-      return res.status(400).json({ success: false, message: `No ${fileField} file to delete` });
+    if (attachmentIndex === -1) {
+      return res.status(400).json({ success: false, message: `Attachment not found` });
     }
 
     // Delete from Cloudinary
-    await deleteFromCloudinary(publicId);
+    await deleteFromCloudinary(publicId, submission.attachments[attachmentIndex].resourceType);
 
-    // Clear DB references
-    submission[publicIdField] = null;
-    submission[urlField] = null;
+    // Clear DB reference
+    submission.attachments.splice(attachmentIndex, 1);
     await submission.save();
 
     // Log the action
@@ -124,13 +114,13 @@ const deleteGalleryItem = async (req, res, next) => {
       action: 'delete_task', // reuse existing action type
       targetId: submission._id,
       targetType: 'submission',
-      details: `Admin deleted ${fileField} file (${publicId}) from submission`,
+      details: `Admin deleted file (${publicId}) from submission`,
       ip: req.ip,
     });
 
-    logger.info(`Gallery: Admin ${req.user._id} deleted ${fileField} from submission ${submissionId}`);
+    logger.info(`Gallery: Admin ${req.user._id} deleted ${publicId} from submission ${submissionId}`);
 
-    res.json({ success: true, message: `${fileField} file deleted successfully` });
+    res.json({ success: true, message: `Asset deleted successfully` });
   } catch (error) { next(error); }
 };
 
@@ -148,18 +138,15 @@ const deleteGalleryItemsBulk = async (req, res, next) => {
 
     for (const item of items) {
       try {
-        const { submissionId, fileField } = item;
+        const { submissionId, publicId } = item;
         const submission = await Submission.findById(submissionId);
         if (!submission) { results.failed++; continue; }
 
-        const publicIdField = fileField === 'image' ? 'imagePublicId' : 'filePublicId';
-        const urlField = fileField === 'image' ? 'imageUrl' : 'fileUrl';
-        const publicId = submission[publicIdField];
+        const attachmentIndex = submission.attachments ? submission.attachments.findIndex(a => a.publicId === publicId) : -1;
 
-        if (publicId) {
-          await deleteFromCloudinary(publicId);
-          submission[publicIdField] = null;
-          submission[urlField] = null;
+        if (attachmentIndex !== -1) {
+          await deleteFromCloudinary(publicId, submission.attachments[attachmentIndex].resourceType);
+          submission.attachments.splice(attachmentIndex, 1);
           await submission.save();
           results.success++;
         } else {

@@ -27,8 +27,7 @@ const MissionsPage = lazy(() => import('./pages/MissionsPage'));
 const WithdrawalPage = lazy(() => import('./pages/WithdrawalPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
-const BlogPage = lazy(() => import('./pages/BlogPage'));
-const BlogEditorPage = lazy(() => import('./pages/BlogEditorPage'));
+
 const MorePage = lazy(() => import('./pages/MorePage'));
 const PatchNotesPage = lazy(() => import('./pages/PatchNotesPage'));
 const RulesPage = lazy(() => import('./pages/RulesPage'));
@@ -150,10 +149,7 @@ const AppRoutes = () => (
       <Route path="/reports" element={<ProtectedRoute><AppLayout><ReportPage /></AppLayout></ProtectedRoute>} />
       <Route path="/missions" element={<ProtectedRoute><AppLayout><MissionsPage /></AppLayout></ProtectedRoute>} />
       <Route path="/withdraw" element={<ProtectedRoute><AppLayout><WithdrawalPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/blog" element={<ProtectedRoute><AppLayout><BlogPage /></AppLayout></ProtectedRoute>} />
-      <Route path="/blog/create" element={<ProtectedRoute><BlogEditorPage /></ProtectedRoute>} />
-      <Route path="/blog/create/:taskId" element={<ProtectedRoute><BlogEditorPage /></ProtectedRoute>} />
-      <Route path="/blog/edit/:blogId" element={<ProtectedRoute><BlogEditorPage /></ProtectedRoute>} />
+
 
       {/* Admin only (redirect to unified dashboard) */}
       <Route path="/admin" element={<Navigate to="/dashboard" replace />} />

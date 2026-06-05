@@ -130,6 +130,11 @@ const rejectSubmission = async (req, res, next) => {
     if (!submission) return res.status(404).json({ success: false, message: 'Submission not found' });
     if (submission.status !== 'pending') return res.status(400).json({ success: false, message: 'Submission already reviewed' });
 
+    // Track files to delete AFTER successful DB save
+    const filesToDelete = [];
+    if (submission.imagePublicId) filesToDelete.push({ publicId: submission.imagePublicId, resourceType: submission.imageResourceType || null });
+    if (submission.filePublicId) filesToDelete.push({ publicId: submission.filePublicId, resourceType: submission.fileResourceType || null });
+
     submission.status = 'rejected';
     submission.rejectionReason = rejectionReason;
     // 1 more chance to resubmit (submissionCount 1 -> canResubmit true, submissionCount 2 -> canResubmit false)
@@ -138,10 +143,13 @@ const rejectSubmission = async (req, res, next) => {
     submission.reviewedAt = new Date();
     await submission.save();
 
-    // Clean up rejected evidence from Cloudinary
+    // DB save succeeded — NOW safe to delete Cloudinary files
     const { deleteFromCloudinary } = require('../services/uploadService');
-    if (submission.imagePublicId) await deleteFromCloudinary(submission.imagePublicId);
-    if (submission.filePublicId) await deleteFromCloudinary(submission.filePublicId);
+    for (const file of filesToDelete) {
+      deleteFromCloudinary(file.publicId, file.resourceType).catch(err => {
+        console.error(`[Reject] Failed to cleanup ${file.publicId}: ${err.message}`);
+      });
+    }
 
     await AdminLog.create({
       adminId: req.user._id, action: 'reject', targetId: submission._id,
@@ -289,11 +297,16 @@ const rejectSubmissionsBulk = async (req, res, next) => {
 
     const results = { success: 0, failed: 0 };
     const { deleteFromCloudinary } = require('../services/uploadService');
+    const filesToDelete = []; // Collect for post-loop cleanup
 
     for (const id of ids) {
       try {
         const submission = await Submission.findById(id);
         if (!submission || submission.status !== 'pending') { results.failed++; continue; }
+
+        // Track files for cleanup after DB save
+        if (submission.imagePublicId) filesToDelete.push({ publicId: submission.imagePublicId, resourceType: submission.imageResourceType || null });
+        if (submission.filePublicId) filesToDelete.push({ publicId: submission.filePublicId, resourceType: submission.fileResourceType || null });
 
         submission.status = 'rejected';
         submission.rejectionReason = reason;
@@ -301,12 +314,14 @@ const rejectSubmissionsBulk = async (req, res, next) => {
         submission.reviewedBy = req.user._id;
         submission.reviewedAt = new Date();
         await submission.save();
-
-        if (submission.imagePublicId) await deleteFromCloudinary(submission.imagePublicId);
-        if (submission.filePublicId) await deleteFromCloudinary(submission.filePublicId);
         
         results.success++;
       } catch (err) { results.failed++; }
+    }
+
+    // All DB saves done — NOW safe to cleanup Cloudinary files
+    for (const file of filesToDelete) {
+      deleteFromCloudinary(file.publicId, file.resourceType).catch(() => {});
     }
 
     cache.del('admin_dashboard');
@@ -495,52 +510,72 @@ const unblockUser = async (req, res, next) => {
  * can register again without any "already registered" error.
  */
 const deleteUser = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    if (user.role === 'admin') return res.status(400).json({ success: false, message: 'Cannot delete admin accounts' });
+    const user = await User.findById(req.params.id).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.role === 'admin') {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'Cannot delete admin accounts' });
+    }
 
     const { deleteFromCloudinary } = require('../services/uploadService');
 
-    // 1. Delete KYC document from Cloudinary
+    // Collect Cloudinary files for cleanup AFTER transaction commit
+    const cloudinaryFiles = [];
+
+    // 1. Track KYC document
     if (user.kycDocumentPublicId) {
-      await deleteFromCloudinary(user.kycDocumentPublicId).catch(e => 
-        console.warn(`[deleteUser] KYC Cloudinary cleanup failed: ${e.message}`)
-      );
+      cloudinaryFiles.push({ publicId: user.kycDocumentPublicId, resourceType: null });
     }
 
-    // 2. Delete all submission files from Cloudinary
-    const userSubmissions = await Submission.find({ userId: user._id });
+    // 2. Track all submission files
+    const userSubmissions = await Submission.find({ userId: user._id }).session(session);
     for (const sub of userSubmissions) {
-      if (sub.imagePublicId) await deleteFromCloudinary(sub.imagePublicId).catch(() => {});
-      if (sub.filePublicId) await deleteFromCloudinary(sub.filePublicId).catch(() => {});
+      if (sub.imagePublicId) cloudinaryFiles.push({ publicId: sub.imagePublicId, resourceType: sub.imageResourceType || null });
+      if (sub.filePublicId) cloudinaryFiles.push({ publicId: sub.filePublicId, resourceType: sub.fileResourceType || null });
     }
 
     // 3. Delete all Submission documents
-    await Submission.deleteMany({ userId: user._id });
+    await Submission.deleteMany({ userId: user._id }).session(session);
 
     // 4. Delete all Withdrawal documents
     const Withdrawal = require('../models/Withdrawal');
-    await Withdrawal.deleteMany({ userId: user._id });
+    await Withdrawal.deleteMany({ userId: user._id }).session(session);
 
     // 5. Delete all AssignedTask entries where user was assigned
     await AssignedTask.updateMany(
       { assignedUsers: user._id },
       { $pull: { assignedUsers: user._id } }
-    );
+    ).session(session);
 
     // 6. Log the admin action before deleting (while user._id still exists)
-    await AdminLog.create({
+    await AdminLog.create([{
       adminId: req.user._id,
       action: 'delete_user',
       targetId: user._id,
       targetType: 'user',
       details: `Permanently deleted user: ${user.email} (IP: ${user.registrationIp}, Device: ${user.deviceFingerprint})`,
       ip: req.ip,
-    });
+    }], { session });
 
     // 7. Hard delete the user — this frees email, IP, and device fingerprint
-    await User.findByIdAndDelete(user._id);
+    await User.findByIdAndDelete(user._id).session(session);
+
+    // Commit the transaction — all-or-nothing
+    await session.commitTransaction();
+
+    // Transaction committed — NOW safe to clean up Cloudinary files
+    for (const file of cloudinaryFiles) {
+      deleteFromCloudinary(file.publicId, file.resourceType).catch(e => 
+        console.warn(`[deleteUser] Cloudinary cleanup failed: ${e.message}`)
+      );
+    }
 
     cache.del('admin_dashboard');
 
@@ -549,7 +584,10 @@ const deleteUser = async (req, res, next) => {
       message: `User "${user.name}" (${user.email}) has been permanently deleted. Their IP and device are now free for re-registration.` 
     });
   } catch (error) {
+    await session.abortTransaction();
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 
@@ -559,7 +597,7 @@ const deleteUser = async (req, res, next) => {
 const getAdminLogs = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const limit = parseInt(req.query.limit) || 50;
     const filter = {};
     if (req.query.action) filter.action = req.query.action;
     if (req.query.targetType) filter.targetType = req.query.targetType;

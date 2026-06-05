@@ -22,7 +22,6 @@ const assignedTaskRoutes = require('./routes/assignedTaskRoutes');
 const kycRoutes = require('./routes/kycRoutes');
 const withdrawalRoutes = require('./routes/withdrawalRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
-const blogRoutes = require('./routes/blogRoutes');
 
 const app = express();
 app.set('trust proxy', true);
@@ -118,6 +117,29 @@ app.use('/api', apiLimiter);
 const analyticsTracker = require('./middleware/analyticsTracker');
 app.use('/api', analyticsTracker);
 
+// ─── OVERLOAD PROTECTION ───────────────────────────────
+let isOverloaded = false;
+let lastCheck = Date.now();
+
+// Simple event loop lag monitor
+setInterval(() => {
+  const now = Date.now();
+  const lag = now - lastCheck - 100; // 100ms interval
+  lastCheck = now;
+  // If lag is > 200ms, the event loop is severely blocked
+  isOverloaded = lag > 200; 
+}, 100);
+
+app.use((req, res, next) => {
+  if (isOverloaded && !req.originalUrl.startsWith('/api/admin')) {
+    return res.status(503).json({
+      success: false,
+      message: 'Server is experiencing high traffic. Please try again later.'
+    });
+  }
+  next();
+});
+
 // ─── ROUTES ────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -131,7 +153,6 @@ app.use('/api/assigned-tasks', assignedTaskRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/admin/gallery', galleryRoutes);
-app.use('/api/blogs', blogRoutes);
 
 // 404
 app.use((req, res) => {

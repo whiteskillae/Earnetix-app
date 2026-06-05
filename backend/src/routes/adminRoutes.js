@@ -11,8 +11,9 @@ const auth = require('../middleware/auth');
 const adminGuard = require('../middleware/adminGuard');
 const validate = require('../middleware/validate');
 const { rejectSubmissionSchema } = require('../validators/submissionSchema');
+const { adminLimiter } = require('../middleware/rateLimiter');
 
-router.use(auth, adminGuard); // All admin routes require auth + admin role
+router.use(auth, adminGuard, adminLimiter); // All admin routes require auth + admin role + admin rate limit
 
 router.get('/dashboard', getDashboard);
 router.get('/analytics', getAnalytics);

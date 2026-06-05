@@ -48,5 +48,8 @@ const adminLogSchema = new mongoose.Schema({
 
 adminLogSchema.index({ adminId: 1 });
 adminLogSchema.index({ createdAt: -1 });
+// Compound indexes for filtered admin log queries
+adminLogSchema.index({ action: 1, createdAt: -1 }); // Filter by action type
+adminLogSchema.index({ targetType: 1, createdAt: -1 }); // Filter by target type
 
 module.exports = mongoose.model('AdminLog', adminLogSchema);

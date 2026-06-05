@@ -30,6 +30,10 @@ const startWorker = async () => {
 if (cluster.isMaster || cluster.isPrimary) {
   logger.info(`Master ${process.pid} is running`);
 
+  // Initialize cleanup workers on the master process only
+  const { startCleanupWorkers } = require('./services/cleanupService');
+  startCleanupWorkers();
+
   // Render/Heroku typically provide WEB_CONCURRENCY env var. 
   // Default to 1 worker on limited RAM instances to prevent Out of Memory errors.
   const workers = process.env.WEB_CONCURRENCY ? parseInt(process.env.WEB_CONCURRENCY) : 1;

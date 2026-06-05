@@ -20,7 +20,7 @@ import GalleryManagement from '../components/admin/GalleryManagement';
 import BlockManagement from '../components/admin/BlockManagement';
 import AdminLogs from '../components/admin/AdminLogs';
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
-import BlogManagement from '../components/admin/BlogManagement';
+
 import ConfirmModal from '../components/common/ConfirmModal';
 import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
@@ -101,7 +101,7 @@ const AdminPage = () => {
           status: m.status === 'under_review' ? 'pending' : m.status,
           createdAt: m.updatedAt,
           textContent: m.submissions[m.submissions.length-1]?.content,
-          fileUrl: m.submissions[m.submissions.length-1]?.attachments?.[0], // First attachment
+          attachments: m.submissions[m.submissions.length-1]?.attachments || [],
           isAssigned: true
         }));
         setSubmissions(subFilter === 'pending' ? mapped : mapped.filter(m => m.status === subFilter));
@@ -261,8 +261,8 @@ const AdminPage = () => {
     formData.append('description', taskForm.description.trim());
     formData.append('rewardPoints', Math.floor(Number(taskForm.rewardPoints)));
     
-    // Auto-set inputType to text if blog
-    const finalInputType = taskForm.taskType === 'blog' ? 'text' : taskForm.inputType;
+    // Auto-set inputType to link if blog
+    const finalInputType = taskForm.taskType === 'blog' ? 'link' : taskForm.inputType;
     formData.append('inputType', finalInputType);
     formData.append('taskType', taskForm.taskType || 'general');
     
@@ -420,7 +420,6 @@ const AdminPage = () => {
       {tab === 'gallery' && <GalleryManagement />}
       {tab === 'blocked' && <BlockManagement />}
       {tab === 'logs' && <AdminLogs />}
-      {tab === 'blogs' && <BlogManagement />}
 
       {tab === 'announcements' && (
         <div className="glass-panel">
@@ -498,7 +497,7 @@ const AdminPage = () => {
               <option value="other">Other</option>
             </select>
             {(taskForm.taskType === 'blog') && (
-              <p style={{ fontSize: '0.78rem', color: 'var(--blue-light)', marginTop: '6px' }}>ℹ Users will submit a blog post via the Blog Editor page. No evidence attachment configuration is needed.</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--blue-light)', marginTop: '6px' }}>ℹ Users will submit a URL link to their published blog post. No attachment configuration needed.</p>
             )}
           </div>
           {taskForm.taskType !== 'blog' && (
@@ -605,15 +604,18 @@ const AdminPage = () => {
                 </div>
                 {previewSub.textContent && <div className="proof-section"><h5>Text Evidence:</h5><div className="text-proof" style={{ background: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem' }}>{previewSub.textContent}</div></div>}
                 {previewSub.linkUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Submission Link:</h5><a href={previewSub.linkUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontSize: '0.9rem', wordBreak: 'break-all' }}>{previewSub.linkUrl}</a></div>}
-                {previewSub.imageUrl && <div className="proof-section" style={{ marginTop: '20px' }}><h5>Screenshot Proof:</h5><img src={previewSub.imageUrl} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} /></div>}
-                {previewSub.fileUrl && (
-                  <div className="proof-section" style={{ marginTop: '20px' }}>
-                    <h5>File Archive:</h5>
-                    <a href={getDownloadableUrl(previewSub.fileUrl)} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
-                      <Upload size={16} /> Inspect File
-                    </a>
+                {previewSub.attachments && previewSub.attachments.map((file, idx) => (
+                  <div key={idx} className="proof-section" style={{ marginTop: '20px' }}>
+                    {file.resourceType === 'image' ? (
+                      <><h5>Screenshot Proof:</h5><img src={file.url} alt="Proof" style={{ width: '100%', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }} /></>
+                    ) : (
+                      <><h5>File Archive:</h5>
+                      <a href={getDownloadableUrl(file.url)} target="_blank" rel="noreferrer" className="btn btn-block btn-outline">
+                        <Upload size={16} /> Inspect {file.originalName || 'File'}
+                      </a></>
+                    )}
                   </div>
-                )}
+                ))}
               </>
             )}
             <div className="preview-meta" style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', opacity: 0.5, fontSize: '0.75rem' }}>

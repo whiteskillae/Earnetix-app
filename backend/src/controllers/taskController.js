@@ -1,7 +1,9 @@
 const Task = require('../models/Task');
 const AdminLog = require('../models/AdminLog');
 const cache = require('../services/cacheService');
-const { uploadToCloudinary } = require('../services/uploadService');
+const { uploadMultipleToCloudinary } = require('../services/uploadService');
+const { cleanupTempFiles } = require('../middleware/uploadMiddleware');
+const logger = require('../utils/logger');
 
 // ─── GET ALL ACTIVE TASKS (User) ───────────────────────
 const getTasks = async (req, res, next) => {
@@ -21,7 +23,8 @@ const getTasks = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select('-createdBy');
+      .select('-createdBy')
+      .lean();
 
     const total = await Task.countDocuments({ isActive: true });
     
@@ -30,7 +33,7 @@ const getTasks = async (req, res, next) => {
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     };
 
-    // Cache for 2 minutes
+    // Cache for 2 minutes, registered under 'tasks' group
     cache.set(cacheKey, responseData, 120);
 
     res.json({ success: true, data: responseData });
@@ -54,12 +57,19 @@ const getTaskById = async (req, res, next) => {
 
 // ─── CREATE TASK (Admin) ──────────────────────────────
 const createTask = async (req, res, next) => {
+  const filesToCleanup = req.files;
+
   try {
+    // Handle file uploads — PARALLEL instead of sequential
     const attachments = [];
     if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks', file.originalname);
-        attachments.push({ name: file.originalname, url: result.url });
+      const results = await uploadMultipleToCloudinary(req.files, 'earnetix/tasks', 3);
+      for (const r of results) {
+        if (r.success) {
+          attachments.push({ name: r.file.originalname, url: r.result.url });
+        } else {
+          logger.error(`Task attachment upload failed: ${r.error}`);
+        }
       }
     }
 
@@ -69,14 +79,22 @@ const createTask = async (req, res, next) => {
       try { allowedExtensions = JSON.parse(allowedExtensions); } catch(e) { allowedExtensions = allowedExtensions.split(','); }
     }
 
+    // Map flat fields to submissionConfig structure
+    const submissionConfig = {
+      inputType: req.body.inputType || 'file',
+      allowedExtensions: allowedExtensions || ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'],
+      maxFileSize: req.body.maxFileSize || 5 * 1024 * 1024
+    };
+
     const task = await Task.create({ 
       ...req.body, 
-      allowedExtensions: allowedExtensions || ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'],
+      submissionConfig,
       attachments, 
       createdBy: req.user._id 
     });
     
-    cache.flush(); // Clear all task caches
+    // Targeted cache invalidation — only tasks, not everything
+    cache.invalidateByPrefix('tasks_');
 
     // Log admin action
     await AdminLog.create({
@@ -87,22 +105,29 @@ const createTask = async (req, res, next) => {
 
     res.status(201).json({ success: true, message: 'Task created', data: task });
   } catch (error) { next(error); }
+  finally {
+    cleanupTempFiles(filesToCleanup);
+  }
 };
 
 // ─── UPDATE TASK (Admin) ──────────────────────────────
 const updateTask = async (req, res, next) => {
+  const filesToCleanup = req.files;
+
   try {
     const updateData = { ...req.body };
     
-    // Handle new attachments
+    // Handle new attachments — PARALLEL
     if (req.files && req.files.length > 0) {
+      const results = await uploadMultipleToCloudinary(req.files, 'earnetix/tasks', 3);
       const newAttachments = [];
-      for (const file of req.files) {
-        const result = await uploadToCloudinary(file.buffer, 'earnetix/tasks', file.originalname);
-        newAttachments.push({ name: file.originalname, url: result.url });
+      for (const r of results) {
+        if (r.success) {
+          newAttachments.push({ name: r.file.originalname, url: r.result.url });
+        }
       }
       
-      // If we want to append or replace? Let's append by default if field exists
+      // Append new attachments to existing ones
       const existingTask = await Task.findById(req.params.id);
       if (existingTask) {
         updateData.attachments = [...(existingTask.attachments || []), ...newAttachments];
@@ -114,6 +139,17 @@ const updateTask = async (req, res, next) => {
       try { updateData.allowedExtensions = JSON.parse(updateData.allowedExtensions); } catch(e) { updateData.allowedExtensions = updateData.allowedExtensions.split(','); }
     }
 
+    if (updateData.inputType || updateData.allowedExtensions || updateData.maxFileSize) {
+      updateData.submissionConfig = {
+        inputType: updateData.inputType || 'file',
+        allowedExtensions: updateData.allowedExtensions || ['jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'docx', 'pdf', 'txt', 'zip'],
+        maxFileSize: updateData.maxFileSize || 5 * 1024 * 1024
+      };
+      delete updateData.inputType;
+      delete updateData.allowedExtensions;
+      delete updateData.maxFileSize;
+    }
+
     const task = await Task.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
@@ -121,7 +157,8 @@ const updateTask = async (req, res, next) => {
 
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
-    cache.flush(); // Clear all task caches
+    // Targeted cache invalidation
+    cache.invalidateByPrefix('tasks_');
 
     await AdminLog.create({
       adminId: req.user._id, action: 'edit_task', targetId: task._id,
@@ -130,6 +167,9 @@ const updateTask = async (req, res, next) => {
 
     res.json({ success: true, message: 'Task updated', data: task });
   } catch (error) { next(error); }
+  finally {
+    cleanupTempFiles(filesToCleanup);
+  }
 };
 
 
@@ -146,7 +186,8 @@ const deleteTask = async (req, res, next) => {
     task.isActive = false;
     await task.save();
 
-    cache.flush(); // Clear all task caches
+    // Targeted cache invalidation
+    cache.invalidateByPrefix('tasks_');
 
     await AdminLog.create({
       adminId: req.user._id,
@@ -183,7 +224,8 @@ const deleteTasksBulk = async (req, res, next) => {
       } catch (err) { results.failed++; }
     }
 
-    cache.flush();
+    // Targeted cache invalidation
+    cache.invalidateByPrefix('tasks_');
     
     await AdminLog.create({
       adminId: req.user._id,
@@ -199,4 +241,3 @@ const deleteTasksBulk = async (req, res, next) => {
 };
 
 module.exports = { getTasks, getTaskById, createTask, updateTask, deleteTask, deleteTasksBulk };
-

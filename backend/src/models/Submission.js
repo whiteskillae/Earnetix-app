@@ -17,22 +17,12 @@ const submissionSchema = new mongoose.Schema({
     maxlength: 5000,
     default: null,
   },
-  imageUrl: {
-    type: String,
-    default: null,
-  },
-  imagePublicId: {
-    type: String,
-    default: null, // Cloudinary public_id for deletion
-  },
-  fileUrl: {
-    type: String,
-    default: null,
-  },
-  filePublicId: {
-    type: String,
-    default: null,
-  },
+  attachments: [{
+    url: String,
+    publicId: String,
+    resourceType: String,
+    originalName: String,
+  }],
   fileHash: {
     type: String,
     default: null, // SHA-256 hash for duplicate detection
@@ -77,6 +67,9 @@ submissionSchema.index({ userId: 1, taskId: 1 });
 submissionSchema.index({ fileHash: 1 });
 submissionSchema.index({ status: 1 });
 submissionSchema.index({ userId: 1, createdAt: -1 }); // for daily limit queries
+// Compound indexes for admin review performance
+submissionSchema.index({ status: 1, createdAt: -1 }); // Admin: filter pending + sort by newest
+submissionSchema.index({ taskId: 1, status: 1 }); // Per-task submission counts (stats aggregation)
 
 
 module.exports = mongoose.model('Submission', submissionSchema);
