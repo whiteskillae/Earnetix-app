@@ -7,6 +7,19 @@ const AdminLog = require('../models/AdminLog');
 const { awardPoints, adjustPointsAtomic } = require('../services/pointService');
 const cache = require('../services/cacheService');
 
+const getSubmissionAttachmentRecords = (submission) => {
+  if (!submission?.attachments || !Array.isArray(submission.attachments)) {
+    return [];
+  }
+
+  return submission.attachments
+    .filter((attachment) => attachment?.publicId)
+    .map((attachment) => ({
+      publicId: attachment.publicId,
+      resourceType: attachment.resourceType || null,
+    }));
+};
+
 const getDashboard = async (req, res, next) => {
   try {
     // Check cache first (60-second TTL for dashboard stats)
@@ -131,9 +144,7 @@ const rejectSubmission = async (req, res, next) => {
     if (submission.status !== 'pending') return res.status(400).json({ success: false, message: 'Submission already reviewed' });
 
     // Track files to delete AFTER successful DB save
-    const filesToDelete = [];
-    if (submission.imagePublicId) filesToDelete.push({ publicId: submission.imagePublicId, resourceType: submission.imageResourceType || null });
-    if (submission.filePublicId) filesToDelete.push({ publicId: submission.filePublicId, resourceType: submission.fileResourceType || null });
+    const filesToDelete = getSubmissionAttachmentRecords(submission);
 
     submission.status = 'rejected';
     submission.rejectionReason = rejectionReason;
@@ -182,12 +193,13 @@ const toggleBlockUser = async (req, res, next) => {
       const { deleteFromCloudinary } = require('../services/uploadService');
       const pendingSubmissions = await Submission.find({
         userId: user._id,
-        status: { $in: ['pending', 'rejected'] },
-        $or: [{ imagePublicId: { $ne: null } }, { filePublicId: { $ne: null } }]
+        status: { $in: ['pending', 'rejected'] }
       });
       for (const sub of pendingSubmissions) {
-        if (sub.imagePublicId) await deleteFromCloudinary(sub.imagePublicId);
-        if (sub.filePublicId) await deleteFromCloudinary(sub.filePublicId);
+        const filesToDelete = getSubmissionAttachmentRecords(sub);
+        for (const file of filesToDelete) {
+          await deleteFromCloudinary(file.publicId, file.resourceType);
+        }
       }
     }
 
@@ -305,8 +317,7 @@ const rejectSubmissionsBulk = async (req, res, next) => {
         if (!submission || submission.status !== 'pending') { results.failed++; continue; }
 
         // Track files for cleanup after DB save
-        if (submission.imagePublicId) filesToDelete.push({ publicId: submission.imagePublicId, resourceType: submission.imageResourceType || null });
-        if (submission.filePublicId) filesToDelete.push({ publicId: submission.filePublicId, resourceType: submission.fileResourceType || null });
+        filesToDelete.push(...getSubmissionAttachmentRecords(submission));
 
         submission.status = 'rejected';
         submission.rejectionReason = reason;
@@ -352,12 +363,13 @@ const blockUsersBulk = async (req, res, next) => {
         // Clean up evidence
         const pendingSubmissions = await Submission.find({
           userId: user._id,
-          status: { $in: ['pending', 'rejected'] },
-          $or: [{ imagePublicId: { $ne: null } }, { filePublicId: { $ne: null } }]
+          status: { $in: ['pending', 'rejected'] }
         });
         for (const sub of pendingSubmissions) {
-          if (sub.imagePublicId) await deleteFromCloudinary(sub.imagePublicId);
-          if (sub.filePublicId) await deleteFromCloudinary(sub.filePublicId);
+          const filesToDelete = getSubmissionAttachmentRecords(sub);
+          for (const file of filesToDelete) {
+            await deleteFromCloudinary(file.publicId, file.resourceType);
+          }
         }
 
         results.success++;
@@ -537,8 +549,7 @@ const deleteUser = async (req, res, next) => {
     // 2. Track all submission files
     const userSubmissions = await Submission.find({ userId: user._id }).session(session);
     for (const sub of userSubmissions) {
-      if (sub.imagePublicId) cloudinaryFiles.push({ publicId: sub.imagePublicId, resourceType: sub.imageResourceType || null });
-      if (sub.filePublicId) cloudinaryFiles.push({ publicId: sub.filePublicId, resourceType: sub.fileResourceType || null });
+      cloudinaryFiles.push(...getSubmissionAttachmentRecords(sub));
     }
 
     // 3. Delete all Submission documents

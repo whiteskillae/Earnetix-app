@@ -4,11 +4,19 @@ const Task = require('../models/Task');
 const AdminLog = require('../models/AdminLog');
 const { validateFile, uploadMultipleToCloudinary, deleteFromCloudinary, rollbackUploads } = require('../services/uploadService');
 const { hashFileFromDisk } = require('../services/uploadService');
-const { hashText } = require('../utils/hashFile');
+const { hashFileBuffer, hashText } = require('../utils/hashFile');
 const { checkDailyLimit } = require('../services/taskService');
 const { cleanupTempFiles } = require('../middleware/uploadMiddleware');
-const { isFileSafe } = require('../services/fileSecurityService');
+const { isFileSafe, isFileBufferSafe } = require('../services/fileSecurityService');
 const logger = require('../utils/logger');
+
+const allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
+
+const getTaskSubmissionConfig = (task) => ({
+  inputType: task?.submissionConfig?.inputType || task?.inputType || 'file',
+  allowedExtensions: task?.submissionConfig?.allowedExtensions || task?.allowedExtensions || ['*'],
+  maxFileSize: task?.submissionConfig?.maxFileSize || task?.maxFileSize || (5 * 1024 * 1024),
+});
 
 const submitProof = async (req, res, next) => {
   // Track temp files for cleanup regardless of success/failure
@@ -45,22 +53,27 @@ const submitProof = async (req, res, next) => {
     let hasImage = false;
     let hasFile = false;
 
-    const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
-    const allowedFiles = task.allowedExtensions && task.allowedExtensions.length > 0 ? task.allowedExtensions : ['*'];
+    const taskConfig = getTaskSubmissionConfig(task);
+    const allowedFiles = taskConfig.allowedExtensions && taskConfig.allowedExtensions.length > 0 ? taskConfig.allowedExtensions : ['*'];
 
     if (req.files) {
       for (const file of req.files) {
         const ext = file.originalname.split('.').pop().toLowerCase();
-        if (allowedImages.includes(ext)) {
+        if (allowedImageExtensions.includes(ext)) {
           hasImage = true;
-          validateFile(file, allowedImages, task.maxFileSize);
+          validateFile(file, allowedImageExtensions, taskConfig.maxFileSize);
         } else {
           hasFile = true;
-          validateFile(file, allowedFiles, task.maxFileSize);
+          validateFile(file, allowedFiles, taskConfig.maxFileSize);
         }
-        
+
         if (file.path) {
-          const safety = await isFileSafe(file.path, file.originalname, task.maxFileSize);
+          const safety = await isFileSafe(file.path, file.originalname, taskConfig.maxFileSize);
+          if (!safety.safe) {
+            return res.status(400).json({ success: false, message: safety.reason });
+          }
+        } else if (file.buffer) {
+          const safety = await isFileBufferSafe(file.buffer, file.originalname, taskConfig.maxFileSize);
           if (!safety.safe) {
             return res.status(400).json({ success: false, message: safety.reason });
           }
@@ -90,7 +103,7 @@ const submitProof = async (req, res, next) => {
     }
 
     // Dynamic Validation based on inputType (before upload to catch early)
-    const it = task.inputType;
+    const it = taskConfig.inputType;
     const hasText = !!textContent;
     const hasLink = !!linkUrl;
 
@@ -185,20 +198,25 @@ const resubmit = async (req, res, next) => {
     let fileHash = null;
     
     // Files from .array('files', 5) middleware
-    const allowedImages = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
-    const allowedFiles = task.allowedExtensions && task.allowedExtensions.length > 0 ? task.allowedExtensions : ['*'];
+    const taskConfig = getTaskSubmissionConfig(task);
+    const allowedFiles = taskConfig.allowedExtensions && taskConfig.allowedExtensions.length > 0 ? taskConfig.allowedExtensions : ['*'];
 
     if (req.files) {
       for (const file of req.files) {
         const ext = file.originalname.split('.').pop().toLowerCase();
-        if (allowedImages.includes(ext)) {
-          validateFile(file, allowedImages, task.maxFileSize);
+        if (allowedImageExtensions.includes(ext)) {
+          validateFile(file, allowedImageExtensions, taskConfig.maxFileSize);
         } else {
-          validateFile(file, allowedFiles, task.maxFileSize);
+          validateFile(file, allowedFiles, taskConfig.maxFileSize);
         }
-        
+
         if (file.path) {
-          const safety = await isFileSafe(file.path, file.originalname, task.maxFileSize);
+          const safety = await isFileSafe(file.path, file.originalname, taskConfig.maxFileSize);
+          if (!safety.safe) {
+            return res.status(400).json({ success: false, message: safety.reason });
+          }
+        } else if (file.buffer) {
+          const safety = await isFileBufferSafe(file.buffer, file.originalname, taskConfig.maxFileSize);
           if (!safety.safe) {
             return res.status(400).json({ success: false, message: safety.reason });
           }

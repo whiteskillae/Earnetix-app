@@ -16,7 +16,8 @@ const BLOCKED = [
 // ─── SUBMISSION UPLOADS (User Evidence) ────────────────
 const uploadSubmissionFiles = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  // Let task-level validation enforce the actual limit after parsing.
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split('.').pop().toLowerCase();
     if (BLOCKED.includes(ext)) {

@@ -45,13 +45,16 @@ const TasksPage = () => {
   }, [request]);
 
   // ─── FRONTEND FILE VALIDATION ─────────────────────────
-  const MAX_IMAGE_SIZE = 15 * 1024 * 1024; // 15MB
-  const MAX_FILE_SIZE = 50 * 1024 * 1024;  // 50MB
+  const DEFAULT_MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
   const BLOCKED_EXTENSIONS = ['exe','bat','cmd','sh','msi','php','py','rb','apk','dll','js','jsx','ts','tsx','com','scr','vbs'];
   const ALLOWED_IMAGES = ['jpg','jpeg','png','webp','gif','bmp','heic','svg','tiff'];
 
   const validateFileClient = (file, isImage = false) => {
     const ext = file.name.split('.').pop().toLowerCase();
+    const taskConfig = selected?.submissionConfig || {};
+    const maxSize = taskConfig.maxFileSize || DEFAULT_MAX_UPLOAD_SIZE;
+    const allowedExtensions = taskConfig.allowedExtensions || [];
+
     if (BLOCKED_EXTENSIONS.includes(ext)) {
       toast.error(`File type .${ext} is not allowed for security reasons`);
       return false;
@@ -60,7 +63,10 @@ const TasksPage = () => {
       toast.error(`Image type .${ext} is not supported. Use: ${ALLOWED_IMAGES.join(', ')}`);
       return false;
     }
-    const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_FILE_SIZE;
+    if (!isImage && allowedExtensions.length > 0 && !allowedExtensions.includes('*') && !allowedExtensions.includes(ext)) {
+      toast.error(`File type .${ext} is not allowed. Allowed: ${allowedExtensions.join(', ')}`);
+      return false;
+    }
     if (file.size > maxSize) {
       toast.error(`File size too large. Maximum allowed: ${Math.round(maxSize / (1024 * 1024))}MB`);
       return false;
@@ -254,7 +260,7 @@ const TasksPage = () => {
                         {task.taskType === 'blog' ? '📝 Blog' : task.taskType === 'software' ? '💻 Software' : task.taskType === 'media' ? '🎬 Media' : task.taskType}
                       </span>
                     )}
-                    {getRequirements(task.inputType).map(r => (
+                    {getRequirements(task.submissionConfig?.inputType || task.inputType || '').map(r => (
                         <span key={r} style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-500)', border: '1px solid var(--glass-border)', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
                           {r}
                         </span>
@@ -409,7 +415,7 @@ const TasksPage = () => {
                   }}
                 >
                   <input id="other-file-input" type="file" style={{ display: 'none' }}
-                    accept={selected?.allowedExtensions ? selected.allowedExtensions.map(ext => `.${ext}`).join(',') : ".jpg,.jpeg,.png,.webp,.mp3,.mp4,.docx,.pdf,.txt,.zip"}
+                    accept={selected?.submissionConfig?.allowedExtensions ? selected.submissionConfig.allowedExtensions.map(ext => `.${ext}`).join(',') : ".jpg,.jpeg,.png,.webp,.mp3,.mp4,.docx,.pdf,.txt,.zip"}
                     onChange={handleFileChange} required />
                   {otherFile ? (
                     <div style={{ textAlign: 'center' }}>

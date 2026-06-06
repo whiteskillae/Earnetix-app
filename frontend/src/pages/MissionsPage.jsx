@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { getDownloadableUrl } from '../utils/cloudinaryHelper';
 
+const BLOCKED_EXTENSIONS = ['exe','bat','cmd','sh','msi','php','py','rb','apk','dll','js','jsx','ts','tsx','com','scr','vbs'];
+const ALLOWED_IMAGES = ['jpg','jpeg','png','webp','gif','bmp','heic','svg','tiff'];
+
 const MissionsPage = () => {
   const { request } = useApi();
   const { isProfileComplete, isKycVerified, kycStatus } = useAuth();
@@ -25,6 +28,26 @@ const MissionsPage = () => {
   const [submissionFiles, setSubmissionFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const validateMissionFile = (file) => {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const maxSize = selected?.submissionConfig?.maxFileSize || 5 * 1024 * 1024;
+    const allowedExtensions = selected?.submissionConfig?.allowedExtensions || [];
+
+    if (BLOCKED_EXTENSIONS.includes(ext)) {
+      toast.error(`File type .${ext} is not allowed for security reasons.`);
+      return false;
+    }
+    if (allowedExtensions.length > 0 && !allowedExtensions.includes('*') && !allowedExtensions.includes(ext) && !ALLOWED_IMAGES.includes(ext)) {
+      toast.error(`File type .${ext} is not allowed. Allowed: ${allowedExtensions.join(', ')}`);
+      return false;
+    }
+    if (file.size > maxSize) {
+      toast.error(`File size too large. Maximum allowed: ${Math.round(maxSize / (1024 * 1024))}MB`);
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     fetchMissions();
@@ -74,6 +97,7 @@ const MissionsPage = () => {
     const it = selected.submissionConfig?.inputType || 'file';
     const hasText = submissionText.trim().length > 0;
     const hasFiles = submissionFiles.length > 0;
+    const hasLink = submissionLink.trim().length > 0;
 
     if ((it === 'text') && !hasText) {
       return toast.error('Please write your operational report before submitting.');
@@ -84,8 +108,14 @@ const MissionsPage = () => {
     if ((it === 'text_file' || it === 'text_image') && (!hasText || !hasFiles)) {
       return toast.error('Both a report and evidence file are required for this mission.');
     }
-    if ((it === 'link' || it === 'text_link') && !hasText) {
+    if ((it === 'link' || it === 'text_link') && !hasLink) {
       return toast.error('Please provide the required link/URL before submitting.');
+    }
+    if (it === 'image_file' && !hasFiles) {
+      return toast.error('Please upload both screenshot and file evidence before submitting.');
+    }
+    if (it === 'all' && (!hasText || !hasFiles || !hasLink)) {
+      return toast.error('Full evidence is required for this mission.');
     }
 
     setSubmitting(true);
@@ -317,9 +347,22 @@ const MissionsPage = () => {
                             type="file" 
                             id="mission-files" 
                             multiple 
-                            accept={selected?.allowedExtensions ? selected.allowedExtensions.map(ext => `.${ext}`).join(',') : ".jpg,.jpeg,.png,.webp,.mp3,.mp4,.docx,.pdf,.txt,.zip"}
+                            accept={selected?.submissionConfig?.allowedExtensions ? selected.submissionConfig.allowedExtensions.map(ext => `.${ext}`).join(',') : ".jpg,.jpeg,.png,.webp,.mp3,.mp4,.docx,.pdf,.txt,.zip"}
                             style={{ display: 'none' }}
-                            onChange={(e) => setSubmissionFiles([...submissionFiles, ...Array.from(e.target.files)])}
+                            onChange={(e) => {
+                              const incomingFiles = Array.from(e.target.files || []);
+                              const validFiles = incomingFiles.filter(validateMissionFile);
+                              const nextFiles = [...submissionFiles, ...validFiles];
+
+                              if (nextFiles.length > 5) {
+                                toast.error('A maximum of 5 files can be uploaded per mission submission.');
+                                setSubmissionFiles(nextFiles.slice(0, 5));
+                              } else {
+                                setSubmissionFiles(nextFiles);
+                              }
+
+                              e.target.value = '';
+                            }}
                         />
                         <label htmlFor="mission-files" className="glass-panel" style={{ 
                             padding: '32px', textAlign: 'center', cursor: 'pointer', border: '2px dashed rgba(59, 130, 246, 0.2)',

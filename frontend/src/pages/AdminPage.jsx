@@ -63,6 +63,20 @@ const AdminPage = () => {
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: null, type: 'danger' });
   const [actionLoading, setActionLoading] = useState(false);
 
+  const normalizeAssignedAttachments = (attachments = []) =>
+    attachments.map((attachment, index) => {
+      if (typeof attachment === 'string') {
+        const isImage = /\.(jpg|jpeg|png|webp|gif|bmp|svg|heic|tiff)(\?|$)/i.test(attachment);
+        return {
+          url: attachment,
+          resourceType: isImage ? 'image' : 'raw',
+          originalName: `Attachment ${index + 1}`,
+        };
+      }
+
+      return attachment;
+    });
+
   useEffect(() => {
     fetchDashboard();
   }, []);
@@ -101,7 +115,7 @@ const AdminPage = () => {
           status: m.status === 'under_review' ? 'pending' : m.status,
           createdAt: m.updatedAt,
           textContent: m.submissions[m.submissions.length-1]?.content,
-          attachments: m.submissions[m.submissions.length-1]?.attachments || [],
+          attachments: normalizeAssignedAttachments(m.submissions[m.submissions.length-1]?.attachments || []),
           isAssigned: true
         }));
         setSubmissions(subFilter === 'pending' ? mapped : mapped.filter(m => m.status === subFilter));
@@ -389,7 +403,7 @@ const AdminPage = () => {
         <TaskManagement 
           tasks={tasks}
           onCreateTask={() => { setEditingTask(null); setTaskForm({ title: '', description: '', rewardPoints: 10, inputType: 'image' }); setShowTaskModal(true); }}
-          onEditTask={(task) => { setEditingTask(task); setTaskForm({ title: task.title, description: task.description, rewardPoints: task.rewardPoints, inputType: task.inputType }); setShowTaskModal(true); }}
+          onEditTask={(task) => { setEditingTask(task); setTaskForm({ title: task.title, description: task.description, rewardPoints: task.rewardPoints, inputType: task.submissionConfig?.inputType || task.inputType || 'image' }); setShowTaskModal(true); }}
           onDeleteTask={handleDeleteTask}
           onBulkDelete={handleBulkArchiveTasks}
         />

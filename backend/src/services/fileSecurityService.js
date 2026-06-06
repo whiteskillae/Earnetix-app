@@ -52,6 +52,35 @@ const readFileHead = async (filePath, bytes = 16) => {
   }
 };
 
+const validateMagicBytesFromBuffer = async (buffer, claimedExtension) => {
+  try {
+    if (!buffer || buffer.length === 0) {
+      return { valid: false, reason: 'File is empty' };
+    }
+
+    const head = buffer.subarray(0, 16);
+    for (const sig of EXECUTABLE_SIGNATURES) {
+      if (head.slice(0, sig.length).equals(sig)) {
+        return { valid: false, reason: 'File contains executable content and is not allowed' };
+      }
+    }
+
+    const ext = claimedExtension.toLowerCase();
+    const expectedSigs = MAGIC_BYTES[ext];
+    if (expectedSigs) {
+      const matches = expectedSigs.some(sig => head.slice(0, sig.length).equals(sig));
+      if (!matches) {
+        return { valid: false, reason: `File content does not match .${ext} format` };
+      }
+    }
+
+    return { valid: true };
+  } catch (error) {
+    logger.error(`[FileSecurity] Buffer magic byte validation error: ${error.message}`);
+    return { valid: false, reason: 'Could not verify file integrity' };
+  }
+};
+
 /**
  * Validate a file's actual content against its claimed extension using magic bytes.
  * Returns { valid: true } or { valid: false, reason: string }.
@@ -163,10 +192,36 @@ const isFileSafe = async (filePath, originalName, maxSizeBytes = null) => {
   return { safe: true };
 };
 
+const isFileBufferSafe = async (buffer, originalName, maxSizeBytes = null) => {
+  if (!buffer || !originalName) {
+    return { safe: false, reason: 'Missing file buffer or name' };
+  }
+
+  const ext = originalName.split('.').pop().toLowerCase();
+  const { BLOCKED_EXTENSIONS } = require('./uploadService');
+  if (BLOCKED_EXTENSIONS.includes(ext)) {
+    return { safe: false, reason: `File type .${ext} is blocked for security reasons` };
+  }
+
+  if (maxSizeBytes && buffer.length > maxSizeBytes) {
+    const limitMB = Math.round(maxSizeBytes / (1024 * 1024));
+    return { safe: false, reason: `File exceeds maximum size of ${limitMB}MB` };
+  }
+
+  const magicResult = await validateMagicBytesFromBuffer(buffer, ext);
+  if (!magicResult.valid) {
+    return { safe: false, reason: magicResult.reason };
+  }
+
+  return { safe: true };
+};
+
 module.exports = {
   validateMagicBytes,
+  validateMagicBytesFromBuffer,
   sanitizeFilename,
   generateSecureFilename,
   isFileSafe,
+  isFileBufferSafe,
   readFileHead,
 };

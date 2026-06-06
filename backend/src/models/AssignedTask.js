@@ -49,7 +49,7 @@ const assignedTaskSchema = new mongoose.Schema({
   submissionConfig: {
     inputType: {
       type: String,
-      enum: ['text', 'image', 'file', 'link', 'multiple_files', 'text_image', 'text_file', 'text_link', 'custom'],
+      enum: ['text', 'image', 'file', 'link', 'multiple_files', 'text_image', 'text_file', 'text_link', 'image_file', 'custom', 'all'],
       default: 'file'
     },
     customFields: [{

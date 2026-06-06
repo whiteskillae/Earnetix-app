@@ -2,9 +2,13 @@ const AssignedTask = require('../models/AssignedTask');
 const User = require('../models/User');
 const AdminLog = require('../models/AdminLog');
 const { uploadToCloudinary, uploadMultipleToCloudinary, rollbackUploads } = require('../services/uploadService');
+const { validateFile } = require('../services/uploadService');
 const { checkDailyLimit } = require('../services/taskService');
 const { cleanupTempFiles } = require('../middleware/uploadMiddleware');
+const { isFileSafe, isFileBufferSafe } = require('../services/fileSecurityService');
 const logger = require('../utils/logger');
+
+const allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'svg', 'tiff'];
 
 // Admin: Create and Assign Task
 const createAndAssignTask = async (req, res, next) => {
@@ -171,7 +175,33 @@ const submitAssignedTask = async (req, res, next) => {
     }
 
     const it = task.submissionConfig?.inputType || 'file';
-    
+    const maxFileSize = task.submissionConfig?.maxFileSize || 5 * 1024 * 1024;
+    const allowedExtensions = task.submissionConfig?.allowedExtensions || ['*'];
+
+    if (req.files && req.files.length > 5) {
+      return res.status(400).json({ success: false, message: 'A maximum of 5 files can be uploaded per mission submission' });
+    }
+
+    if (req.files) {
+      for (const file of req.files) {
+        const ext = file.originalname.split('.').pop().toLowerCase();
+        const allowedForFile = allowedImageExtensions.includes(ext) ? allowedImageExtensions : allowedExtensions;
+        validateFile(file, allowedForFile, maxFileSize);
+
+        if (file.path) {
+          const safety = await isFileSafe(file.path, file.originalname, maxFileSize);
+          if (!safety.safe) {
+            return res.status(400).json({ success: false, message: safety.reason });
+          }
+        } else if (file.buffer) {
+          const safety = await isFileBufferSafe(file.buffer, file.originalname, maxFileSize);
+          if (!safety.safe) {
+            return res.status(400).json({ success: false, message: safety.reason });
+          }
+        }
+      }
+    }
+     
     // Handle submission attachments — parallel upload
     const submissionAttachments = [];
     if (req.files && req.files.length > 0) {
@@ -193,6 +223,15 @@ const submitAssignedTask = async (req, res, next) => {
     }
     if ((it === 'text_file' || it === 'text_image') && (!hasText || !hasFiles)) {
         return res.status(400).json({ success: false, message: 'Both report and evidence files are required' });
+    }
+    if (it === 'image_file' && !hasFiles) {
+        return res.status(400).json({ success: false, message: 'Both screenshot and file evidence are required' });
+    }
+    if (it === 'all') {
+        const hasLink = typeof submissionContent === 'string' && submissionContent.includes('Link: ');
+        if (!hasText || !hasFiles || !hasLink) {
+          return res.status(400).json({ success: false, message: 'Full evidence required: Text + Image/File + Link' });
+        }
     }
 
     // Safely parse customData — never throw on bad JSON
