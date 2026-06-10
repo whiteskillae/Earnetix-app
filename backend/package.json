@@ -10,7 +10,6 @@
     "test": "cross-env NODE_ENV=test jest --detectOpenHandles --forceExit"
   },
   "dependencies": {
-    "@getbrevo/brevo": "^5.0.4",
     "@google-cloud/recaptcha-enterprise": "^6.4.1",
     "axios": "^1.16.1",
     "bcryptjs": "^2.4.3",
