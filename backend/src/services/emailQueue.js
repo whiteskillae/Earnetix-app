@@ -2,8 +2,14 @@ const env = require('../config/env');
 const logger = require('../utils/logger');
 const EmailJob = require('../models/EmailJob');
 const nodemailer = require('nodemailer');
+const { BrevoClient } = require('@getbrevo/brevo');
 
-// ─── REUSABLE NODEMAILER INSTANCE ───────────────────────────
+// ─── BREVO INITIALIZATION (PRIMARY) ─────────────────────────
+const brevo = new BrevoClient({
+    apiKey: env.BREVO_API_KEY || ''
+});
+
+// ─── REUSABLE NODEMAILER INSTANCE (SECONDARY/FALLBACK) ──────
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST || 'smtp.gmail.com',
   port: env.SMTP_PORT || 465,
@@ -37,12 +43,34 @@ const buildOtpHtml = (otpCode) => `
 `;
 
 /**
- * Send a single OTP email via Nodemailer (Gmail).
+ * Send a single OTP email via Brevo primarily, fallback to Nodemailer.
  * Throws on failure (caller handles retry).
  */
 const sendEmail = async (email, otpCode) => {
+  let brevoFailed = false;
+
+  // 1. Try Brevo First
+  if (env.BREVO_API_KEY) {
+    try {
+      await brevo.transactionalEmails.sendTransacEmail({
+        subject: 'EARNETIX — Your Verification Code',
+        htmlContent: buildOtpHtml(otpCode),
+        sender: { name: 'EARNETIX', email: 'whiteskillae@gmail.com' },
+        to: [{ email }]
+      });
+      return; // Success, exit function
+    } catch (error) {
+      logger.warn(`[EmailQueue] Brevo failed for ${email}, falling back to Nodemailer: ${error.response?.body?.message || error.message}`);
+      brevoFailed = true;
+    }
+  }
+
+  // 2. Fallback to Nodemailer
   if (!env.SMTP_USER || !env.SMTP_PASS) {
-    throw new Error('SMTP credentials are not configured.');
+    if (brevoFailed) {
+      throw new Error('Brevo failed and SMTP fallback credentials are not configured.');
+    }
+    throw new Error('No email credentials configured (neither Brevo nor SMTP).');
   }
 
   await transporter.sendMail({
@@ -149,10 +177,10 @@ const pollQueue = async () => {
  * Initialize the queue — start background polling loop.
  */
 const initialize = () => {
-  if (!env.SMTP_USER) {
-    logger.warn('[EmailQueue] ⚠️  SMTP_USER not set — OTP emails will fail.');
+  if (!env.BREVO_API_KEY && !env.SMTP_USER) {
+    logger.warn('[EmailQueue] ⚠️  No email credentials set (Brevo or SMTP) — OTP emails will fail.');
   } else {
-    logger.info('[EmailQueue] ✅ MongoDB Email Queue initialized.');
+    logger.info('[EmailQueue] ✅ MongoDB Email Queue initialized with Brevo (Primary) and Nodemailer (Fallback).');
   }
   
   // Clean up any stale processing jobs that might have stuck due to a server crash
