@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
+const { encrypt, decrypt } = require('../utils/encryption');
 
-const loginEntrySchema = new mongoose.Schema({
-  ip: String,
-  userAgent: String,
-  timestamp: { type: Date, default: Date.now },
-}, { _id: false });
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -74,10 +71,6 @@ const userSchema = new mongoose.Schema({
   deviceFingerprint: {
     type: String,
     default: null,
-  },
-  loginHistory: {
-    type: [loginEntrySchema],
-    default: [],
   },
   otp: {
     code: { type: String, default: null },
@@ -163,10 +156,28 @@ const userSchema = new mongoose.Schema({
   },
   bankDetails: {
     accountName: { type: String, default: null },
-    accountNumber: { type: String, default: null },
-    ifscCode: { type: String, default: null },
+    accountNumber: { 
+      type: String, 
+      default: null,
+      get: decrypt,
+      set: encrypt,
+      select: false // Never return by default in queries
+    },
+    ifscCode: { 
+      type: String, 
+      default: null,
+      get: decrypt,
+      set: encrypt,
+      select: false 
+    },
     bankName: { type: String, default: null },
-    upiId: { type: String, default: null },
+    upiId: { 
+      type: String, 
+      default: null,
+      get: decrypt,
+      set: encrypt,
+      select: false 
+    },
   },
   lastBankDetailsUpdated: {
     type: Date,
@@ -174,6 +185,8 @@ const userSchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
 
 // Indexes for fast lookup
@@ -184,26 +197,27 @@ userSchema.index({ role: 1, points: -1 }); // Index for leaderboard
 // Pre-save hook to generate UID
 userSchema.pre('save', async function (next) {
   if (this.isNew && !this.uid) {
-    let isUnique = false;
-    while (!isUnique) {
-      const newUid = 'E' + Math.floor(10000000 + Math.random() * 90000000);
-      const existing = await mongoose.models.User.findOne({ uid: newUid });
-      if (!existing) {
-        this.uid = newUid;
-        isUnique = true;
-      }
-    }
+    // Generate a unique collision-resistant 8-character ID
+    // The unique: true index in MongoDB will handle the extremely rare case of a collision
+    this.uid = 'E' + crypto.randomBytes(4).toString('hex').toUpperCase();
   }
   next();
 });
 
 // Never return sensitive fields in JSON
 userSchema.methods.toJSON = function () {
-  const obj = this.toObject();
+  const obj = this.toObject({ getters: true });
   delete obj.passwordHash;
   delete obj.otp;
   delete obj.refreshToken;
   delete obj.__v;
+  // Make sure bank details aren't accidentally exposed completely
+  // Explicitly mask them or delete them for non-admins if needed, 
+  // but `select: false` generally prevents them from even loading.
+  if (obj.bankDetails) {
+    if (obj.bankDetails.accountNumber) obj.bankDetails.accountNumber = '****' + obj.bankDetails.accountNumber.slice(-4);
+    if (obj.bankDetails.upiId) obj.bankDetails.upiId = '****' + obj.bankDetails.upiId.slice(-4);
+  }
   return obj;
 };
 

@@ -3,19 +3,18 @@ const env = require('../config/env');
 
 // General API rate limiter
 const apiLimiter = rateLimit({
-  windowMs: parseInt(env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: 50000000,             // Removed rate limit bottleneck (50M)
+  windowMs: 60 * 1000, // 1 minute
+  max: 100,             // 100 requests per minute
   message: { success: false, message: 'High traffic detected. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  // No longer skipping admin routes — they now have their own dedicated limiter
 });
 
 // Strict limiter for login/auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 15,
-  message: { success: false, message: 'Too many attempts. Please try again in 10 minutes.' },
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { success: false, message: 'Too many attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -24,7 +23,7 @@ const authLimiter = rateLimit({
 // Prevents a compromised admin account from flooding the API
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // 500 requests per window — very generous for admin operations
+  max: 100, // 100 requests per window
   message: { success: false, message: 'Admin rate limit reached. Please wait before making more requests.' },
   standardHeaders: true,
   legacyHeaders: false,

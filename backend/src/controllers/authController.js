@@ -1,12 +1,15 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const AdminLog = require('../models/AdminLog');
+const LoginLog = require('../models/LoginLog');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../services/tokenService');
 const { generateOTP } = require('../services/otpService');
 const emailQueue = require('../services/emailQueue');
 const logger = require('../utils/logger');
 const env = require('../config/env');
 const cacheService = require('../services/cacheService');
+const authService = require('../services/authService');
+const { pendingKey, otpRateKey } = authService;
 
 const { RecaptchaEnterpriseServiceClient } = require('@google-cloud/recaptcha-enterprise');
 
@@ -15,118 +18,6 @@ const verifyCaptcha = async (token, action = 'default') => {
 };
 
 const jwt = require('jsonwebtoken');
-
-// ─── CACHE KEYS ───────────────────────────────────────
-const pendingKey = (email) => `pending_reg:${email.toLowerCase()}`;
-const otpRateKey = (email) => `otp_rate:${email.toLowerCase()}`;
-const loginAttemptKey = (email) => `login_attempts:${email.toLowerCase()}`;
-
-// Max 15 attempts per minute; block for 30 minutes after that
-const MAX_LOGIN_ATTEMPTS = 15;
-const LOGIN_WINDOW_MS = 60 * 1000;      // 1 minute
-const LOGIN_BLOCK_MS = 30 * 60 * 1000;  // 30 minutes
-
-const checkLoginAttempts = (email) => {
-  const key = loginAttemptKey(email);
-  const data = cacheService.get(key) || { count: 0, firstAt: Date.now(), blockedUntil: 0 };
-
-  if (data.blockedUntil && Date.now() < data.blockedUntil) {
-    const minsLeft = Math.ceil((data.blockedUntil - Date.now()) / 60000);
-    throw Object.assign(new Error(`Too many login attempts. Try again after ${minsLeft} minute${minsLeft !== 1 ? 's' : ''}.`), { statusCode: 429 });
-  }
-
-  // Reset window if expired
-  if (Date.now() - data.firstAt > LOGIN_WINDOW_MS) {
-    data.count = 0;
-    data.firstAt = Date.now();
-  }
-
-  data.count += 1;
-
-  if (data.count >= MAX_LOGIN_ATTEMPTS) {
-    data.blockedUntil = Date.now() + LOGIN_BLOCK_MS;
-    cacheService.set(key, data, 30 * 60); // 30 min TTL
-    throw Object.assign(new Error('Too many login attempts. Try again after 30 minutes.'), { statusCode: 429 });
-  }
-
-  cacheService.set(key, data, 30 * 60);
-};
-
-const clearLoginAttempts = (email) => {
-  cacheService.del(loginAttemptKey(email));
-};
-
-// ─── HELPER: OTP Rate Limit (cache-based for pending registrations) ───────────
-/**
- * Returns current rate-limit data from cache for a given email.
- * Returns null if no data yet.
- */
-const getCacheOtpRate = (email) => {
-  return cacheService.get(otpRateKey(email)) || null;
-};
-
-const rollbackCacheOtpRateLimit = (email) => {
-  let rateData = cacheService.get(otpRateKey(email));
-  if (rateData) {
-    rateData.dailyCount = Math.max(0, rateData.dailyCount - 1);
-    rateData.lastRequestAt = 0;
-    cacheService.set(otpRateKey(email), rateData, 24 * 60 * 60);
-  }
-};
-
-const checkCacheOtpRateLimit = (email) => {
-  const now = Date.now();
-  let rateData = getCacheOtpRate(email) || { dailyCount: 0, lastRequestAt: 0, lastDailyReset: now };
-
-  // Reset daily count if 24h passed
-  if ((now - rateData.lastDailyReset) > 24 * 60 * 60 * 1000) {
-    rateData.dailyCount = 0;
-    rateData.lastDailyReset = now;
-  }
-
-  if (rateData.dailyCount >= 4) {
-    throw new Error('Daily OTP request limit exceeded. Please try again tomorrow.');
-  }
-
-  if (rateData.lastRequestAt && (now - rateData.lastRequestAt) < 2 * 60 * 1000) {
-    const secsLeft = Math.ceil((2 * 60 * 1000 - (now - rateData.lastRequestAt)) / 1000);
-    throw new Error(`Please wait ${secsLeft} seconds before requesting another OTP.`);
-  }
-
-  rateData.dailyCount += 1;
-  rateData.lastRequestAt = now;
-
-  // Store rate data with 24h TTL
-  cacheService.set(otpRateKey(email), rateData, 24 * 60 * 60);
-};
-
-// ─── HELPER: OTP Rate Limit for verified DB users (e.g. forgot password) ─────
-const rollbackOtpRateLimit = (user) => {
-  if (user.otp) {
-    user.otp.dailyCount = Math.max(0, user.otp.dailyCount - 1);
-    user.otp.lastRequestAt = null;
-  }
-};
-
-const checkOtpRateLimit = (user) => {
-  const now = new Date();
-
-  if (!user.otp.lastDailyReset || (now - user.otp.lastDailyReset) > 24 * 60 * 60 * 1000) {
-    user.otp.dailyCount = 0;
-    user.otp.lastDailyReset = now;
-  }
-
-  if (user.otp.dailyCount >= 4) {
-    throw new Error('Daily OTP request limit exceeded. Please try again tomorrow.');
-  }
-
-  if (user.otp.lastRequestAt && (now - user.otp.lastRequestAt) < 2 * 60 * 1000) {
-    throw new Error('Please wait 2 minutes before requesting another OTP.');
-  }
-
-  user.otp.dailyCount += 1;
-  user.otp.lastRequestAt = now;
-};
 
 // ─── HELPER: Cookie options ────────────────────────────
 const getCookieOptions = () => {
@@ -154,7 +45,7 @@ const register = async (req, res, next) => {
 
     // 2. Apply cache-based OTP rate limiting
     try {
-      checkCacheOtpRateLimit(email);
+      authService.checkCacheOtpRateLimit(email);
     } catch (err) {
       return res.status(429).json({ success: false, message: err.message });
     }
@@ -274,7 +165,7 @@ const resendOtp = async (req, res, next) => {
 
     // Apply rate limiting
     try {
-      checkCacheOtpRateLimit(email);
+      authService.checkCacheOtpRateLimit(email);
     } catch (err) {
       return res.status(429).json({ success: false, message: err.message });
     }
@@ -304,63 +195,6 @@ const login = async (req, res, next) => {
   try {
     const { email, password, deviceFingerprint } = req.body;
 
-    // Direct Admin login override using environment variables
-    const adminEmail = env.ADMIN_EMAIL;
-    const adminPassword = env.ADMIN_PASSWORD;
-
-    if (adminEmail && email === adminEmail && adminPassword && password === adminPassword) {
-      let adminUser = await User.findOne({ email: adminEmail });
-      if (!adminUser) {
-        // Create the admin user on the fly if not exists
-        const passwordHash = await bcrypt.hash(adminPassword, 12);
-        adminUser = await User.create({
-          name: 'System Admin',
-          email: adminEmail,
-          passwordHash,
-          role: 'admin',
-          isVerified: true,
-          registrationIp: req.ip || '127.0.0.1',
-        });
-      } else {
-        // Sync role, authProvider and password if needed
-        let adminChanged = false;
-        if (adminUser.role !== 'admin') {
-          adminUser.role = 'admin';
-          adminChanged = true;
-        }
-        if (adminUser.authProvider !== 'local') {
-          adminUser.authProvider = 'local';
-          adminChanged = true;
-        }
-        const isMatch = await bcrypt.compare(adminPassword, adminUser.passwordHash);
-        if (!isMatch) {
-          adminUser.passwordHash = await bcrypt.hash(adminPassword, 12);
-          adminChanged = true;
-        }
-        if (adminChanged) {
-          await adminUser.save();
-        }
-      }
-
-      const payload = { userId: adminUser._id, role: 'admin' };
-      const accessToken = generateAccessToken(payload);
-      const refreshToken = generateRefreshToken(payload);
-
-      adminUser.refreshToken = refreshToken;
-      await adminUser.save();
-
-      res.cookie('refreshToken', refreshToken, getCookieOptions());
-
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          accessToken,
-          user: adminUser.toJSON(),
-        },
-      });
-    }
-
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
@@ -380,7 +214,7 @@ const login = async (req, res, next) => {
 
     // Check per-account login attempt limits (brute force protection)
     try {
-      checkLoginAttempts(email);
+      authService.checkLoginAttempts(email);
     } catch (err) {
       return res.status(err.statusCode || 429).json({ success: false, message: err.message });
     }
@@ -392,13 +226,12 @@ const login = async (req, res, next) => {
     }
 
     // Successful login — clear the attempt counter
-    clearLoginAttempts(email);
+    authService.clearLoginAttempts(email);
 
     // Track login
     const ip = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'unknown';
-    user.loginHistory.push({ ip, userAgent });
-    if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20); // keep last 20
+    await LoginLog.create({ userId: user._id, ip, userAgent, status: 'success' });
 
     if (user.role !== 'admin' && deviceFingerprint) {
       user.deviceFingerprint = deviceFingerprint;
@@ -440,9 +273,6 @@ const login = async (req, res, next) => {
 };
 
 // ─── GOOGLE AUTH ───────────────────────────────────────
-const { OAuth2Client } = require('google-auth-library');
-const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
-
 const googleAuth = async (req, res, next) => {
   const startTime = Date.now();
   try {
@@ -450,38 +280,13 @@ const googleAuth = async (req, res, next) => {
     if (!credential) return res.status(400).json({ success: false, message: 'Google credential missing' });
 
     // Step 1: Parallelize Google Token Verification and User Lookup
-    let googleUser;
-    
-    const verifyToken = async () => {
-      try {
-        // Try as ID Token first (faster local verification)
-        const ticket = await client.verifyIdToken({
-          idToken: credential,
-          audience: env.GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
-        return { 
-          email: payload.email, 
-          name: payload.name, 
-          picture: payload.picture,
-          method: 'id_token'
-        };
-      } catch (err) {
-        // Fallback to userinfo endpoint (Access Token)
-        const response = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${credential}`);
-        if (!response.ok) throw new Error('Invalid Google Token');
-        const data = await response.json();
-        return { ...data, method: 'access_token' };
-      }
-    };
-
     // Parallelize the external request and the first DB check
     const [googleInfo, existingUser] = await Promise.all([
-      verifyToken(),
+      authService.verifyGoogleToken(credential),
       User.findOne({ email: req.body.email || '' })
     ]);
 
-    googleUser = googleInfo;
+    const googleUser = googleInfo;
     const { email, name, picture } = googleUser;
     let user = existingUser || await User.findOne({ email });
 
@@ -506,8 +311,8 @@ const googleAuth = async (req, res, next) => {
 
     // Track login and finalize
     const ip = req.ip || req.connection.remoteAddress;
-    user.loginHistory.push({ ip, userAgent: req.headers['user-agent'] || 'unknown' });
-    if (user.loginHistory.length > 20) user.loginHistory = user.loginHistory.slice(-20);
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    await LoginLog.create({ userId: user._id, ip, userAgent, status: 'success' });
     
     if (user.role !== 'admin' && deviceFingerprint) {
       user.deviceFingerprint = deviceFingerprint;
@@ -653,7 +458,7 @@ const forgotPassword = async (req, res, next) => {
     }
 
     try {
-      checkOtpRateLimit(user);
+      authService.checkOtpRateLimit(user);
     } catch (err) {
       return res.status(429).json({ success: false, message: err.message });
     }

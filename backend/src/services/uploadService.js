@@ -113,7 +113,7 @@ const hashFileFromDisk = (filePath) => {
  *
  * Returns: { url, publicId, hash, bytes, format, resourceType }
  */
-const uploadToCloudinaryFromDisk = async (filePath, folder = 'earnetix/submissions', originalName = 'file') => {
+const uploadToCloudinaryFromDisk = async (filePath, folder = 'earnetix/submissions', originalName = 'file', options = {}) => {
   let hash;
   try {
     hash = await hashFileFromDisk(filePath);
@@ -126,7 +126,8 @@ const uploadToCloudinaryFromDisk = async (filePath, folder = 'earnetix/submissio
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       folder,
-      resource_type
+      resource_type,
+      ...options
     });
     
     return {
@@ -148,10 +149,10 @@ const uploadToCloudinaryFromDisk = async (filePath, folder = 'earnetix/submissio
  * BACKWARD-COMPATIBLE: This is the original API used by existing controllers.
  * It now delegates to the disk-based uploader when a file path is available.
  */
-const uploadToCloudinary = async (bufferOrPath, folder = 'earnetix/submissions', originalNameOrType = 'auto') => {
+const uploadToCloudinary = async (bufferOrPath, folder = 'earnetix/submissions', originalNameOrType = 'auto', options = {}) => {
   // If a file path (string) is passed, use the disk-based uploader
   if (typeof bufferOrPath === 'string' && fs.existsSync(bufferOrPath)) {
-    return uploadToCloudinaryFromDisk(bufferOrPath, folder, originalNameOrType);
+    return uploadToCloudinaryFromDisk(bufferOrPath, folder, originalNameOrType, options);
   }
 
   // Legacy buffer-based path (for any callers still passing buffers)
@@ -167,7 +168,7 @@ const uploadToCloudinary = async (bufferOrPath, folder = 'earnetix/submissions',
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type },
+      { folder, resource_type, ...options },
       (error, result) => {
         if (error) {
           logger.error(`Cloudinary upload failed: ${error.message}`);

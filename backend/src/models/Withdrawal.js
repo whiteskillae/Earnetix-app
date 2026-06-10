@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 const withdrawalSchema = new mongoose.Schema({
   userId: {
@@ -18,10 +19,28 @@ const withdrawalSchema = new mongoose.Schema({
   },
   bankDetails: {
     accountName: { type: String, required: true },
-    accountNumber: { type: String, required: true },
-    ifscCode: { type: String, default: null },
+    accountNumber: { 
+      type: String, 
+      required: true,
+      get: decrypt,
+      set: encrypt,
+      select: false 
+    },
+    ifscCode: { 
+      type: String, 
+      default: null,
+      get: decrypt,
+      set: encrypt,
+      select: false 
+    },
     bankName: { type: String, required: true },
-    upiId: { type: String, default: null },
+    upiId: { 
+      type: String, 
+      default: null,
+      get: decrypt,
+      set: encrypt,
+      select: false 
+    },
   },
   status: {
     type: String,
@@ -43,7 +62,20 @@ const withdrawalSchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
+
+// Mask sensitive fields in JSON
+withdrawalSchema.methods.toJSON = function () {
+  const obj = this.toObject({ getters: true });
+  delete obj.__v;
+  if (obj.bankDetails) {
+    if (obj.bankDetails.accountNumber) obj.bankDetails.accountNumber = '****' + obj.bankDetails.accountNumber.slice(-4);
+    if (obj.bankDetails.upiId) obj.bankDetails.upiId = '****' + obj.bankDetails.upiId.slice(-4);
+  }
+  return obj;
+};
 
 // Indexes for fast lookup
 withdrawalSchema.index({ userId: 1, status: 1 });

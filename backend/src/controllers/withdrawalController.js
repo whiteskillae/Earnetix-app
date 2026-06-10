@@ -75,7 +75,9 @@ const requestWithdrawal = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Points must be a multiple of 100' });
     }
 
-    const user = await User.findById(req.user._id).session(session);
+    const user = await User.findById(req.user._id)
+      .select('+bankDetails.accountNumber +bankDetails.ifscCode +bankDetails.upiId')
+      .session(session);
     if (!user) {
       await session.abortTransaction();
       session.endSession();
@@ -179,13 +181,16 @@ const getAllWithdrawals = async (req, res, next) => {
     if (status) filter.status = status;
 
     const withdrawals = await Withdrawal.find(filter)
+      .select('+bankDetails.accountNumber +bankDetails.ifscCode +bankDetails.upiId')
       .populate('userId', 'name email points frozenPoints kycStatus country')
       .populate('processedBy', 'name email')
       .sort({ createdAt: -1 })
-      .limit(200)
-      .lean();
+      .limit(200);
 
-    res.json({ success: true, data: withdrawals });
+    // Explicitly convert to object to apply decryption getters but bypass the toJSON masking
+    const data = withdrawals.map(w => w.toObject({ getters: true }));
+
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }

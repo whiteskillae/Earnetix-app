@@ -1,23 +1,23 @@
-const axios = require('axios');
 const env = require('../config/env');
 const logger = require('../utils/logger');
+const EmailJob = require('../models/EmailJob');
+const nodemailer = require('nodemailer');
 
-// ─── REUSABLE AXIOS INSTANCE ──────────────────────────────
-// Created once at module load — avoids cold-start cost on every send.
-const brevoClient = axios.create({
-  baseURL: 'https://api.brevo.com/v3',
-  timeout: 8000, // 8s per attempt
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+// ─── REUSABLE NODEMAILER INSTANCE ───────────────────────────
+const transporter = nodemailer.createTransport({
+  host: env.SMTP_HOST || 'smtp.gmail.com',
+  port: env.SMTP_PORT || 465,
+  secure: true, // true for 465, false for other ports
+  auth: {
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
   },
 });
 
 // ─── EMAIL QUEUE STATE ────────────────────────────────────
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [1000, 2000, 4000]; // exponential backoff
-
-let queueLength = 0;
+let isPolling = false;
 
 /**
  * Build the OTP email HTML template.
@@ -37,75 +37,64 @@ const buildOtpHtml = (otpCode) => `
 `;
 
 /**
- * Send a single OTP email via Brevo HTTP API.
+ * Send a single OTP email via Nodemailer (Gmail).
  * Throws on failure (caller handles retry).
  */
-const sendViaBrevo = async (email, otpCode) => {
-  if (!env.BREVO_API_KEY) {
-    throw new Error('API_KEY is not configured.');
+const sendEmail = async (email, otpCode) => {
+  if (!env.SMTP_USER || !env.SMTP_PASS) {
+    throw new Error('SMTP credentials are not configured.');
   }
 
-  await brevoClient.post('/smtp/email', {
-    sender: {
-      email: env.SMTP_USER || 'noreply@earnetix.com',
-      name: 'EARNETIX',
-    },
-    to: [{ email }],
+  await transporter.sendMail({
+    from: `"EARNETIX" <${env.SMTP_USER}>`,
+    to: email,
     subject: 'EARNETIX — Your Verification Code',
-    htmlContent: buildOtpHtml(otpCode),
-  }, {
-    headers: { 'api-key': env.BREVO_API_KEY },
+    html: buildOtpHtml(otpCode),
   });
 };
 
 /**
- * Process a single email job with retry logic.
+ * Process a single email job from MongoDB.
  */
 const processJob = async (job) => {
-  const { email, otpCode, enqueuedAt } = job;
   const startMs = Date.now();
+  
+  job.status = 'processing';
+  job.attempts += 1;
+  await job.save();
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      await sendViaBrevo(email, otpCode);
+  try {
+    await sendEmail(job.email, job.otpCode);
 
-      const deliveryMs = Date.now() - startMs;
-      const queueWaitMs = startMs - enqueuedAt;
-      logger.info(`[EmailQueue] ✅ OTP delivered to ${email} | attempt=${attempt} | delivery=${deliveryMs}ms | queue_wait=${queueWaitMs}ms`);
-      return; // success — exit
-    } catch (err) {
-      const errMsg = err.response?.data
-        ? JSON.stringify(err.response.data)
-        : err.message;
+    job.status = 'completed';
+    await job.save();
 
-      if (attempt < MAX_RETRIES) {
-        const delay = RETRY_DELAYS_MS[attempt - 1];
-        logger.warn(`[EmailQueue] ⚠️ Attempt ${attempt}/${MAX_RETRIES} failed for ${email}: ${errMsg}. Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        logger.error(`[EmailQueue] ❌ All ${MAX_RETRIES} attempts failed for ${email}: ${errMsg}`);
-      }
+    const deliveryMs = Date.now() - startMs;
+    logger.info(`[EmailQueue] ✅ OTP delivered to ${job.email} | attempt=${job.attempts} | time=${deliveryMs}ms`);
+  } catch (err) {
+    const errMsg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    
+    if (job.attempts < MAX_RETRIES) {
+      const delay = RETRY_DELAYS_MS[job.attempts - 1];
+      job.status = 'failed';
+      job.lastError = errMsg;
+      job.nextAttemptAt = new Date(Date.now() + delay);
+      logger.warn(`[EmailQueue] ⚠️ Attempt ${job.attempts}/${MAX_RETRIES} failed for ${job.email}: ${errMsg}. Retrying soon.`);
+    } else {
+      job.status = 'failed';
+      job.lastError = errMsg;
+      job.nextAttemptAt = null; // Don't retry anymore
+      logger.error(`[EmailQueue] ❌ All ${MAX_RETRIES} attempts failed for ${job.email}: ${errMsg}`);
     }
+    await job.save();
   }
 };
 
 /**
- * Enqueue an OTP email job.
- * This is NON-BLOCKING — it schedules the job and returns immediately.
- * The caller (controller) does NOT need to await this.
- *
- * @param {string} email - Recipient email address
- * @param {string} otpCode - 6-digit OTP code
+ * Enqueue an OTP email job securely in MongoDB.
+ * This is NON-BLOCKING — it saves to DB and returns immediately.
  */
-const enqueue = (email, otpCode) => {
-  const job = {
-    email,
-    otpCode,
-    enqueuedAt: Date.now(),
-  };
-
-  queueLength += 1;
-
+const enqueue = async (email, otpCode) => {
   // Log OTP in development for easy testing
   if (env.NODE_ENV !== 'production') {
     logger.info(`======================================`);
@@ -113,28 +102,64 @@ const enqueue = (email, otpCode) => {
     logger.info(`======================================`);
   }
 
-  logger.info(`[EmailQueue] Job enqueued for ${email} | queue_size=${queueLength}`);
-
-  // Schedule async processing — does NOT block the current event loop tick
-  setImmediate(async () => {
-    try {
-      await processJob(job);
-    } finally {
-      queueLength = Math.max(0, queueLength - 1);
-    }
-  });
-};
-
-/**
- * Initialize the queue — call once at server startup to warm up
- * the Brevo client and validate API key presence.
- */
-const initialize = () => {
-  if (!env.BREVO_API_KEY) {
-    logger.warn('[EmailQueue] ⚠️  BREVO_API_KEY not set — OTP emails will fail.');
-  } else {
-    logger.info('[EmailQueue] ✅ Email queue initialized with Brevo transport.');
+  try {
+    await EmailJob.create({ email, otpCode });
+    logger.info(`[EmailQueue] Job safely enqueued in DB for ${email}`);
+    
+    // Trigger polling immediately if it's currently sleeping
+    setImmediate(pollQueue);
+  } catch (err) {
+    logger.error(`[EmailQueue] Failed to enqueue job for ${email}: ${err.message}`);
   }
 };
 
-module.exports = { enqueue, initialize, get queueLength() { return queueLength; } };
+/**
+ * Poll the database for pending or retryable jobs.
+ */
+const pollQueue = async () => {
+  if (isPolling) return;
+  isPolling = true;
+
+  try {
+    const job = await EmailJob.findOneAndUpdate(
+      { 
+        status: { $in: ['pending', 'failed'] },
+        nextAttemptAt: { $lte: new Date() },
+        $or: [{ attempts: { $lt: MAX_RETRIES } }, { status: 'pending' }]
+      },
+      { status: 'processing' }, // atomically mark processing so other workers don't grab it
+      { sort: { nextAttemptAt: 1 }, new: true }
+    );
+
+    if (job) {
+      await processJob(job);
+      // Immediately try to process next job
+      isPolling = false;
+      setImmediate(pollQueue);
+      return;
+    }
+  } catch (err) {
+    logger.error(`[EmailQueue] Polling error: ${err.message}`);
+  }
+
+  isPolling = false;
+};
+
+/**
+ * Initialize the queue — start background polling loop.
+ */
+const initialize = () => {
+  if (!env.SMTP_USER) {
+    logger.warn('[EmailQueue] ⚠️  SMTP_USER not set — OTP emails will fail.');
+  } else {
+    logger.info('[EmailQueue] ✅ MongoDB Email Queue initialized.');
+  }
+  
+  // Clean up any stale processing jobs that might have stuck due to a server crash
+  EmailJob.updateMany({ status: 'processing' }, { status: 'pending' }).catch(() => {});
+
+  // Poll every 5 seconds as a fallback, though `enqueue` triggers it immediately too.
+  setInterval(pollQueue, 5000);
+};
+
+module.exports = { enqueue, initialize };

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { validateFile, uploadToCloudinary, deleteFromCloudinary } = require('../services/uploadService');
+const cloudinary = require('../config/cloudinary');
 const AdminLog = require('../models/AdminLog');
 const logger = require('../utils/logger');
 
@@ -46,7 +47,7 @@ const submitKyc = async (req, res, next) => {
       await deleteFromCloudinary(user.kycDocumentPublicId);
     }
 
-    const uploadResult = await uploadToCloudinary(docFile.path || docFile.buffer, 'earnetix/kyc', docFile.originalname);
+    const uploadResult = await uploadToCloudinary(docFile.path || docFile.buffer, 'earnetix/kyc', docFile.originalname, { type: 'private' });
 
     user.kycStatus = 'pending';
     user.kycDocumentUrl = uploadResult.url;
@@ -191,7 +192,20 @@ const getFullKycUser = async (req, res, next) => {
       '-passwordHash -refreshToken -otp -loginHistory'
     );
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    res.json({ success: true, data: user });
+    
+    let signedKycUrl = user.kycDocumentUrl;
+    if (user.kycDocumentPublicId) {
+      // Generate a temporary signed URL valid for 15 minutes to view the private KYC document
+      const format = user.kycDocumentUrl.split('.').pop() || 'jpg';
+      signedKycUrl = cloudinary.utils.private_download_url(user.kycDocumentPublicId, format, {
+        expires_at: Math.floor(Date.now() / 1000) + (15 * 60)
+      });
+    }
+
+    const userData = user.toJSON();
+    userData.kycDocumentUrl = signedKycUrl; // Replace public URL with signed URL
+
+    res.json({ success: true, data: userData });
   } catch (error) {
     next(error);
   }

@@ -51,11 +51,6 @@ const allowedOrigins = [
   cleanClientUrl,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-  'https://earnetix-app.vercel.app',
-  'https://earnetix-app-93ba.vercel.app',
-  'https://earnetix-app.vercel.app',
-  'https://earnetix-app-93ba.vercel.app',
-  'https://earnetix-app.onrender.com',
   'https://www.earnetixhub.com',
   'https://earnetixhub.com'
 ].filter(Boolean); // remove empty strings
@@ -63,7 +58,7 @@ const allowedOrigins = [
 // Manual headers for robust CORS (especially for preflight OPTIONS)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin) || /^https:\/\/(earnitix|earnetix)-app.*\.vercel\.app$/.test(origin)) {
+  if (allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
   } else {
     // Fallback if needed, though cors() will also handle it
@@ -81,7 +76,7 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || /^https:\/\/(earnitix|earnetix)-app.*\.vercel\.app$/.test(origin)) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
