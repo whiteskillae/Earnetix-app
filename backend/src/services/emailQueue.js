@@ -1,11 +1,12 @@
 const env = require('../config/env');
 const logger = require('../utils/logger');
 const EmailJob = require('../models/EmailJob');
-const brevo = require('@getbrevo/brevo');
+const { BrevoClient } = require('@getbrevo/brevo');
 
 // ─── BREVO INITIALIZATION ───────────────────────────
-const apiInstance = new brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, env.BREVO_API_KEY || '');
+const brevo = new BrevoClient({
+    apiKey: env.BREVO_API_KEY || ''
+});
 
 // ─── EMAIL QUEUE STATE ────────────────────────────────────
 const MAX_RETRIES = 3;
@@ -38,13 +39,12 @@ const sendEmail = async (email, otpCode) => {
     throw new Error('Brevo API key is not configured.');
   }
 
-  const sendSmtpEmail = new brevo.SendSmtpEmail();
-  sendSmtpEmail.subject = 'EARNETIX — Your Verification Code';
-  sendSmtpEmail.htmlContent = buildOtpHtml(otpCode);
-  sendSmtpEmail.sender = { name: 'EARNETIX', email: 'whiteskillae@gmail.com' };
-  sendSmtpEmail.to = [{ email }];
-
-  await apiInstance.sendTransacEmail(sendSmtpEmail);
+  await brevo.transactionalEmails.sendTransacEmail({
+    subject: 'EARNETIX — Your Verification Code',
+    htmlContent: buildOtpHtml(otpCode),
+    sender: { name: 'EARNETIX', email: 'whiteskillae@gmail.com' },
+    to: [{ email }]
+  });
 };
 
 /**
