@@ -1,18 +1,11 @@
 const env = require('../config/env');
 const logger = require('../utils/logger');
 const EmailJob = require('../models/EmailJob');
-const nodemailer = require('nodemailer');
+const brevo = require('@getbrevo/brevo');
 
-// ─── REUSABLE NODEMAILER INSTANCE ───────────────────────────
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST || 'smtp.gmail.com',
-  port: env.SMTP_PORT || 465,
-  secure: true, // true for 465, false for other ports
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-});
+// ─── BREVO INITIALIZATION ───────────────────────────
+const apiInstance = new brevo.TransactionalEmailsApi();
+apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, env.BREVO_API_KEY || '');
 
 // ─── EMAIL QUEUE STATE ────────────────────────────────────
 const MAX_RETRIES = 3;
@@ -41,16 +34,17 @@ const buildOtpHtml = (otpCode) => `
  * Throws on failure (caller handles retry).
  */
 const sendEmail = async (email, otpCode) => {
-  if (!env.SMTP_USER || !env.SMTP_PASS) {
-    throw new Error('SMTP credentials are not configured.');
+  if (!env.BREVO_API_KEY) {
+    throw new Error('Brevo API key is not configured.');
   }
 
-  await transporter.sendMail({
-    from: `"EARNETIX" <${env.SMTP_USER}>`,
-    to: email,
-    subject: 'EARNETIX — Your Verification Code',
-    html: buildOtpHtml(otpCode),
-  });
+  const sendSmtpEmail = new brevo.SendSmtpEmail();
+  sendSmtpEmail.subject = 'EARNETIX — Your Verification Code';
+  sendSmtpEmail.htmlContent = buildOtpHtml(otpCode);
+  sendSmtpEmail.sender = { name: 'EARNETIX', email: 'whiteskillae@gmail.com' };
+  sendSmtpEmail.to = [{ email }];
+
+  await apiInstance.sendTransacEmail(sendSmtpEmail);
 };
 
 /**
@@ -149,10 +143,10 @@ const pollQueue = async () => {
  * Initialize the queue — start background polling loop.
  */
 const initialize = () => {
-  if (!env.SMTP_USER) {
-    logger.warn('[EmailQueue] ⚠️  SMTP_USER not set — OTP emails will fail.');
+  if (!env.BREVO_API_KEY) {
+    logger.warn('[EmailQueue] ⚠️  BREVO_API_KEY not set — OTP emails will fail.');
   } else {
-    logger.info('[EmailQueue] ✅ MongoDB Email Queue initialized.');
+    logger.info('[EmailQueue] ✅ MongoDB Email Queue initialized with Brevo.');
   }
   
   // Clean up any stale processing jobs that might have stuck due to a server crash
